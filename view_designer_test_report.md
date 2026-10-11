@@ -1,5 +1,5 @@
 # View Designer & Widget Property Automated Verification Report
-*Executed at: 2026-10-11 20:29:34*
+*Executed at: 2026-10-11 22:30:38*
 
 ## 1. Widget Instantiation & Identity
   - [x] **PASS**: Create Widget: Row
@@ -125,8 +125,24 @@
   - [x] **PASS**: Alignment: Match Parent dimensions enforce Stretch precedence
   - [x] **PASS**: Compiler: Row emits mainAxisAlignment and crossAxisAlignment
   - [x] **PASS**: Compiler: Container emits alignment, width, and height
+  - [x] **PASS**: Dimension: Parse '150dp' -> 150dp
+  - [x] **PASS**: Dimension: Parse '200px' -> 200px
+  - [x] **PASS**: Dimension: Parse '120pt' -> 120pt
+  - [x] **PASS**: Dimension: Parse raw number '320' -> 320
+  - [x] **PASS**: Dimension: Parse '50%' -> 180px on 360 viewport
+  - [x] **PASS**: Dimension: Parse 'match_parent' -> Match Parent
+  - [x] **PASS**: Dimension: Parse 'wrap_content' -> Auto
+  - [x] **PASS**: Compiler: '150dp' -> '150'
+  - [x] **PASS**: Compiler: '200px' -> '200'
+  - [x] **PASS**: Compiler: 'Match Parent' -> 'double.infinity'
+  - [x] **PASS**: Compiler: '50%' width -> MediaQuery width * 0.5
+  - [x] **PASS**: Compiler: 'Auto' -> omitted (shrink-wrap)
+  - [x] **PASS**: Options: AvailableAlignments contains all standard 9-point choices and Default
+  - [x] **PASS**: Options: AvailableGravities contains stretch, horizontal/vertical centers and 9-point choices
+  - [x] **PASS**: Options: AvailableDimensionPresets contains unit options and presets
+  - [x] **PASS**: Compiler: Container emits custom multi-unit dimensions (dp & %)
   - [x] **PASS**: Reactivity: PropertyChanged event fires with updated value for live reflection
 
 ---
-### Result: 112/112 Passed (100%)
+### Result: 128/128 Passed (100%)
 **Status: ALL WIDGETS AND PROPERTIES FULLY OPERATIONAL AND VERIFIED.**

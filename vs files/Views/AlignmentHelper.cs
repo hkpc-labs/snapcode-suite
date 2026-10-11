@@ -127,10 +127,12 @@ namespace Snapcode.Views
             }
 
             // 3. Sizing constraints precedence (Match Parent always forces Stretch)
-            if (childItem.Width == "Match Parent")
+            var wDim = ParseDimension(childItem.Width);
+            if (wDim.IsMatchParent)
                 h = HorizontalAlignment.Stretch;
 
-            if (childItem.Height == "Match Parent")
+            var hDim = ParseDimension(childItem.Height);
+            if (hDim.IsMatchParent)
                 v = VerticalAlignment.Stretch;
 
             return (h, v);
@@ -214,5 +216,177 @@ namespace Snapcode.Views
 
             return "Alignment.topLeft";
         }
+
+        #region Dimension and Metric Units (dp, px, pt, %, Match Parent, Auto)
+
+        public static readonly string[] AvailableAlignments = new[]
+        {
+            "Default",
+            "TopLeft",
+            "TopCenter",
+            "TopRight",
+            "CenterLeft",
+            "Center",
+            "CenterRight",
+            "BottomLeft",
+            "BottomCenter",
+            "BottomRight"
+        };
+
+        public static readonly string[] AvailableGravities = new[]
+        {
+            "Default",
+            "TopLeft",
+            "TopCenter",
+            "TopRight",
+            "CenterLeft",
+            "Center",
+            "CenterRight",
+            "BottomLeft",
+            "BottomCenter",
+            "BottomRight",
+            "Stretch",
+            "CenterHorizontal",
+            "CenterVertical"
+        };
+
+        public static readonly string[] AvailableDimensionPresets = new[]
+        {
+            "Auto",
+            "Match Parent",
+            "40dp",
+            "50dp",
+            "80dp",
+            "100dp",
+            "120dp",
+            "150dp",
+            "200dp",
+            "250dp",
+            "300dp",
+            "25%",
+            "50%",
+            "75%",
+            "100%"
+        };
+
+        /// <summary>
+        /// Represents the resolved dimension from user input strings like "100", "150dp", "200px", "50%", "Match Parent", "Auto".
+        /// </summary>
+        public class DimensionResult
+        {
+            public double Value { get; set; } = double.NaN;
+            public string Unit { get; set; } = "auto";
+            public bool IsMatchParent { get; set; }
+            public bool IsAuto { get; set; } = true;
+            public bool IsPercentage { get; set; }
+            public double PercentageValue { get; set; }
+            public bool HasExplicitSize => !IsAuto && !IsMatchParent && (!double.IsNaN(Value) && Value > 0 || IsPercentage);
+        }
+
+        /// <summary>
+        /// Parses a dimension string supporting dp, px, pt, %, Match Parent, and Auto.
+        /// </summary>
+        public static DimensionResult ParseDimension(string? dim, double viewportReference = 360.0)
+        {
+            var res = new DimensionResult();
+            if (string.IsNullOrWhiteSpace(dim))
+            {
+                res.IsAuto = true;
+                return res;
+            }
+
+            string d = dim.Trim();
+
+            // Match Parent variants
+            if (d.Equals("Match Parent", StringComparison.OrdinalIgnoreCase) ||
+                d.Equals("match_parent", StringComparison.OrdinalIgnoreCase) ||
+                d.Equals("MatchParent", StringComparison.OrdinalIgnoreCase) ||
+                d.Equals("fill", StringComparison.OrdinalIgnoreCase) ||
+                d.Equals("stretch", StringComparison.OrdinalIgnoreCase))
+            {
+                res.IsMatchParent = true;
+                res.IsAuto = false;
+                res.Unit = "match_parent";
+                res.Value = double.PositiveInfinity;
+                return res;
+            }
+
+            // Auto / wrap_content variants
+            if (d.Equals("Auto", StringComparison.OrdinalIgnoreCase) ||
+                d.Equals("auto", StringComparison.OrdinalIgnoreCase) ||
+                d.Equals("wrap_content", StringComparison.OrdinalIgnoreCase) ||
+                d.Equals("WrapContent", StringComparison.OrdinalIgnoreCase))
+            {
+                res.IsAuto = true;
+                res.Unit = "auto";
+                return res;
+            }
+
+            // Percentage (e.g. "50%")
+            if (d.EndsWith("%"))
+            {
+                string numPart = d.Substring(0, d.Length - 1).Trim();
+                if (double.TryParse(numPart, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double pVal))
+                {
+                    res.IsPercentage = true;
+                    res.IsAuto = false;
+                    res.PercentageValue = pVal;
+                    res.Unit = "%";
+                    res.Value = Math.Round(viewportReference * (pVal / 100.0));
+                    return res;
+                }
+            }
+
+            // Strip unit suffix: dp, px, pt
+            string unit = "dp";
+            string numStr = d;
+            if (d.EndsWith("dp", StringComparison.OrdinalIgnoreCase))
+            {
+                unit = "dp";
+                numStr = d.Substring(0, d.Length - 2).Trim();
+            }
+            else if (d.EndsWith("px", StringComparison.OrdinalIgnoreCase))
+            {
+                unit = "px";
+                numStr = d.Substring(0, d.Length - 2).Trim();
+            }
+            else if (d.EndsWith("pt", StringComparison.OrdinalIgnoreCase))
+            {
+                unit = "pt";
+                numStr = d.Substring(0, d.Length - 2).Trim();
+            }
+
+            if (double.TryParse(numStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double num))
+            {
+                res.IsAuto = false;
+                res.Unit = unit;
+                res.Value = num;
+                return res;
+            }
+
+            res.IsAuto = true;
+            return res;
+        }
+
+        /// <summary>
+        /// Emits exact Flutter Dart code representation for a dimension property.
+        /// </summary>
+        public static string ToFlutterDimensionCode(string? dim, string axis = "width")
+        {
+            var res = ParseDimension(dim);
+            if (res.IsMatchParent) return "double.infinity";
+            if (res.IsPercentage)
+            {
+                double factor = res.PercentageValue / 100.0;
+                return $"MediaQuery.of(context).size.{axis} * {factor.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+            }
+            if (res.HasExplicitSize && !double.IsNaN(res.Value) && res.Value > 0)
+            {
+                return res.Value % 1 == 0 ? ((int)res.Value).ToString() : res.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+            return "";
+        }
+
+        #endregion
     }
 }

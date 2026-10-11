@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Snapcode.Views;
 using SnapCode.Services;
@@ -414,6 +415,50 @@ namespace Snapcode.Services
             string containerAlignDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(testAlignContainer) }));
             Assert(containerAlignDart.Contains("alignment: Alignment.center") && containerAlignDart.Contains("width: 250") && containerAlignDart.Contains("height: 120"),
                 "Compiler: Container emits alignment, width, and height");
+
+            // Section 9: Custom Dimensions (dp, px, pt, %, Match Parent) & Option Presets Tests
+            // 9.1 Multi-Unit Dimension Parsing
+            var dpDim = AlignmentHelper.ParseDimension("150dp");
+            Assert(dpDim.HasExplicitSize && dpDim.Value == 150.0 && dpDim.Unit == "dp", "Dimension: Parse '150dp' -> 150dp");
+
+            var pxDim = AlignmentHelper.ParseDimension("200px");
+            Assert(pxDim.HasExplicitSize && pxDim.Value == 200.0 && pxDim.Unit == "px", "Dimension: Parse '200px' -> 200px");
+
+            var ptDim = AlignmentHelper.ParseDimension("120pt");
+            Assert(ptDim.HasExplicitSize && ptDim.Value == 120.0 && ptDim.Unit == "pt", "Dimension: Parse '120pt' -> 120pt");
+
+            var rawDim = AlignmentHelper.ParseDimension("320");
+            Assert(rawDim.HasExplicitSize && rawDim.Value == 320.0, "Dimension: Parse raw number '320' -> 320");
+
+            var pctDim = AlignmentHelper.ParseDimension("50%", 360.0);
+            Assert(pctDim.IsPercentage && pctDim.PercentageValue == 50.0 && pctDim.Value == 180.0, "Dimension: Parse '50%' -> 180px on 360 viewport");
+
+            var mpDim = AlignmentHelper.ParseDimension("match_parent");
+            Assert(mpDim.IsMatchParent && !mpDim.IsAuto, "Dimension: Parse 'match_parent' -> Match Parent");
+
+            var autoDim = AlignmentHelper.ParseDimension("wrap_content");
+            Assert(autoDim.IsAuto && !autoDim.IsMatchParent, "Dimension: Parse 'wrap_content' -> Auto");
+
+            // 9.2 Flutter Dimension Code Generation
+            Assert(AlignmentHelper.ToFlutterDimensionCode("150dp", "width") == "150", "Compiler: '150dp' -> '150'");
+            Assert(AlignmentHelper.ToFlutterDimensionCode("200px", "height") == "200", "Compiler: '200px' -> '200'");
+            Assert(AlignmentHelper.ToFlutterDimensionCode("Match Parent", "width") == "double.infinity", "Compiler: 'Match Parent' -> 'double.infinity'");
+            Assert(AlignmentHelper.ToFlutterDimensionCode("50%", "width") == "MediaQuery.of(context).size.width * 0.5", "Compiler: '50%' width -> MediaQuery width * 0.5");
+            Assert(AlignmentHelper.ToFlutterDimensionCode("Auto", "width") == "", "Compiler: 'Auto' -> omitted (shrink-wrap)");
+
+            // 9.3 Available Options & Presets Verification
+            Assert(AlignmentHelper.AvailableAlignments.Length >= 10 && AlignmentHelper.AvailableAlignments.Contains("Center") && AlignmentHelper.AvailableAlignments.Contains("Default"),
+                "Options: AvailableAlignments contains all standard 9-point choices and Default");
+            Assert(AlignmentHelper.AvailableGravities.Length >= 13 && AlignmentHelper.AvailableGravities.Contains("Stretch") && AlignmentHelper.AvailableGravities.Contains("CenterHorizontal"),
+                "Options: AvailableGravities contains stretch, horizontal/vertical centers and 9-point choices");
+            Assert(AlignmentHelper.AvailableDimensionPresets.Length >= 10 && AlignmentHelper.AvailableDimensionPresets.Contains("50dp") && AlignmentHelper.AvailableDimensionPresets.Contains("Match Parent"),
+                "Options: AvailableDimensionPresets contains unit options and presets");
+
+            // 9.4 Flutter Compiler Container with Multi-Unit Dimension
+            var testUnitContainer = new WidgetItem { Type = "Container", Id = "unit_box", Width = "180dp", Height = "50%" };
+            string unitContainerDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(testUnitContainer) }));
+            Assert(unitContainerDart.Contains("width: 180") && unitContainerDart.Contains("height: MediaQuery.of(context).size.height * 0.5"),
+                "Compiler: Container emits custom multi-unit dimensions (dp & %)");
 
             // Two-Way Property Reactivity Check
             bool propChangedFired = false;

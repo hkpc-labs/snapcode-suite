@@ -157,22 +157,18 @@ Widget build(BuildContext context) {{
                 {
                     var props = new List<string>();
 
-                    // Width
+                    // Width (supports raw number, dp, px, pt, %, Match Parent)
                     if (node.TryGetProperty("width", out var wProp))
                     {
-                        string wVal = wProp.GetString() ?? "";
-                        if (wVal == "Match Parent") props.Add("width: double.infinity");
-                        else if (double.TryParse(wVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double wNum) && wNum > 0)
-                            props.Add($"width: {wNum.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                        string wCode = AlignmentHelper.ToFlutterDimensionCode(wProp.GetString(), "width");
+                        if (!string.IsNullOrWhiteSpace(wCode)) props.Add($"width: {wCode}");
                     }
 
-                    // Height
+                    // Height (supports raw number, dp, px, pt, %, Match Parent)
                     if (node.TryGetProperty("height", out var hProp))
                     {
-                        string hVal = hProp.GetString() ?? "";
-                        if (hVal == "Match Parent") props.Add("height: double.infinity");
-                        else if (double.TryParse(hVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double hNum) && hNum > 0)
-                            props.Add($"height: {hNum.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                        string hCode = AlignmentHelper.ToFlutterDimensionCode(hProp.GetString(), "height");
+                        if (!string.IsNullOrWhiteSpace(hCode)) props.Add($"height: {hCode}");
                     }
 
                     // Alignment

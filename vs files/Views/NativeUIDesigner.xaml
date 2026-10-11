@@ -118,13 +118,39 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="ComboPropWidth" Grid.Column="0" Header="Width" HorizontalAlignment="Stretch" SelectionChanged="ComboPropWidth_SelectionChanged">
+                        <ComboBox x:Name="ComboPropWidth" Grid.Column="0" Header="Width" HorizontalAlignment="Stretch" IsEditable="True" SelectionChanged="ComboPropWidth_SelectionChanged" TextSubmitted="ComboPropWidth_TextSubmitted" LostFocus="ComboPropWidth_LostFocus">
                             <x:String>Auto</x:String>
                             <x:String>Match Parent</x:String>
+                            <x:String>40dp</x:String>
+                            <x:String>50dp</x:String>
+                            <x:String>80dp</x:String>
+                            <x:String>100dp</x:String>
+                            <x:String>120dp</x:String>
+                            <x:String>150dp</x:String>
+                            <x:String>200dp</x:String>
+                            <x:String>250dp</x:String>
+                            <x:String>300dp</x:String>
+                            <x:String>25%</x:String>
+                            <x:String>50%</x:String>
+                            <x:String>75%</x:String>
+                            <x:String>100%</x:String>
                         </ComboBox>
-                        <ComboBox x:Name="ComboPropHeight" Grid.Column="1" Header="Height" HorizontalAlignment="Stretch" SelectionChanged="ComboPropHeight_SelectionChanged">
+                        <ComboBox x:Name="ComboPropHeight" Grid.Column="1" Header="Height" HorizontalAlignment="Stretch" IsEditable="True" SelectionChanged="ComboPropHeight_SelectionChanged" TextSubmitted="ComboPropHeight_TextSubmitted" LostFocus="ComboPropHeight_LostFocus">
                             <x:String>Auto</x:String>
                             <x:String>Match Parent</x:String>
+                            <x:String>40dp</x:String>
+                            <x:String>50dp</x:String>
+                            <x:String>80dp</x:String>
+                            <x:String>100dp</x:String>
+                            <x:String>120dp</x:String>
+                            <x:String>150dp</x:String>
+                            <x:String>200dp</x:String>
+                            <x:String>250dp</x:String>
+                            <x:String>300dp</x:String>
+                            <x:String>25%</x:String>
+                            <x:String>50%</x:String>
+                            <x:String>75%</x:String>
+                            <x:String>100%</x:String>
                         </ComboBox>
                     </Grid>
                     
@@ -142,8 +168,33 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="InputPropAlignment" Grid.Column="0" Header="Alignment" PlaceholderText="TopLeft" TextChanged="InputPropAlignment_TextChanged" />
-                        <TextBox x:Name="InputPropGravity" Grid.Column="1" Header="Gravity" PlaceholderText="TopLeft" TextChanged="InputPropGravity_TextChanged" />
+                        <ComboBox x:Name="ComboPropAlignment" Grid.Column="0" Header="Alignment" HorizontalAlignment="Stretch" IsEditable="True" SelectionChanged="ComboPropAlignment_SelectionChanged" TextSubmitted="ComboPropAlignment_TextSubmitted" LostFocus="ComboPropAlignment_LostFocus">
+                            <x:String>Default</x:String>
+                            <x:String>TopLeft</x:String>
+                            <x:String>TopCenter</x:String>
+                            <x:String>TopRight</x:String>
+                            <x:String>CenterLeft</x:String>
+                            <x:String>Center</x:String>
+                            <x:String>CenterRight</x:String>
+                            <x:String>BottomLeft</x:String>
+                            <x:String>BottomCenter</x:String>
+                            <x:String>BottomRight</x:String>
+                        </ComboBox>
+                        <ComboBox x:Name="ComboPropGravity" Grid.Column="1" Header="Gravity" HorizontalAlignment="Stretch" IsEditable="True" SelectionChanged="ComboPropGravity_SelectionChanged" TextSubmitted="ComboPropGravity_TextSubmitted" LostFocus="ComboPropGravity_LostFocus">
+                            <x:String>Default</x:String>
+                            <x:String>TopLeft</x:String>
+                            <x:String>TopCenter</x:String>
+                            <x:String>TopRight</x:String>
+                            <x:String>CenterLeft</x:String>
+                            <x:String>Center</x:String>
+                            <x:String>CenterRight</x:String>
+                            <x:String>BottomLeft</x:String>
+                            <x:String>BottomCenter</x:String>
+                            <x:String>BottomRight</x:String>
+                            <x:String>Stretch</x:String>
+                            <x:String>CenterHorizontal</x:String>
+                            <x:String>CenterVertical</x:String>
+                        </ComboBox>
                     </Grid>
 
                     <!-- Styling Properties -->

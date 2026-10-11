@@ -582,42 +582,40 @@ namespace Snapcode.Views
                 // Box Model Sizing & Alignment
                 mockElement.Margin = ParseThickness(NodeItem.Margin);
 
-                // Width Handling
-                if (NodeItem.Width == "Match Parent")
+                // Width Handling (dp, px, pt, %, Match Parent, Auto)
+                var widthDim = AlignmentHelper.ParseDimension(NodeItem.Width, 360.0);
+                if (widthDim.IsMatchParent)
                 {
                     mockElement.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    mockElement.Width = double.NaN;
                 }
-                else if (NodeItem.Width != "Auto" && !string.IsNullOrWhiteSpace(NodeItem.Width))
+                else if (widthDim.HasExplicitSize)
                 {
-                    double w = ParseDouble(NodeItem.Width, double.NaN);
-                    if (!double.IsNaN(w) && w > 0)
-                    {
-                        mockElement.Width = w;
-                        mockElement.HorizontalAlignment = HorizontalAlignment.Center;
-                    }
+                    mockElement.Width = widthDim.Value;
+                    mockElement.HorizontalAlignment = HorizontalAlignment.Center;
                 }
                 else
                 {
                     mockElement.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    mockElement.Width = double.NaN;
                 }
 
-                // Height Handling
-                if (NodeItem.Height == "Match Parent")
+                // Height Handling (dp, px, pt, %, Match Parent, Auto)
+                var heightDim = AlignmentHelper.ParseDimension(NodeItem.Height, 640.0);
+                if (heightDim.IsMatchParent)
                 {
                     mockElement.VerticalAlignment = VerticalAlignment.Stretch;
+                    mockElement.Height = double.NaN;
                 }
-                else if (NodeItem.Height != "Auto" && !string.IsNullOrWhiteSpace(NodeItem.Height))
+                else if (heightDim.HasExplicitSize)
                 {
-                    double h = ParseDouble(NodeItem.Height, double.NaN);
-                    if (!double.IsNaN(h) && h > 0)
-                    {
-                        mockElement.Height = h;
-                        mockElement.VerticalAlignment = VerticalAlignment.Center;
-                    }
+                    mockElement.Height = heightDim.Value;
+                    mockElement.VerticalAlignment = VerticalAlignment.Center;
                 }
                 else
                 {
                     mockElement.VerticalAlignment = VerticalAlignment.Stretch;
+                    mockElement.Height = double.NaN;
                 }
 
                 // Apply CornerRadius

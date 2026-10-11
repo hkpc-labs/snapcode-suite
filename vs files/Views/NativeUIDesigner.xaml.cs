@@ -302,8 +302,14 @@ namespace Snapcode.Views
                 InputPropName.Text = _selectedWidget.Name ?? "";
                 InputPropAssetPath.Text = _selectedWidget.AssetPath ?? "";
 
-                ComboPropWidth.SelectedItem = _selectedWidget.Width ?? "Auto";
-                ComboPropHeight.SelectedItem = _selectedWidget.Height ?? "Auto";
+                string wVal = _selectedWidget.Width ?? "Auto";
+                ComboPropWidth.Text = wVal;
+                ComboPropWidth.SelectedItem = wVal;
+
+                string hVal = _selectedWidget.Height ?? "Auto";
+                ComboPropHeight.Text = hVal;
+                ComboPropHeight.SelectedItem = hVal;
+
                 InputPropPadding.Text = _selectedWidget.Padding ?? "8";
                 InputPropMargin.Text = _selectedWidget.Margin ?? "0";
                 
@@ -316,8 +322,13 @@ namespace Snapcode.Views
                 PreviewPropTextColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(txtColor);
                 InputPropTextSize.Text = _selectedWidget.TextSize ?? "14";
                 
-                InputPropAlignment.Text = _selectedWidget.Alignment ?? "";
-                InputPropGravity.Text = _selectedWidget.Gravity ?? "";
+                string alignVal = string.IsNullOrWhiteSpace(_selectedWidget.Alignment) ? "Default" : _selectedWidget.Alignment;
+                ComboPropAlignment.Text = alignVal;
+                ComboPropAlignment.SelectedItem = alignVal;
+
+                string gravVal = string.IsNullOrWhiteSpace(_selectedWidget.Gravity) ? "Default" : _selectedWidget.Gravity;
+                ComboPropGravity.Text = gravVal;
+                ComboPropGravity.SelectedItem = gravVal;
                 InputPropBorderWidth.Text = _selectedWidget.BorderWidth ?? "0";
                 InputPropCornerRadius.Text = _selectedWidget.CornerRadius ?? "0";
                 
@@ -408,8 +419,56 @@ namespace Snapcode.Views
         private void InputPropTextSize_TextChanged(object sender, TextChangedEventArgs e) { if (_isUpdatingSelectionUI) return; if (_selectedWidget != null) _selectedWidget.TextSize = InputPropTextSize.Text; }
         
         private void InputPropAssetPath_TextChanged(object sender, TextChangedEventArgs e) { if (_isUpdatingSelectionUI) return; if (_selectedWidget != null) _selectedWidget.AssetPath = InputPropAssetPath.Text; }
-        private void InputPropAlignment_TextChanged(object sender, TextChangedEventArgs e) { if (_isUpdatingSelectionUI) return; if (_selectedWidget != null) _selectedWidget.Alignment = InputPropAlignment.Text; }
-        private void InputPropGravity_TextChanged(object sender, TextChangedEventArgs e) { if (_isUpdatingSelectionUI) return; if (_selectedWidget != null) _selectedWidget.Gravity = InputPropGravity.Text; }
+        
+        private void ComboPropAlignment_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            if (ComboPropAlignment.SelectedItem != null)
+                ApplyAlignmentSelection(ComboPropAlignment.SelectedItem.ToString());
+        }
+
+        private void ComboPropAlignment_TextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
+        {
+            ApplyAlignmentSelection(args.Text);
+            args.Handled = true;
+        }
+
+        private void ComboPropAlignment_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ApplyAlignmentSelection(ComboPropAlignment.Text);
+        }
+
+        private void ApplyAlignmentSelection(string? val)
+        {
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            string trimmed = val?.Trim() ?? "";
+            _selectedWidget.Alignment = trimmed.Equals("Default", StringComparison.OrdinalIgnoreCase) ? "" : trimmed;
+        }
+
+        private void ComboPropGravity_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            if (ComboPropGravity.SelectedItem != null)
+                ApplyGravitySelection(ComboPropGravity.SelectedItem.ToString());
+        }
+
+        private void ComboPropGravity_TextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
+        {
+            ApplyGravitySelection(args.Text);
+            args.Handled = true;
+        }
+
+        private void ComboPropGravity_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ApplyGravitySelection(ComboPropGravity.Text);
+        }
+
+        private void ApplyGravitySelection(string? val)
+        {
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            string trimmed = val?.Trim() ?? "";
+            _selectedWidget.Gravity = trimmed.Equals("Default", StringComparison.OrdinalIgnoreCase) ? "" : trimmed;
+        }
         private void InputPropBorderWidth_TextChanged(object sender, TextChangedEventArgs e) { if (_isUpdatingSelectionUI) return; if (_selectedWidget != null) _selectedWidget.BorderWidth = InputPropBorderWidth.Text; }
         private void InputPropCornerRadius_TextChanged(object sender, TextChangedEventArgs e) { if (_isUpdatingSelectionUI) return; if (_selectedWidget != null) _selectedWidget.CornerRadius = InputPropCornerRadius.Text; }
         
@@ -470,16 +529,50 @@ namespace Snapcode.Views
 
         private void ComboPropWidth_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isUpdatingSelectionUI) return;
-            if (_selectedWidget != null && ComboPropWidth.SelectedItem != null)
-                _selectedWidget.Width = ComboPropWidth.SelectedItem.ToString();
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            if (ComboPropWidth.SelectedItem != null)
+                _selectedWidget.Width = ComboPropWidth.SelectedItem.ToString() ?? "Auto";
+        }
+
+        private void ComboPropWidth_TextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
+        {
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            if (!string.IsNullOrWhiteSpace(args.Text))
+            {
+                _selectedWidget.Width = args.Text.Trim();
+                args.Handled = true;
+            }
+        }
+
+        private void ComboPropWidth_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            if (!string.IsNullOrWhiteSpace(ComboPropWidth.Text))
+                _selectedWidget.Width = ComboPropWidth.Text.Trim();
         }
 
         private void ComboPropHeight_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isUpdatingSelectionUI) return;
-            if (_selectedWidget != null && ComboPropHeight.SelectedItem != null)
-                _selectedWidget.Height = ComboPropHeight.SelectedItem.ToString();
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            if (ComboPropHeight.SelectedItem != null)
+                _selectedWidget.Height = ComboPropHeight.SelectedItem.ToString() ?? "Auto";
+        }
+
+        private void ComboPropHeight_TextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
+        {
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            if (!string.IsNullOrWhiteSpace(args.Text))
+            {
+                _selectedWidget.Height = args.Text.Trim();
+                args.Handled = true;
+            }
+        }
+
+        private void ComboPropHeight_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingSelectionUI || _selectedWidget == null) return;
+            if (!string.IsNullOrWhiteSpace(ComboPropHeight.Text))
+                _selectedWidget.Height = ComboPropHeight.Text.Trim();
         }
 
         private void ComboFontWeight_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (_isUpdatingSelectionUI) return; if (_selectedWidget != null && ComboFontWeight.SelectedItem != null) _selectedWidget.FontWeight = ComboFontWeight.SelectedItem.ToString(); }
