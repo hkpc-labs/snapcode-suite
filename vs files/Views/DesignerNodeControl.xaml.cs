@@ -17,6 +17,7 @@ namespace Snapcode.Views
         private NativeUIDesigner _parentDesigner;
         public DesignerNodeControl? ParentNodeControl { get; private set; }
         private Panel? _layoutContainer; // If this node is a Row/Column/Container/etc.
+        private FrameworkElement? _mockElement;
 
         public DesignerNodeControl(WidgetItem item, NativeUIDesigner designer, DesignerNodeControl? parentNode = null)
         {
@@ -682,11 +683,12 @@ namespace Snapcode.Views
                 }
 
                 ContentHost.Children.Add(mockElement);
+                _mockElement = mockElement;
 
                 // Coordinate with parent container for WinUI 3 layout parity
                 if (ParentNodeControl?._layoutContainer is FlutterFlexPanel flexParent)
                 {
-                    bool isFlexChild = NodeItem.Type == "Expanded" || NodeItem.Flex > 0;
+                    bool isFlexChild = NodeItem.Type == "Expanded";
                     if (flexParent.Orientation == Orientation.Vertical)
                     {
                         if (isFlexChild)
@@ -741,6 +743,8 @@ namespace Snapcode.Views
                     if (!heightDim.HasExplicitSize && !heightDim.IsMatchParent)
                         this.VerticalAlignment = mockElement.VerticalAlignment;
                 }
+
+                SynchronizeSelectionBorder();
             }
 
             if (_layoutContainer != null)
@@ -854,7 +858,7 @@ namespace Snapcode.Views
                 {
                     int flexVal = child.Type == "Expanded"
                         ? (child.Flex > 0 ? child.Flex : 1)
-                        : (child.Flex > 0 ? child.Flex : 0);
+                        : 0;
                     FlutterFlexPanel.SetFlex(childNodeCtrl, flexVal);
                 }
                 else if (NodeItem.Type == "Container")
@@ -879,10 +883,61 @@ namespace Snapcode.Views
             }
         }
 
+        public void SynchronizeSelectionBorder()
+        {
+            if (SelectionBorder == null) return;
+            if (_mockElement == null)
+            {
+                SelectionBorder.Margin = new Thickness(0);
+                SelectionBorder.CornerRadius = new CornerRadius(0);
+                SelectionBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
+                SelectionBorder.VerticalAlignment = VerticalAlignment.Stretch;
+                SelectionBorder.Width = double.NaN;
+                SelectionBorder.Height = double.NaN;
+                return;
+            }
+
+            SelectionBorder.Margin = _mockElement.Margin;
+            SelectionBorder.HorizontalAlignment = _mockElement.HorizontalAlignment;
+            SelectionBorder.VerticalAlignment = _mockElement.VerticalAlignment;
+            SelectionBorder.Width = _mockElement.Width;
+            SelectionBorder.Height = _mockElement.Height;
+            SelectionBorder.MinWidth = _mockElement.MinWidth;
+            SelectionBorder.MinHeight = _mockElement.MinHeight;
+            SelectionBorder.MaxWidth = _mockElement.MaxWidth;
+            SelectionBorder.MaxHeight = _mockElement.MaxHeight;
+
+            // Corner Radius Synchronization
+            CornerRadius cr = new CornerRadius(0);
+            if (_mockElement is Border bdr)
+            {
+                cr = bdr.CornerRadius;
+            }
+            else if (_mockElement is Control ctrl)
+            {
+                cr = ctrl.CornerRadius;
+            }
+            else if (_mockElement is Grid gr)
+            {
+                cr = gr.CornerRadius;
+            }
+            else if (_mockElement is StackPanel sp)
+            {
+                cr = sp.CornerRadius;
+            }
+            else
+            {
+                double parsedCr = ParseDouble(NodeItem?.CornerRadius, 0);
+                if (parsedCr > 0) cr = new CornerRadius(parsedCr);
+            }
+            SelectionBorder.CornerRadius = cr;
+        }
+
         public void SetSelected(bool isSelected)
         {
             if (isSelected)
             {
+                SynchronizeSelectionBorder();
                 SelectionBorder.BorderBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 33, 150, 243)); // Material Blue accent
                 SelectionBorder.Background = new SolidColorBrush(ColorHelper.FromArgb(30, 33, 150, 243));
                 SelectionBorder.BorderThickness = new Thickness(2.5);

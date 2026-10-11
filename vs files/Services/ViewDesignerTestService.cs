@@ -532,6 +532,30 @@ namespace Snapcode.Services
                    complexDart.Contains("width: 100"),
                 "Compiler: Nested Container > Column > Row > Widgets respects all explicit dimension constraints");
 
+            // 10.6 Deserialization Flex Safety (Legacy Project Healing)
+            using var legacyButtonDoc = JsonDocument.Parse("{\"type\":\"Button\",\"name\":\"button_0382\",\"flex\":1,\"height\":\"150dp\"}");
+            var healedButton = NativeUIDesigner.DeserializeItem(legacyButtonDoc.RootElement);
+            Assert(healedButton.Flex == 0, "Deserialization: Non-Expanded widget with legacy 'flex: 1' heals to Flex = 0");
+            Assert(healedButton.Height == "150dp", "Deserialization: Button preserves Height '150dp'");
+
+            using var legacyExpDoc = JsonDocument.Parse("{\"type\":\"Expanded\",\"name\":\"Expanded\",\"flex\":3}");
+            var deserializedExp = NativeUIDesigner.DeserializeItem(legacyExpDoc.RootElement);
+            Assert(deserializedExp.Flex == 3, "Deserialization: Expanded widget preserves explicit flex factor = 3");
+
+            using var legacyExpDefaultDoc = JsonDocument.Parse("{\"type\":\"Expanded\",\"name\":\"Expanded\"}");
+            var deserializedExpDef = NativeUIDesigner.DeserializeItem(legacyExpDefaultDoc.RootElement);
+            Assert(deserializedExpDef.Flex == 1, "Deserialization: Expanded widget without flex property defaults to Flex = 1");
+
+            // 10.7 Selector Geometry & Dimension Reflection (User Screenshot Reproduction)
+            var buttonItem = new WidgetItem { Type = "Button", Id = "button_0382", Name = "Button", Height = "150dp", Width = "Auto" };
+            var btnHDim = AlignmentHelper.ParseDimension(buttonItem.Height, 640.0);
+            var btnWDim = AlignmentHelper.ParseDimension(buttonItem.Width, 360.0);
+            Assert(btnHDim.HasExplicitSize && btnHDim.Value == 150.0, "Selector Geometry: Button Height '150dp' parses to exact 150dp");
+            Assert(!btnWDim.HasExplicitSize && !btnWDim.IsMatchParent, "Selector Geometry: Button Width 'Auto' identified as Auto");
+
+            string btnDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(buttonItem) }));
+            Assert(btnDart.Contains("SizedBox(") && btnDart.Contains("height: 150"), "Compiler: Button with 150dp height generates SizedBox(height: 150.0)");
+
             // Summary
             report.AppendLine("\n---");
             report.AppendLine($"### Result: {passed}/{total} Passed ({(failed == 0 ? "100%" : $"{Math.Round((double)passed/total*100, 1)}%")})");

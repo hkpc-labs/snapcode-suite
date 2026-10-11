@@ -965,7 +965,7 @@ namespace Snapcode.Views
             }
         }
 
-        private WidgetItem DeserializeItem(JsonElement elem)
+        public static WidgetItem DeserializeItem(JsonElement elem)
         {
             string type = elem.TryGetProperty("type", out var tProp) ? tProp.GetString() ?? "Unknown" : "Unknown";
             string id = elem.TryGetProperty("id", out var iProp) ? iProp.GetString() ?? "" : "";
@@ -1007,7 +1007,9 @@ namespace Snapcode.Views
                 HintText = elem.TryGetProperty("hintText", out var htProp) ? htProp.GetString() ?? "" : "",
                 InputType = elem.TryGetProperty("inputType", out var itProp) ? itProp.GetString() ?? "Text" : "Text",
                 FontFamily = elem.TryGetProperty("fontFamily", out var ffProp) ? ffProp.GetString() ?? "" : "",
-                Flex = elem.TryGetProperty("flex", out var flxProp) && flxProp.TryGetInt32(out var flx) ? flx : 1
+                Flex = elem.TryGetProperty("flex", out var flxProp) && flxProp.TryGetInt32(out var flx)
+                    ? (type == "Expanded" ? (flx > 0 ? flx : 1) : 0)
+                    : (type == "Expanded" ? 1 : 0)
             };
 
             if (elem.TryGetProperty("children", out var cProp) && cProp.ValueKind == JsonValueKind.Array)

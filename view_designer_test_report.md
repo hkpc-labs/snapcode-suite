@@ -1,5 +1,5 @@
 # View Designer & Widget Property Automated Verification Report
-*Executed at: 2026-10-11 22:59:59*
+*Executed at: 2026-10-11 23:30:00*
 
 ## 1. Widget Instantiation & Identity
   - [x] **PASS**: Create Widget: Row
@@ -153,7 +153,14 @@
   - [x] **PASS**: Compiler: Parent Row with explicit 250dp width and 60dp height wrapped in SizedBox
   - [x] **PASS**: Compiler: Row with Width 'Auto' emits mainAxisSize: MainAxisSize.min (shrink-wrap)
   - [x] **PASS**: Compiler: Nested Container > Column > Row > Widgets respects all explicit dimension constraints
+  - [x] **PASS**: Deserialization: Non-Expanded widget with legacy 'flex: 1' heals to Flex = 0
+  - [x] **PASS**: Deserialization: Button preserves Height '150dp'
+  - [x] **PASS**: Deserialization: Expanded widget preserves explicit flex factor = 3
+  - [x] **PASS**: Deserialization: Expanded widget without flex property defaults to Flex = 1
+  - [x] **PASS**: Selector Geometry: Button Height '150dp' parses to exact 150dp
+  - [x] **PASS**: Selector Geometry: Button Width 'Auto' identified as Auto
+  - [x] **PASS**: Compiler: Button with 150dp height generates SizedBox(height: 150.0)
 
 ---
-### Result: 137/137 Passed (100%)
+### Result: 144/144 Passed (100%)
 **Status: ALL WIDGETS AND PROPERTIES FULLY OPERATIONAL AND VERIFIED.**
