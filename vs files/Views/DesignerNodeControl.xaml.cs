@@ -62,6 +62,18 @@ namespace Snapcode.Views
                 flex.CrossAxisAlignment = !string.IsNullOrWhiteSpace(NodeItem.CrossAxisAlignment)
                     ? FlutterFlexPanel.ParseCrossAxisAlignment(NodeItem.CrossAxisAlignment)
                     : gravCross;
+                if (flex.Orientation == Orientation.Vertical)
+                {
+                    flex.MainAxisSize = string.Equals(NodeItem.Height, "Auto", StringComparison.OrdinalIgnoreCase)
+                        ? FlutterMainAxisSize.Min
+                        : FlutterMainAxisSize.Max;
+                }
+                else
+                {
+                    flex.MainAxisSize = string.Equals(NodeItem.Width, "Auto", StringComparison.OrdinalIgnoreCase)
+                        ? FlutterMainAxisSize.Min
+                        : FlutterMainAxisSize.Max;
+                }
                 flex.InvalidateMeasure();
                 flex.InvalidateArrange();
             }
@@ -70,6 +82,8 @@ namespace Snapcode.Views
                 _layoutContainer.InvalidateMeasure();
                 _layoutContainer.InvalidateArrange();
             }
+            this.InvalidateMeasure();
+            this.InvalidateArrange();
             ParentNodeControl?.RefreshLayout();
         }
 
@@ -150,6 +164,7 @@ namespace Snapcode.Views
                 case "Row":
                 {
                     var (gravMain, gravCross) = AlignmentHelper.MapGravityToFlex(NodeItem.Gravity, Orientation.Horizontal);
+                    bool isAutoWidth = string.Equals(NodeItem.Width, "Auto", StringComparison.OrdinalIgnoreCase);
                     var flex = new FlutterFlexPanel
                     {
                         Orientation = Orientation.Horizontal,
@@ -159,7 +174,7 @@ namespace Snapcode.Views
                         CrossAxisAlignment = !string.IsNullOrWhiteSpace(NodeItem.CrossAxisAlignment)
                             ? FlutterFlexPanel.ParseCrossAxisAlignment(NodeItem.CrossAxisAlignment)
                             : gravCross,
-                        MainAxisSize = FlutterMainAxisSize.Max,
+                        MainAxisSize = isAutoWidth ? FlutterMainAxisSize.Min : FlutterMainAxisSize.Max,
                         MinHeight = 44,
                         MinWidth = 44
                     };
@@ -177,6 +192,7 @@ namespace Snapcode.Views
                 case "Column":
                 {
                     var (gravMain, gravCross) = AlignmentHelper.MapGravityToFlex(NodeItem.Gravity, Orientation.Vertical);
+                    bool isAutoHeight = string.Equals(NodeItem.Height, "Auto", StringComparison.OrdinalIgnoreCase);
                     var flex = new FlutterFlexPanel
                     {
                         Orientation = Orientation.Vertical,
@@ -186,7 +202,7 @@ namespace Snapcode.Views
                         CrossAxisAlignment = !string.IsNullOrWhiteSpace(NodeItem.CrossAxisAlignment)
                             ? FlutterFlexPanel.ParseCrossAxisAlignment(NodeItem.CrossAxisAlignment)
                             : gravCross,
-                        MainAxisSize = FlutterMainAxisSize.Max,
+                        MainAxisSize = isAutoHeight ? FlutterMainAxisSize.Min : FlutterMainAxisSize.Max,
                         MinHeight = 44,
                         MinWidth = 44
                     };
@@ -588,16 +604,20 @@ namespace Snapcode.Views
                 {
                     mockElement.HorizontalAlignment = HorizontalAlignment.Stretch;
                     mockElement.Width = double.NaN;
+                    this.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    this.Width = double.NaN;
                 }
                 else if (widthDim.HasExplicitSize)
                 {
                     mockElement.Width = widthDim.Value;
                     mockElement.HorizontalAlignment = HorizontalAlignment.Center;
+                    this.Width = widthDim.Value;
                 }
                 else
                 {
                     mockElement.HorizontalAlignment = HorizontalAlignment.Stretch;
                     mockElement.Width = double.NaN;
+                    this.Width = double.NaN;
                 }
 
                 // Height Handling (dp, px, pt, %, Match Parent, Auto)
@@ -606,16 +626,20 @@ namespace Snapcode.Views
                 {
                     mockElement.VerticalAlignment = VerticalAlignment.Stretch;
                     mockElement.Height = double.NaN;
+                    this.VerticalAlignment = VerticalAlignment.Stretch;
+                    this.Height = double.NaN;
                 }
                 else if (heightDim.HasExplicitSize)
                 {
                     mockElement.Height = heightDim.Value;
                     mockElement.VerticalAlignment = VerticalAlignment.Center;
+                    this.Height = heightDim.Value;
                 }
                 else
                 {
                     mockElement.VerticalAlignment = VerticalAlignment.Stretch;
                     mockElement.Height = double.NaN;
+                    this.Height = double.NaN;
                 }
 
                 // Apply CornerRadius
@@ -660,23 +684,62 @@ namespace Snapcode.Views
                 ContentHost.Children.Add(mockElement);
 
                 // Coordinate with parent container for WinUI 3 layout parity
-                if (ParentNodeControl?._layoutContainer is FlutterFlexPanel)
+                if (ParentNodeControl?._layoutContainer is FlutterFlexPanel flexParent)
                 {
-                    // FlutterFlexPanel's ArrangeOverride computed the exact slot Rect;
-                    // DesignerNodeControl must stretch to that slot so WinUI 3 does not clamp or misalign!
-                    this.HorizontalAlignment = HorizontalAlignment.Stretch;
-                    this.VerticalAlignment = VerticalAlignment.Stretch;
+                    bool isFlexChild = NodeItem.Type == "Expanded" || NodeItem.Flex > 0;
+                    if (flexParent.Orientation == Orientation.Vertical)
+                    {
+                        if (isFlexChild)
+                        {
+                            this.Height = double.NaN;
+                            this.VerticalAlignment = VerticalAlignment.Stretch;
+                        }
+                        else if (!heightDim.HasExplicitSize && !heightDim.IsMatchParent)
+                        {
+                            this.VerticalAlignment = VerticalAlignment.Center;
+                        }
+
+                        if (!widthDim.HasExplicitSize && !widthDim.IsMatchParent)
+                        {
+                            this.HorizontalAlignment = flexParent.CrossAxisAlignment == FlutterCrossAxisAlignment.Stretch
+                                ? HorizontalAlignment.Stretch
+                                : HorizontalAlignment.Center;
+                        }
+                    }
+                    else
+                    {
+                        if (isFlexChild)
+                        {
+                            this.Width = double.NaN;
+                            this.HorizontalAlignment = HorizontalAlignment.Stretch;
+                        }
+                        else if (!widthDim.HasExplicitSize && !widthDim.IsMatchParent)
+                        {
+                            this.HorizontalAlignment = HorizontalAlignment.Center;
+                        }
+
+                        if (!heightDim.HasExplicitSize && !heightDim.IsMatchParent)
+                        {
+                            this.VerticalAlignment = flexParent.CrossAxisAlignment == FlutterCrossAxisAlignment.Stretch
+                                ? VerticalAlignment.Stretch
+                                : VerticalAlignment.Center;
+                        }
+                    }
                 }
                 else if (ParentNodeControl?.NodeItem?.Type == "Container")
                 {
                     var (effH, effV) = AlignmentHelper.ResolveEffectiveChildAlignment(NodeItem, ParentNodeControl.NodeItem);
-                    this.HorizontalAlignment = effH;
-                    this.VerticalAlignment = effV;
+                    if (!widthDim.HasExplicitSize && !widthDim.IsMatchParent)
+                        this.HorizontalAlignment = effH;
+                    if (!heightDim.HasExplicitSize && !heightDim.IsMatchParent)
+                        this.VerticalAlignment = effV;
                 }
                 else
                 {
-                    this.HorizontalAlignment = mockElement.HorizontalAlignment;
-                    this.VerticalAlignment = mockElement.VerticalAlignment;
+                    if (!widthDim.HasExplicitSize && !widthDim.IsMatchParent)
+                        this.HorizontalAlignment = mockElement.HorizontalAlignment;
+                    if (!heightDim.HasExplicitSize && !heightDim.IsMatchParent)
+                        this.VerticalAlignment = mockElement.VerticalAlignment;
                 }
             }
 
@@ -789,9 +852,9 @@ namespace Snapcode.Views
                 var childNodeCtrl = new DesignerNodeControl(child, _parentDesigner, this);
                 if (_layoutContainer is FlutterFlexPanel)
                 {
-                    childNodeCtrl.HorizontalAlignment = HorizontalAlignment.Stretch;
-                    childNodeCtrl.VerticalAlignment = VerticalAlignment.Stretch;
-                    int flexVal = child.Flex > 0 ? child.Flex : (child.Type == "Expanded" ? 1 : 0);
+                    int flexVal = child.Type == "Expanded"
+                        ? (child.Flex > 0 ? child.Flex : 1)
+                        : (child.Flex > 0 ? child.Flex : 0);
                     FlutterFlexPanel.SetFlex(childNodeCtrl, flexVal);
                 }
                 else if (NodeItem.Type == "Container")
@@ -895,6 +958,10 @@ namespace Snapcode.Views
                         newItem.Height = t == "Column" ? "Match Parent" : "Auto";
                         newItem.MainAxisAlignment = "Start";
                         newItem.CrossAxisAlignment = "Center";
+                    }
+                    else if (t == "Expanded")
+                    {
+                        newItem.Flex = 1;
                     }
 
                     NodeItem.Children.Add(newItem);

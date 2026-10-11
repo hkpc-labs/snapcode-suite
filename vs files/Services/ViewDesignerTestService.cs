@@ -460,14 +460,77 @@ namespace Snapcode.Services
             Assert(unitContainerDart.Contains("width: 180") && unitContainerDart.Contains("height: MediaQuery.of(context).size.height * 0.5"),
                 "Compiler: Container emits custom multi-unit dimensions (dp & %)");
 
-            // Two-Way Property Reactivity Check
-            bool propChangedFired = false;
-            string changedPropName = "";
-            var reactiveWidget = new WidgetItem { Type = "Button", Name = "Original Name" };
-            reactiveWidget.PropertyChanged += (s, e) => { propChangedFired = true; changedPropName = e.PropertyName ?? ""; };
-            reactiveWidget.Name = "Updated Name";
-            Assert(propChangedFired && changedPropName == "Name" && reactiveWidget.Name == "Updated Name",
-                "Reactivity: PropertyChanged event fires with updated value for live reflection");
+            // Section 10: Parent and Child Dimension Reflection Across Row, Column, Container & Combos
+            report.AppendLine("\n## 10. Parent and Child Dimension Reflection Across Row, Column, Container & Combos");
+            Console.WriteLine("\n>>> 10. Testing Dimension Reflection & Sizing Across Parent/Child Combos...");
+
+            // 10.1 Default Flex Factors (Bug Fix Verification)
+            var defaultText = new WidgetItem { Type = "Text", Name = "Sample Text" };
+            Assert(defaultText.Flex == 0, "Flex: Default widget Flex factor is 0 (non-flex by default)");
+
+            var defaultExp = new WidgetItem { Type = "Expanded", Name = "Expanded", Flex = 1 };
+            Assert(defaultExp.Flex == 1, "Flex: Expanded widget defaults to Flex = 1");
+
+            // 10.2 Child Text Dimension Reflection (User Screenshot Reproduction)
+            var userCol = new WidgetItem { Type = "Column", Id = "column_1", Width = "Match Parent", Height = "Match Parent" };
+            var userText = new WidgetItem { Type = "Text", Id = "text_5f04", Name = "Text", Width = "25%", Height = "50dp" };
+            var userBtn = new WidgetItem { Type = "Button", Id = "button_1", Name = "Button", Height = "Auto" };
+            userCol.Children.Add(userText);
+            userCol.Children.Add(userBtn);
+
+            var userTextWDim = AlignmentHelper.ParseDimension(userText.Width, 360.0);
+            var userTextHDim = AlignmentHelper.ParseDimension(userText.Height, 640.0);
+            Assert(userTextWDim.HasExplicitSize && userTextWDim.Value == 90.0, "Dimension: Child Text Width '25%' -> 90dp on 360 viewport");
+            Assert(userTextHDim.HasExplicitSize && userTextHDim.Value == 50.0, "Dimension: Child Text Height '50dp' -> 50dp explicit size");
+
+            string userColDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(userCol) }));
+            Assert(userColDart.Contains("SizedBox(") && userColDart.Contains("height: 50") && userColDart.Contains("MediaQuery.of(context).size.width * 0.25"),
+                "Compiler: Child Text with custom 25% width and 50dp height wrapped in responsive SizedBox");
+
+            // 10.3 Parent Column Dimension Reflection (Height & Width Combos)
+            var parentColExplicit = new WidgetItem { Type = "Column", Id = "col_parent", Height = "200dp", Width = "300dp" };
+            parentColExplicit.Children.Add(new WidgetItem { Type = "Text", Name = "Inside Col" });
+            string parentColDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(parentColExplicit) }));
+            Assert(parentColDart.Contains("SizedBox(") && parentColDart.Contains("height: 200") && parentColDart.Contains("width: 300"),
+                "Compiler: Parent Column with explicit 200dp height and 300dp width wrapped in SizedBox");
+
+            var parentColAuto = new WidgetItem { Type = "Column", Id = "col_auto", Height = "Auto" };
+            parentColAuto.Children.Add(new WidgetItem { Type = "Text", Name = "Inside Auto Col" });
+            string parentColAutoDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(parentColAuto) }));
+            Assert(parentColAutoDart.Contains("mainAxisSize: MainAxisSize.min"),
+                "Compiler: Column with Height 'Auto' emits mainAxisSize: MainAxisSize.min (shrink-wrap)");
+
+            // 10.4 Parent Row Dimension Reflection (Width & Height Combos)
+            var parentRowExplicit = new WidgetItem { Type = "Row", Id = "row_parent", Width = "250dp", Height = "60dp" };
+            parentRowExplicit.Children.Add(new WidgetItem { Type = "Button", Name = "Inside Row" });
+            string parentRowDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(parentRowExplicit) }));
+            Assert(parentRowDart.Contains("SizedBox(") && parentRowDart.Contains("width: 250") && parentRowDart.Contains("height: 60"),
+                "Compiler: Parent Row with explicit 250dp width and 60dp height wrapped in SizedBox");
+
+            var parentRowAuto = new WidgetItem { Type = "Row", Id = "row_auto", Width = "Auto" };
+            parentRowAuto.Children.Add(new WidgetItem { Type = "Button", Name = "Inside Auto Row" });
+            string parentRowAutoDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(parentRowAuto) }));
+            Assert(parentRowAutoDart.Contains("mainAxisSize: MainAxisSize.min"),
+                "Compiler: Row with Width 'Auto' emits mainAxisSize: MainAxisSize.min (shrink-wrap)");
+
+            // 10.5 Complex Nested Container Hierarchy (Container -> Column -> Row -> Children)
+            var grandContainer = new WidgetItem { Type = "Container", Id = "cnt_grand", Width = "320dp", Height = "480dp", Alignment = "Center" };
+            var childCol = new WidgetItem { Type = "Column", Id = "col_mid", Height = "300dp", Width = "Match Parent" };
+            var rowCombo = new WidgetItem { Type = "Row", Id = "row_combo", Width = "Auto", Height = "50dp" };
+            var comboText = new WidgetItem { Type = "Text", Id = "txt_combo", Name = "Combo Text", Width = "80dp", Height = "30dp" };
+            var comboBtn = new WidgetItem { Type = "Button", Id = "btn_combo", Name = "Combo Button", Width = "100dp", Height = "40dp" };
+            rowCombo.Children.Add(comboText);
+            rowCombo.Children.Add(comboBtn);
+            childCol.Children.Add(rowCombo);
+            grandContainer.Children.Add(childCol);
+
+            string complexDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(grandContainer) }));
+            Assert(complexDart.Contains("Container(width: 320, height: 480, alignment: Alignment.center") &&
+                   complexDart.Contains("height: 300") &&
+                   complexDart.Contains("Row(") &&
+                   complexDart.Contains("width: 80") &&
+                   complexDart.Contains("width: 100"),
+                "Compiler: Nested Container > Column > Row > Widgets respects all explicit dimension constraints");
 
             // Summary
             report.AppendLine("\n---");

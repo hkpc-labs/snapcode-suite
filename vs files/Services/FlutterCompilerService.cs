@@ -77,6 +77,31 @@ Widget build(BuildContext context) {{
                 widgetCode = $"Container(decoration: BoxDecoration(image: DecorationImage(image: AssetImage(\"{assetSource}\"), fit: BoxFit.cover)), child: {widgetCode})";
             }
 
+            // Sizing wrapper for widgets with explicit width or height (excluding Container which handles dimensions natively)
+            if (type != "Container")
+            {
+                bool hasExplicitW = node.TryGetProperty("width", out var wProp) &&
+                    !string.IsNullOrWhiteSpace(wProp.GetString()) &&
+                    !string.Equals(wProp.GetString(), "Auto", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(wProp.GetString(), "Match Parent", StringComparison.OrdinalIgnoreCase);
+
+                bool hasExplicitH = node.TryGetProperty("height", out var hProp) &&
+                    !string.IsNullOrWhiteSpace(hProp.GetString()) &&
+                    !string.Equals(hProp.GetString(), "Auto", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(hProp.GetString(), "Match Parent", StringComparison.OrdinalIgnoreCase);
+
+                if (hasExplicitW || hasExplicitH)
+                {
+                    string wCode = hasExplicitW ? AlignmentHelper.ToFlutterDimensionCode(wProp.GetString(), "width") : "";
+                    string hCode = hasExplicitH ? AlignmentHelper.ToFlutterDimensionCode(hProp.GetString(), "height") : "";
+                    var sizedProps = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(wCode)) sizedProps.Add($"width: {wCode}");
+                    if (!string.IsNullOrWhiteSpace(hCode)) sizedProps.Add($"height: {hCode}");
+                    sizedProps.Add($"child: {widgetCode}");
+                    widgetCode = $"SizedBox({string.Join(", ", sizedProps)})";
+                }
+            }
+
             return widgetCode;
         }
 
@@ -134,6 +159,15 @@ Widget build(BuildContext context) {{
                     {
                         string caCamel = char.ToLowerInvariant(crossAxis[0]) + crossAxis.Substring(1);
                         props.Add($"crossAxisAlignment: CrossAxisAlignment.{caCamel}");
+                    }
+
+                    // MainAxisSize (when Auto is set, wrap content)
+                    bool isAuto = type == "Column"
+                        ? (node.TryGetProperty("height", out var hP) && string.Equals(hP.GetString(), "Auto", StringComparison.OrdinalIgnoreCase))
+                        : (node.TryGetProperty("width", out var wP) && string.Equals(wP.GetString(), "Auto", StringComparison.OrdinalIgnoreCase));
+                    if (isAuto)
+                    {
+                        props.Add("mainAxisSize: MainAxisSize.min");
                     }
 
                     props.Add($"children: [{string.Join(", ", children)}]");

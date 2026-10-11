@@ -36,15 +36,12 @@ namespace Snapcode
         public App()
         {
             string[] cmdArgs = Environment.GetCommandLineArgs();
-            for (int i = 1; i < cmdArgs.Length; i++)
+            if (cmdArgs.Any(a => a.IndexOf("run-tests", StringComparison.OrdinalIgnoreCase) >= 0))
             {
-                if (cmdArgs[i] == "--run-tests")
-                {
-                    string reportPath = @"c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\view_designer_test_report.md";
-                    Snapcode.Services.ViewDesignerTestService.RunAllTests(reportPath);
-                    Environment.Exit(0);
-                    return;
-                }
+                string reportPath = @"c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\view_designer_test_report.md";
+                Snapcode.Services.ViewDesignerTestService.RunAllTests(reportPath);
+                Environment.Exit(0);
+                return;
             }
 
             InitializeComponent();
@@ -59,7 +56,14 @@ namespace Snapcode
             string[] cmdArgs = Environment.GetCommandLineArgs();
             for (int i = 1; i < cmdArgs.Length; i++)
             {
-                if (cmdArgs[i] == "--project" && i + 1 < cmdArgs.Length)
+                if (cmdArgs[i] == "--run-tests")
+                {
+                    string reportPath = @"c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\view_designer_test_report.md";
+                    Snapcode.Services.ViewDesignerTestService.RunAllTests(reportPath);
+                    Environment.Exit(0);
+                    return;
+                }
+                else if (cmdArgs[i] == "--project" && i + 1 < cmdArgs.Length)
                 {
                     LaunchProjectPath = cmdArgs[i + 1];
                     break;

@@ -116,7 +116,7 @@ namespace Snapcode.Views
         private string _fontFamily = "";
         public string FontFamily { get => _fontFamily; set { _fontFamily = value; OnPropertyChanged(nameof(FontFamily)); } }
 
-        private int _flex = 1;
+        private int _flex = 0;
         public int Flex { get => _flex; set { _flex = value; OnPropertyChanged(nameof(Flex)); } }
 
         public string Icon { get; set; } = "";
@@ -154,7 +154,7 @@ namespace Snapcode.Views
             PaletteItems.Add(new WidgetItem { Name = "ListView", Type = "ListView", Icon = "\uE8FD" });
             PaletteItems.Add(new WidgetItem { Name = "ScrollView", Type = "ScrollView", Icon = "\uE8CB" });
             PaletteItems.Add(new WidgetItem { Name = "H-ScrollView", Type = "HorizontalScrollView", Icon = "\uE8CC" });
-            PaletteItems.Add(new WidgetItem { Name = "Expanded", Type = "Expanded", Icon = "\uE74C" });
+            PaletteItems.Add(new WidgetItem { Name = "Expanded", Type = "Expanded", Flex = 1, Icon = "\uE74C" });
 
             PaletteList.ItemsSource = PaletteItems;
         }
@@ -664,6 +664,10 @@ namespace Snapcode.Views
                         newItem.Height = t == "Column" ? "Match Parent" : "Auto";
                         newItem.MainAxisAlignment = "Start";
                         newItem.CrossAxisAlignment = "Center";
+                    }
+                    else if (t == "Expanded")
+                    {
+                        newItem.Flex = 1;
                     }
 
                     CanvasItems.Add(newItem);

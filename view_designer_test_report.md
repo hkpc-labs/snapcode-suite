@@ -1,5 +1,5 @@
 # View Designer & Widget Property Automated Verification Report
-*Executed at: 2026-10-11 22:30:38*
+*Executed at: 2026-10-11 22:59:59*
 
 ## 1. Widget Instantiation & Identity
   - [x] **PASS**: Create Widget: Row
@@ -141,8 +141,19 @@
   - [x] **PASS**: Options: AvailableGravities contains stretch, horizontal/vertical centers and 9-point choices
   - [x] **PASS**: Options: AvailableDimensionPresets contains unit options and presets
   - [x] **PASS**: Compiler: Container emits custom multi-unit dimensions (dp & %)
-  - [x] **PASS**: Reactivity: PropertyChanged event fires with updated value for live reflection
+
+## 10. Parent and Child Dimension Reflection Across Row, Column, Container & Combos
+  - [x] **PASS**: Flex: Default widget Flex factor is 0 (non-flex by default)
+  - [x] **PASS**: Flex: Expanded widget defaults to Flex = 1
+  - [x] **PASS**: Dimension: Child Text Width '25%' -> 90dp on 360 viewport
+  - [x] **PASS**: Dimension: Child Text Height '50dp' -> 50dp explicit size
+  - [x] **PASS**: Compiler: Child Text with custom 25% width and 50dp height wrapped in responsive SizedBox
+  - [x] **PASS**: Compiler: Parent Column with explicit 200dp height and 300dp width wrapped in SizedBox
+  - [x] **PASS**: Compiler: Column with Height 'Auto' emits mainAxisSize: MainAxisSize.min (shrink-wrap)
+  - [x] **PASS**: Compiler: Parent Row with explicit 250dp width and 60dp height wrapped in SizedBox
+  - [x] **PASS**: Compiler: Row with Width 'Auto' emits mainAxisSize: MainAxisSize.min (shrink-wrap)
+  - [x] **PASS**: Compiler: Nested Container > Column > Row > Widgets respects all explicit dimension constraints
 
 ---
-### Result: 128/128 Passed (100%)
+### Result: 137/137 Passed (100%)
 **Status: ALL WIDGETS AND PROPERTIES FULLY OPERATIONAL AND VERIFIED.**
