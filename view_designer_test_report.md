@@ -1,5 +1,5 @@
 # View Designer & Widget Property Automated Verification Report
-*Executed at: 2026-10-11 23:30:00*
+*Executed at: 2026-10-11 23:47:13*
 
 ## 1. Widget Instantiation & Identity
   - [x] **PASS**: Create Widget: Row
@@ -160,7 +160,12 @@
   - [x] **PASS**: Selector Geometry: Button Height '150dp' parses to exact 150dp
   - [x] **PASS**: Selector Geometry: Button Width 'Auto' identified as Auto
   - [x] **PASS**: Compiler: Button with 150dp height generates SizedBox(height: 150.0)
+  - [x] **PASS**: EdgeInsets: Single value '8' -> const EdgeInsets.all(8)
+  - [x] **PASS**: EdgeInsets: Symmetric '8, 16' -> const EdgeInsets.symmetric
+  - [x] **PASS**: EdgeInsets: 4-way '4, 8, 12, 16' -> const EdgeInsets.fromLTRB
+  - [x] **PASS**: Compiler: Text with Margin '8' and Height '100dp' wrapped in Padding and SizedBox
+  - [x] **PASS**: Compiler: Container with Margin '8' emits native container margin
 
 ---
-### Result: 144/144 Passed (100%)
+### Result: 149/149 Passed (100%)
 **Status: ALL WIDGETS AND PROPERTIES FULLY OPERATIONAL AND VERIFIED.**

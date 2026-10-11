@@ -102,6 +102,20 @@ Widget build(BuildContext context) {{
                 }
             }
 
+            // Margin wrapper for non-Container widgets (Flutter uses Padding wrapper for margin on widgets)
+            if (type != "Container" && node.TryGetProperty("margin", out var marginProp) && !string.IsNullOrWhiteSpace(marginProp.GetString()))
+            {
+                string mVal = marginProp.GetString()!.Trim();
+                if (!mVal.Equals("0", StringComparison.OrdinalIgnoreCase) && !mVal.Equals("0,0,0,0", StringComparison.OrdinalIgnoreCase))
+                {
+                    string edgeInsetsCode = AlignmentHelper.ToFlutterEdgeInsetsCode(mVal);
+                    if (!string.IsNullOrWhiteSpace(edgeInsetsCode))
+                    {
+                        widgetCode = $"Padding(padding: {edgeInsetsCode}, child: {widgetCode})";
+                    }
+                }
+            }
+
             return widgetCode;
         }
 
@@ -216,6 +230,20 @@ Widget build(BuildContext context) {{
                     {
                         string flAlign = AlignmentHelper.ToFlutterAlignmentCode(alignStr);
                         props.Add($"alignment: {flAlign}");
+                    }
+
+                    // Margin
+                    if (node.TryGetProperty("margin", out var mProp) && !string.IsNullOrWhiteSpace(mProp.GetString()))
+                    {
+                        string mVal = mProp.GetString()!.Trim();
+                        if (!mVal.Equals("0", StringComparison.OrdinalIgnoreCase) && !mVal.Equals("0,0,0,0", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string edgeInsetsCode = AlignmentHelper.ToFlutterEdgeInsetsCode(mVal);
+                            if (!string.IsNullOrWhiteSpace(edgeInsetsCode))
+                            {
+                                props.Add($"margin: {edgeInsetsCode}");
+                            }
+                        }
                     }
 
                     // Child

@@ -556,6 +556,21 @@ namespace Snapcode.Services
             string btnDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(buttonItem) }));
             Assert(btnDart.Contains("SizedBox(") && btnDart.Contains("height: 150"), "Compiler: Button with 150dp height generates SizedBox(height: 150.0)");
 
+            // 10.8 Margin & Selector Border Reflection (User Margin Screenshot Reproduction)
+            Assert(AlignmentHelper.ToFlutterEdgeInsetsCode("8") == "const EdgeInsets.all(8)", "EdgeInsets: Single value '8' -> const EdgeInsets.all(8)");
+            Assert(AlignmentHelper.ToFlutterEdgeInsetsCode("8, 16") == "const EdgeInsets.symmetric(horizontal: 8, vertical: 16)", "EdgeInsets: Symmetric '8, 16' -> const EdgeInsets.symmetric");
+            Assert(AlignmentHelper.ToFlutterEdgeInsetsCode("4, 8, 12, 16") == "const EdgeInsets.fromLTRB(4, 8, 12, 16)", "EdgeInsets: 4-way '4, 8, 12, 16' -> const EdgeInsets.fromLTRB");
+
+            var marginText = new WidgetItem { Type = "Text", Id = "text_5f04", Name = "Text", Height = "100dp", Margin = "8" };
+            string marginTextDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(marginText) }));
+            Assert(marginTextDart.Contains("Padding(padding: const EdgeInsets.all(8)") && marginTextDart.Contains("height: 100"),
+                "Compiler: Text with Margin '8' and Height '100dp' wrapped in Padding and SizedBox");
+
+            var marginContainer = new WidgetItem { Type = "Container", Id = "cnt_margin", Margin = "8", Width = "200dp", Height = "100dp" };
+            string marginContainerDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(marginContainer) }));
+            Assert(marginContainerDart.Contains("margin: const EdgeInsets.all(8)"),
+                "Compiler: Container with Margin '8' emits native container margin");
+
             // Summary
             report.AppendLine("\n---");
             report.AppendLine($"### Result: {passed}/{total} Passed ({(failed == 0 ? "100%" : $"{Math.Round((double)passed/total*100, 1)}%")})");

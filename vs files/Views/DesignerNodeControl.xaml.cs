@@ -136,6 +136,10 @@ namespace Snapcode.Views
             var parts = val.Split(',');
             if (parts.Length == 1 && double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p))
                 return new Thickness(p);
+            if (parts.Length == 2 &&
+                double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double h) &&
+                double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double v))
+                return new Thickness(h, v, h, v);
             if (parts.Length == 4 &&
                 double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double l) &&
                 double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double t) &&
@@ -597,7 +601,9 @@ namespace Snapcode.Views
             if (mockElement != null)
             {
                 // Box Model Sizing & Alignment
-                mockElement.Margin = ParseThickness(NodeItem.Margin);
+                // Outer margin belongs to DesignerNodeControl so it spaces against siblings without clipping inner controls or selector outlines
+                this.Margin = ParseThickness(NodeItem.Margin);
+                mockElement.Margin = new Thickness(0);
 
                 // Width Handling (dp, px, pt, %, Match Parent, Auto)
                 var widthDim = AlignmentHelper.ParseDimension(NodeItem.Width, 360.0);
@@ -897,7 +903,7 @@ namespace Snapcode.Views
                 return;
             }
 
-            SelectionBorder.Margin = _mockElement.Margin;
+            SelectionBorder.Margin = new Thickness(0);
             SelectionBorder.HorizontalAlignment = _mockElement.HorizontalAlignment;
             SelectionBorder.VerticalAlignment = _mockElement.VerticalAlignment;
             SelectionBorder.Width = _mockElement.Width;

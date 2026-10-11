@@ -387,6 +387,42 @@ namespace Snapcode.Views
             return "";
         }
 
+        /// <summary>
+        /// Emits exact Flutter Dart EdgeInsets representation for padding or margin.
+        /// </summary>
+        public static string ToFlutterEdgeInsetsCode(string? val)
+        {
+            if (string.IsNullOrWhiteSpace(val)) return "";
+            var parts = val.Split(',');
+            if (parts.Length == 1 && double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p))
+            {
+                if (p <= 0) return "";
+                string pStr = p % 1 == 0 ? ((int)p).ToString() : p.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return $"const EdgeInsets.all({pStr})";
+            }
+            if (parts.Length == 2 &&
+                double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double h) &&
+                double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double v))
+            {
+                string hStr = h % 1 == 0 ? ((int)h).ToString() : h.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string vStr = v % 1 == 0 ? ((int)v).ToString() : v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return $"const EdgeInsets.symmetric(horizontal: {hStr}, vertical: {vStr})";
+            }
+            if (parts.Length == 4 &&
+                double.TryParse(parts[0], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double l) &&
+                double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double t) &&
+                double.TryParse(parts[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double r) &&
+                double.TryParse(parts[3], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double b))
+            {
+                string lStr = l % 1 == 0 ? ((int)l).ToString() : l.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string tStr = t % 1 == 0 ? ((int)t).ToString() : t.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string rStr = r % 1 == 0 ? ((int)r).ToString() : r.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string bStr = b % 1 == 0 ? ((int)b).ToString() : b.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return $"const EdgeInsets.fromLTRB({lStr}, {tStr}, {rStr}, {bStr})";
+            }
+            return "";
+        }
+
         #endregion
     }
 }
