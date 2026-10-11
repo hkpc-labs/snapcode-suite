@@ -1,0 +1,43 @@
+<ContentDialog
+    x:Class="Snapcode.Views.AssetManagerDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:services="using:Snapcode.Services"
+    mc:Ignorable="d"
+    Title="Asset Manager"
+    PrimaryButtonText="Close"
+    DefaultButton="Primary">
+
+    <Grid Width="700" Height="500">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <CommandBar Grid.Row="0" DefaultLabelPosition="Right" Background="Transparent">
+            <AppBarButton Icon="Add" Label="Import Asset" Click="BtnImport_Click" />
+            <AppBarButton Icon="Delete" Label="Delete Selected" Click="BtnDelete_Click" />
+        </CommandBar>
+
+        <GridView x:Name="AssetGridView" Grid.Row="1" SelectionMode="Single" Margin="0,12,0,0">
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="services:AssetInfo">
+                    <Grid Width="120" Height="140" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <!-- Fallback Icon -->
+                        <FontIcon Glyph="&#xE8B7;" FontSize="48" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <!-- Thumbnail (only works if image, handled in code behind or via converter later) -->
+                        <Image Source="{Binding FilePath}" Stretch="Uniform" />
+                        
+                        <TextBlock Grid.Row="1" Text="{Binding FileName}" TextAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12" Margin="0,8,0,0" ToolTipService.ToolTip="{Binding FileName}" />
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+    </Grid>
+</ContentDialog>

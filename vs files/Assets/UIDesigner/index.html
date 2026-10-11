@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Designer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="designer-container">
+        <!-- Widget Palette -->
+        <div class="palette" id="palette">
+            <h3>Widgets</h3>
+            <div class="widget-item" draggable="true" data-type="Row">Row</div>
+            <div class="widget-item" draggable="true" data-type="Column">Column</div>
+            <div class="widget-item" draggable="true" data-type="Container">Container</div>
+            <div class="widget-item" draggable="true" data-type="Text">Text</div>
+            <div class="widget-item" draggable="true" data-type="Button">Button</div>
+            <div class="widget-item" draggable="true" data-type="TextField">TextField</div>
+        </div>
+
+        <!-- Phone Canvas -->
+        <div class="canvas-container">
+            <div class="phone-canvas" id="phone-canvas">
+                <!-- Drop zone for the root widget -->
+            </div>
+        </div>
+        
+        <!-- Properties Panel (Optional/Placeholder) -->
+        <div class="properties-panel" id="properties-panel">
+            <h3>Properties</h3>
+            <div id="properties-content">Select a widget to view properties</div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

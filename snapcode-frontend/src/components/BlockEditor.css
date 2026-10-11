@@ -1,0 +1,78 @@
+/* ── Block Editor Container ────────────────────────────────── */
+
+.block-editor-container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* ── Override Blockly default styles for dark theme ────────── */
+.blocklyMainBackground {
+  fill: #0c1020 !important;
+}
+
+.blocklyToolboxDiv {
+  background-color: #111827 !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.1) !important;
+  padding-top: 8px !important;
+}
+
+.blocklyTreeRow {
+  padding: 6px 16px !important;
+  margin: 2px 4px !important;
+  border-radius: 8px !important;
+  transition: background 150ms ease !important;
+}
+
+.blocklyTreeRow:hover {
+  background: rgba(124, 58, 237, 0.1) !important;
+}
+
+.blocklyTreeSelected {
+  background: rgba(124, 58, 237, 0.2) !important;
+}
+
+.blocklyTreeLabel {
+  color: #e2e8f0 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.blocklyFlyoutBackground {
+  fill: #1a1f35 !important;
+  fill-opacity: 0.95 !important;
+}
+
+.blocklyScrollbarBackground {
+  fill: transparent !important;
+}
+
+.blocklyScrollbarHandle {
+  fill: #374151 !important;
+  rx: 4 !important;
+}
+
+.blocklyTrash {
+  opacity: 0.6 !important;
+}
+
+.blocklyTrash:hover {
+  opacity: 1 !important;
+}
+
+/* Zoom controls */
+.blocklyZoom > image {
+  opacity: 0.5 !important;
+}
+
+.blocklyZoom > image:hover {
+  opacity: 0.8 !important;
+}
+
+/* Grid lines */
+.blocklyGridLine {
+  stroke: #1e293b !important;
+}

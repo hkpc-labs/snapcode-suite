@@ -1,0 +1,321 @@
+﻿Hisham Mohammed Mohiudidn 24CSB1A20 
+Guneev Aidasani 24CSB1A18 
+Hardik Prajapati 24CSB1A19 
+Vision Document: SnapCode 
+Project Phase: Initial Architecture & Definition 
+Product Name: SnapCode 
+Target Platform: Desktop / Web (Cross,Platform Output Engine SnapCode | Version: 1.0 
+Vision | Date: 24/Aug/2026 
+Revision History 
+Date 
+Version 
+Description 
+24/Aug/2026 
+1.0 
+Author 
+Initial release of Vision and Scope Document based on Project Libre plans. 
+Guneev, Hardik 
+Prajapati, Hisham 
+1. 
+Table of Contents 
+Introduction 
+1.1. 
+Purpose 
+1.2. 
+Scope 
+1.3. 
+1.4. 
+1.5. 
+2. 
+Positioning 
+2.1. 
+Definitions, Acronyms, and Abbreviations 
+References 
+Overview 
+Business Opportunity 
+2.2. Problem Statement 
+2.3. Product Position Statement 
+Stakeholder and User Descriptions 
+Market Demographics 
+Stakeholder Summary 
+3. 
+3.1. 
+3.2. 
+3.3. 
+User Summary 
+3.4. 
+User Environment 
+3.5. 
+3.6. 
+User Profiles 
+Stakeholder Profiles 
+3.7. Key Stakeholder or User Needs 
+3.8. Alternatives and Competition 
+Product Overview 
+4. 
+4.1. 
+4.2. 
+4.3. 
+4.4. 
+5. 
+Product Perspective 
+Summary of Capabilities 
+Assumptions and Dependencies 
+Cost and Pricing 
+4.5. Licensing and Installation 
+Product Features 
+Constraints 
+Quality Ranges 
+Precedence and Priority 
+Applicable Standards 
+System Requirements 
+Performance Requirements 
+6. 
+7. 
+8. 
+9. 
+Other Product Requirements 
+9.1. 
+9.2. 
+9.3. 
+9.4. 
+10. 
+10.1. 
+10.2. 
+10.3. 
+10.4. 
+11. 
+Environmental Requirements 
+Documentation Requirements 
+User Manual 
+Online Help 
+Installation Guides, Configuration, and Read Me File Labeling and Packaging 
+Appendix A: Feature Attributes 
+1. Introduction 
+1.1 Purpose 
+The purpose of this document is to collect, analyze, and define high-level needs, features, and operational boundaries for SnapCode. It focuses on capabilities required by stakeholders and end users to build cross-platform code visually via block coding. 
+1.2 Scope 
+This Vision Document applies to SnapCode, a cross-platform visual block coding platform. SnapCode allows users to drag and drop blocks to form application logic that compiles directly into Flutter source code, which can then be compiled and run across multiple target platforms. 
+1.3 Definitions, Acronyms, and Abbreviations 
+• SnapCode: Cross-platform block coding application. 
+AST (Abstract Syntax Tree): Tree representation of code structure parsed from visual block states. 
+Block Coding: Visual drag-and-drop mechanics replacing text syntax with interlocking visual nodes. 
+Flutter / Dart: Google's UI toolkit and programming language used for multi-platform compilation. 
+Project Libre: The project management tool utilized to construct task schedules, Work Breakdown Structures (WBS), and Resource Breakdown Structures (RBS). 
+1.4 References 
+1. Rational Unified Process (RUP) Vision Document Template. 
+2. SnapCode Project Management Documentation (Part 1 & Part 2). 
+3. Flutter Engine Architecture and Code Generation Protocols. 
+1.5 Overview 
+This document covers positioning, stakeholder/user profiles, product overview, product features, hardware/software constraints, quality metrics, precedence, and feature attributes following the RUP Vision template structure. 
+2. Positioning 
+2.1 Business Opportunity 
+With increasing demand for cross-platform apps, students and novice programmers encounter significant learning barriers due to complex framework syntax (e.g., Dart/Flutter setup). Traditional block platforms (like Scratch) teach basic programming logic but fail to output production-ready cross-platform code. SnapCode fills this gap by turning visual block layouts directly into executable Flutter code. 
+2.2 Problem Statement 
+The problem of 
+Syntax barriers and steep learning curves in building native cross-platform applications 
+affects 
+Novice programmers, STEM students, coding instructors, and rapid app prototypers 
+the impact of which is 
+High abandon rates among beginners, syntax friction, and slow cross-platform prototyping 
+a successful solution 
+would be 
+A visual drag-and-drop workspace that compiles blocks directly into clean, executable Flutter source code. 
+2.3 Product Position Statement 
+For 
+Who 
+Novice programmers, STEM students, and educators 
+Want to build multi-platform applications without wrestling with syntax errors 
+The 
+Is a cross-platform visual block coding platform 
+(SnapCode) 
+That 
+Compiles drag-and-drop visual logic directly into clean Flutter code 
+Unlike 
+Closed visual environments (Scratch) or syntax-heavy IDEs (VS Code/Android Studio) 
+Our product 
+Provides a visual block interface that generates production-ready Flutter code running across Web, Mobile, and Desktop. 
+3. Stakeholder and User Descriptions 
+3.1 Market Demographics 
+Target markets include K-12 STEM programs, introductory computer science university courses, app development bootcamps, and individual hobbyists. 
+3.2 Stakeholder Summary 
+Name 
+Project Sponsor/ 
+Institutional Boards 
+Description 
+Key Responsibilities 
+Funding entity or educational program leads. 
+Funding approval, curriculum 
+integration, monitoring overall ROI. 
+Project Team 
+Technical execution 
+(Guneev, Hardik, 
+team. 
+Hisham) 
+System architecture, Flutter engine implementation, UI development, database modeling, integration testing. 
+School IT 
+Administrators 
+Infrastructure support leads. 
+Platform deployment compliance, network security, classroom system provisioning. 
+3.3 User Summary 
+Name 
+Description 
+Key Responsibilities 
+Stakeholder Representative 
+Students / 
+Novices 
+Primary end 
+user. 
+Builds app logic using drag-and-drop blocks, generates target code. 
+Self 
+CS 
+Instructors 
+Educational 
+end user. 
+Prepares visual coding exercises, creates block templates, reviews 
+generated Flutter output. 
+Educational 
+Boards 
+Prototypers 
+Secondary end user. 
+Rapidly mocks up 
+Self 
+multi-platform UI and logic 
+using blocks before 
+refining raw code. 
+3.4 User Environment 
+Platform: Web browsers (Chrome, Firefox, Edge, Safari) and Desktop operating systems (Windows, macOS, Linux). 
+Task Cycle: Interactive dragging of blocks, instant compilation to Flutter code, live execution preview. 
+3.5 Stakeholder Profiles 
+3.5.1 Project Sponsor / Team Lead 
+Representative: Guneev (Team Lead / Architect) 
+Description: The technical execution and managerial lead. 
+Type: Expert / Managerial 
+Responsibilities: Project planning, architecture design, system integration, team coordination, and project handover. 
+Success Criteria: Completing core phases (Learning & Architecture 107,000; Core Dev 68,400; Testing 57,200) within allocated budget/schedule bounds. 
+Involvement: Project Manager / Requirements Lead. 
+3.6 User Profiles 
+3.6.1 Student / Beginner Programmer 
+Representative: CS Student Representative 
+Description: The primary end user building logic via the visual interface. Type: Casual / Novice 
+Responsibilities: Drag-and-drop block logic construction, testing generated applications. 
+Success Criteria: Ability to create a functioning multi-platform app without syntax 
+errors. 
+Involvement: End-user testing and usability verification. 
+3.7 Key Stakeholder or User Needs 
+Need 
+Priority 
+Current Solution 
+Proposed Solution 
+Syntax-Free App Logic 
+High 
+Complex manual 
+Dart syntax 
+Drag-and-drop visual logic block engine. 
+Cross-Platform Compilation 
+High 
+Platform-specific code bases 
+Single visual block workflow 
+emitting cross-platform Flutter code. 
+Instant Preview & 
+High 
+Export 
+Manual terminal build commands 
+Integrated side-by-side dashboard with one-click code generation. 
+3.8 Alternatives and Competition 
+3.8.1 MIT App Inventor / Scratch 
+Strengths: Easy block interface for beginners. 
+Weaknesses: Cannot export clean, production-ready Flutter code for standard cross-platform distribution. 
+3.8.2 FlutterFlow 
+• Strengths: Professional low-code app builder for Flutter. 
+Weaknesses: Steep learning curve for complete beginners; lacks pure drag-and-drop visual logic block simplicity. 
+4. Product Overview 
+4.1 Product Perspective 
+SnapCode is an independent software tool providing an abstraction layer between visual puzzle-block logic and target Flutter framework compilation. 
+4.2 Summary of Capabilities 
+Customer Benefit 
+Supporting Features 
+No Syntax Friction 
+Draggable code blocks with magnetic snapping constraints. 
+Cross-Platform Output 
+Code generation engine translating block states to Flutter/Dart. 
+Unified Workspace 
+Central dashboard with block palette, canvas workspace, and code preview. 
+4.3 Assumptions and Dependencies 
+Target machine has modern browser or desktop runtime support. 
+Generated Flutter code relies on stable Flutter SDK channels. 
+Task scheduling and resource allocations adhere to Project Libre baselines (Budget total allocation: ~232,600). 
+4.4 Cost and Pricing 
+• 
+Development Cost Breakdown: 
+Learning & Architecture Phase: 107,000.00 
+Core Development Phase: ₹68,400.00 
+Testing & Polish Phase: 57,200.00 
+Pricing Model: Free Open Source Edition for educational institutions. 
+4.5 Licensing and Installation 
+Distributed under open-source licenses (MIT/Apache 2.0). Web edition requires zero installation; desktop version bundled as a standalone package. 
+5. Product Features 
+5.1 Draggable Block Canvas Workspace 
+Interactive canvas allowing users to drag, drop, connect, and reorder logic blocks. 
+5.2 Flutter Code Generation Engine 
+Backend translation engine compiling visual block trees into readable, structured Flutter code. 
+5.3 Central Dashboard & Project Management 
+Centralized user UI incorporating dashboard controls, project saves, block library navigation, and target preview. 
+5.4 Database Integration & Model Management 
+Backend integration supporting project file storage, user configurations, and block structures. 
+6. Constraints 
+Development Constraints: WBS timeline bounded across specified Project Libre Gantt 
+tasks. 
+Technical Constraints: Visual blocks must map deterministically to valid syntax constructs in Dart/Flutter. 
+7. Quality Ranges 
+• 
+Usability: 90%+ success rate for first-time users completing simple app logic within 15 minutes. 
+Performance: Block-to-code compilation cycle under 200ms. 
+Reliability: Zero crash rate during block snapping and AST parsing operations. 
+8. Precedence and Priority 
+Priority 
+Feature / Phase 
+High 
+Learn Dart/Flutter, Canvas Setup, Block-to-Code Architecture 
+Target Allocation 
+Learning & Architecture Phase 
+High 
+Dev Environment Setup, Main UI/Workspace, Draggable Blocks, Code Gen 
+Core Development Phase 
+Medium 
+System Integration Testing, Bug Fixing, Documentation 
+Testing & Polish Phase 
+9. Other Product Requirements 
+9.1 Applicable Standards 
+Compliance with Dart language specifications and Flutter idiomatic structure guidelines. 
+9.2 System Requirements 
+Web Browser (Chrome, Firefox, Safari, Edge) or Desktop OS (Windows 10+, macOS 11+, Linux). 
+9.3 Performance Requirements 
+Low latency drag responsiveness (60 FPS rendering on block canvas). 
+9.4 Environmental Requirements 
+Accessible online or via local offline desktop installation. 
+10. Documentation Requirements 
+10.1 User Manual 
+Guide covering block logic building, Flutter export steps, and platform compilation instructions. 10.2 Online Help 
+Embedded contextual tooltips explaining block operations directly inside the UI. 
+10.3 Installation Guides, Configuration, and Read Me File 
+Comprehensive documentation covering dev setup, repository cloning, and environment setup. 10.4 Labeling and Packaging 
+Standardized SnapCode visual branding, logos, icons, and packaging assets. 
+Appendix A: Feature Attributes 
+A.1 Status 
+All core features currently marked as Approved and allocated to project sprint baselines. 
+A.2 Benefit 
+Draggable Canvas & Workspace: Critical 
+Flutter Code Generator Engine: Critical Database & Save Integration: Important 
+A.3 Effort 
+Estimated team work effort distributed per Project Libre task allocation (Team Lead: Guneev, Frontend UI: Hardik Prajapati, Backend: Hisham). 
+A.4 Risk 
+Low to Moderate. Mitigated by initial "Learning & Architecture" phase tasks. 
+A.5 Stability 
+High stability expected upon completion of Integration Testing. 
+A.6 Target Release 
+Version 1.0 (Q4 2026 baseline rollout). 
+A.7 Assigned To 
+Guneev: System Architecture, Team Coordination, Code Engine Integration Hardik Prajapati: Frontend UI, Wireframes, Block Canvas Workspace, Database Integration 
+Hisham: Backend APIs, Database Modeling, Flutter Compilation Engine A.8 Reason 
+Fulfilling core mandate to provide an intuitive visual block programming interface that outputs cross-platform Flutter code.

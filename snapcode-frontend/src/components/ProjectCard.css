@@ -1,0 +1,120 @@
+/* ── Project Card ──────────────────────────────────────────── */
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  padding: var(--space-lg);
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-lg), var(--shadow-glow-accent);
+}
+
+.project-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.project-card-menu {
+  position: relative;
+}
+
+.project-menu-trigger {
+  font-size: var(--text-lg);
+  color: var(--text-tertiary);
+}
+
+.project-menu-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 160px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  overflow: hidden;
+  animation: slideInDown var(--transition-fast) ease-out;
+}
+
+.project-card-menu:hover .project-menu-dropdown,
+.project-card-menu:focus-within .project-menu-dropdown {
+  display: block;
+}
+
+.project-menu-dropdown button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  text-align: left;
+}
+
+.project-menu-dropdown button:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.project-menu-dropdown button.menu-danger {
+  color: var(--accent-danger);
+}
+
+.project-menu-dropdown button.menu-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.project-card-body {
+  flex: 1;
+  min-height: 60px;
+}
+
+.project-card-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-card-desc {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+}
+
+.project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-md);
+}
+
+.project-card-stat,
+.project-card-time {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}

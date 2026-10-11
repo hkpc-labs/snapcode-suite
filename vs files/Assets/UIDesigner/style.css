@@ -1,0 +1,101 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  background-color: #1e1e1e;
+  color: #cccccc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+.designer-container {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  width: 100%;
+}
+
+.palette {
+  width: 250px;
+  background-color: #252526;
+  border-right: 1px solid #333333;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.properties-panel {
+  width: 250px;
+  background-color: #252526;
+  border-left: 1px solid #333333;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.canvas-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #1e1e1e;
+  overflow: auto;
+}
+
+.phone-canvas {
+  width: 375px;
+  height: 667px;
+  background-color: #ffffff; /* keep canvas white for UI design visibility */
+  color: #000000;
+  border: 12px solid #333333;
+  border-radius: 36px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.widget-item {
+  cursor: grab;
+  padding: 10px;
+  border: 1px solid #444444;
+  background-color: #2d2d30;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  user-select: none;
+  transition: background-color 0.2s;
+  color: #cccccc;
+}
+
+.widget-item:hover {
+  background-color: #3e3e42;
+}
+
+.widget-item:active {
+  cursor: grabbing;
+}
+
+/* Styles for widgets dropped on the canvas and drop targets */
+.phone-canvas .widget, 
+.phone-canvas .drop-target,
+.phone-canvas > div {
+  padding: 10px;
+  border: 1px dashed #aaaaaa;
+  min-height: 40px;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.phone-canvas .widget:hover,
+.phone-canvas .drop-target:hover,
+.phone-canvas > div:hover {
+  border-color: #007acc;
+}
+
+h3 {
+  margin-top: 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888888;
+}

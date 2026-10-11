@@ -1,0 +1,30 @@
+<ContentDialog
+    x:Class="Snapcode.Views.NewPageDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Snapcode.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="New File"
+    PrimaryButtonText="Create"
+    SecondaryButtonText="Cancel"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="10" MinWidth="300">
+        <TextBox x:Name="FileNameTextBox" Header="File Name" PlaceholderText="Enter file name" />
+        
+        <ComboBox x:Name="FileTypeComboBox" Header="File Type" SelectedIndex="0" SelectionChanged="FileTypeComboBox_SelectionChanged" HorizontalAlignment="Stretch">
+            <ComboBoxItem Content="Page" />
+            <ComboBoxItem Content="DialogFragment" />
+            <ComboBoxItem Content="Custom View" />
+        </ComboBox>
+
+        <StackPanel x:Name="TogglesPanel" Spacing="5" Visibility="Visible">
+            <CheckBox x:Name="HideToolbarCheckBox" Content="Hide Toolbar" />
+            <CheckBox x:Name="HideStatusBarCheckBox" Content="Hide Status Bar" />
+            <CheckBox x:Name="AddFabCheckBox" Content="Add FAB" />
+            <CheckBox x:Name="AddNavDrawerCheckBox" Content="Add Navigation Drawer" />
+        </StackPanel>
+    </StackPanel>
+</ContentDialog>

@@ -1,0 +1,228 @@
+<Page
+    x:Class="Snapcode.Views.EditorPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="using:Snapcode.Views"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" /> <!-- Custom Title Bar Region (with Menus) -->
+            <RowDefinition Height="32" /> <!-- Compact ToolBar Region -->
+            <RowDefinition Height="*" /> <!-- Main Content SplitView -->
+            <RowDefinition Height="32" /> <!-- Native Status Bar -->
+        </Grid.RowDefinitions>
+
+        <!-- TITLE BAR WITH MENUS -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Background="Transparent" Loaded="AppTitleBar_Loaded">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0" Spacing="4">
+                <Button x:Name="BtnBack" Click="BtnBack_Click" Background="Transparent" BorderThickness="0" Padding="8,4" CornerRadius="4">
+                    <FontIcon Glyph="&#xE72B;" FontSize="14" />
+                </Button>
+                
+                <!-- Modern VS Style MenuBar -->
+                <MenuBar Background="Transparent" VerticalAlignment="Center" Margin="4,0,0,0">
+                    <MenuBarItem Title="File">
+                        <MenuFlyoutItem Text="Save" Icon="Save" Click="BtnSave_Click" />
+                        <MenuFlyoutItem Text="Page Configuration" Icon="Setting" Click="BtnPageConfig_Click" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Exit" Click="BtnBack_Click" />
+                    </MenuBarItem>
+                    <MenuBarItem Title="View">
+                        <MenuFlyoutItem Text="Files (View Manager)" Click="BtnToggleViewManager_Click" />
+                        <MenuFlyoutItem Text="Assets Manager" Click="BtnAssets_Click" />
+                        <MenuFlyoutItem Text="Code Preview" Click="BtnToggleCode_Click" />
+                    </MenuBarItem>
+                    <MenuBarItem Title="Build">
+                        <MenuFlyoutItem Text="Run Project" Click="BtnRun_Click" />
+                        <MenuFlyoutItem Text="Clear Build Cache" Click="BtnClearBlocks_Click" />
+                    </MenuBarItem>
+                </MenuBar>
+                
+                <TextBlock Text="|" FontSize="12" Foreground="{ThemeResource TextFillColorDisabledBrush}" VerticalAlignment="Center" Margin="8,0" />
+                <TextBlock x:Name="TxtProjectName" Text="Project" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock x:Name="TxtProjectOrg" Text="com.example" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" Margin="4,0,0,0" />
+            </StackPanel>
+        </Grid>
+
+        <!-- COMPACT HORIZONTAL TOOLBAR -->
+        <CommandBar Grid.Row="1" DefaultLabelPosition="Collapsed" Background="Transparent" BorderThickness="0" Padding="12,0,12,0">
+            <!-- Icon only buttons for quick access -->
+            <AppBarButton x:Name="BtnSaveQuick" Icon="Save" Click="BtnSave_Click" ToolTipService.ToolTip="Save" />
+            <AppBarButton x:Name="BtnAssetsQuick" Icon="Pictures" Click="BtnAssets_Click" ToolTipService.ToolTip="Assets" />
+            <AppBarSeparator />
+            <AppBarButton x:Name="BtnClearAllQuick" Icon="Delete" Click="BtnClearBlocks_Click" ToolTipService.ToolTip="Clear Cache" />
+            <AppBarButton x:Name="BtnSettingsQuick" Icon="Setting" Click="BtnPageConfig_Click" ToolTipService.ToolTip="Settings" />
+            
+            <CommandBar.Content>
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <ComboBox x:Name="ComboTarget" SelectedIndex="0" Width="100" Height="28" Padding="8,2" SelectionChanged="ComboTarget_SelectionChanged" Background="Transparent" BorderThickness="0">
+                        <ComboBoxItem x:Name="ComboItemWeb" Content="Web" Tag="web" />
+                        <ComboBoxItem x:Name="ComboItemAndroid" Content="Android" Tag="android" />
+                        <ComboBoxItem x:Name="ComboItemWindows" Content="Windows" Tag="windows" />
+                    </ComboBox>
+
+                    <ComboBox x:Name="ComboDevice" Width="140" Height="28" Padding="8,2" Background="Transparent" BorderThickness="0">
+                        <!-- Populated dynamically based on Target -->
+                    </ComboBox>
+                    
+                    <Button x:Name="BtnRunQuick" Click="BtnRun_Click" Background="{ThemeResource SystemAccentColor}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" Height="28" CornerRadius="4" Padding="12,2" BorderThickness="0">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE768;" FontSize="12" />
+                            <TextBlock Text="Start" FontSize="12" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </CommandBar.Content>
+        </CommandBar>
+
+        <!-- SPLIT VIEW -->
+        <SplitView x:Name="ViewManagerSplitView" Grid.Row="2" DisplayMode="Overlay" IsPaneOpen="False" OpenPaneLength="250" PaneBackground="{ThemeResource SolidBackgroundFillColorSecondaryBrush}">
+            <SplitView.Pane>
+                <Grid Padding="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="View Manager" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+                    
+                    <ListView x:Name="ListPages" Grid.Row="1" SelectionChanged="ListPages_SelectionChanged" ShowsScrollingPlaceholders="False">
+                        <!-- Items will be populated in code-behind -->
+                    </ListView>
+
+                    <Button x:Name="BtnAddPage" Grid.Row="2" HorizontalAlignment="Stretch" Click="BtnAddPage_Click" Margin="0,12,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE710;" FontSize="12" />
+                            <TextBlock Text="Add File" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </SplitView.Pane>
+
+            <SplitView.Content>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <NavigationView x:Name="EditorTabs" PaneDisplayMode="Top" IsBackButtonVisible="Collapsed" SelectionChanged="EditorTabs_SelectionChanged" IsSettingsVisible="False">
+                        <NavigationView.MenuItems>
+                            <NavigationViewItem Content="View Design" Tag="view" IsSelected="True">
+                                <NavigationViewItem.Icon>
+                                    <FontIcon Glyph="&#xE7FC;" />
+                                </NavigationViewItem.Icon>
+                            </NavigationViewItem>
+                            <NavigationViewItem Content="Event Blocks" Tag="event">
+                                <NavigationViewItem.Icon>
+                                    <FontIcon Glyph="&#xE943;" />
+                                </NavigationViewItem.Icon>
+                            </NavigationViewItem>
+                            <NavigationViewItem Content="Components" Tag="component">
+                                <NavigationViewItem.Icon>
+                                    <FontIcon Glyph="&#xE81E;" />
+                                </NavigationViewItem.Icon>
+                            </NavigationViewItem>
+                        </NavigationView.MenuItems>
+                    </NavigationView>
+
+                    <Grid Grid.Row="1">
+                        <!-- View Panel (UI Designer) -->
+                        <Grid x:Name="ViewPanel" Canvas.ZIndex="3" Opacity="1" IsHitTestVisible="True" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+                            <local:NativeUIDesigner x:Name="NativeDesigner" />
+                        </Grid>
+
+                        <!-- Event Panel (Block Editor) -->
+                        <Grid x:Name="EventPanel" Canvas.ZIndex="2" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+                            <Grid BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition x:Name="ColBlockly" Width="*" />
+                                    <ColumnDefinition x:Name="ColSpacer" Width="1" />
+                                    <ColumnDefinition x:Name="ColCodePreview" Width="400" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Block Editor -->
+                                <Grid Grid.Column="0">
+                                    <StackPanel x:Name="EditorLoadingPanel" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                                        <ProgressRing IsActive="True" Width="32" Height="32" />
+                                        <TextBlock Text="Loading SnapCode Editor..." FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <WebView2 x:Name="BlocklyWebView" Visibility="Collapsed" />
+                                </Grid>
+
+                                <!-- Divider -->
+                                <Grid Grid.Column="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                                <!-- Event Navigator Panel -->
+                                <Grid Grid.Column="2" x:Name="EventNavigatorPanel" Background="{ThemeResource LayerFillColorAltBrush}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="36" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Header -->
+                                    <Grid Grid.Row="0" Padding="12,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE814;" FontSize="12" Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                            <TextBlock Text="Event Navigator" FontSize="12" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <ListView x:Name="ListEvents" Grid.Row="1" SelectionChanged="ListEvents_SelectionChanged" Padding="4">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="8" Padding="4">
+                                                    <FontIcon Glyph="{Binding Icon}" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    <TextBlock Text="{Binding DisplayName}" FontSize="13" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+
+                        <!-- Component Panel -->
+                        <Grid x:Name="ComponentPanel" Canvas.ZIndex="1" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                                <FontIcon Glyph="&#xE81E;" FontSize="48" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Text="Components" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <TextBlock Text="Add non-visual components like Intents, Timers, and Dialogs (Coming Soon)" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </SplitView.Content>
+        </SplitView>
+
+        <!-- STATUS BAR -->
+        <Grid Grid.Row="3" Background="{ThemeResource SolidBackgroundFillColorQuarternaryBrush}" Padding="16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <FontIcon x:Name="StatusSaveIcon" Glyph="&#xE73E;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="TxtSaveStatus" Text="Ready" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="24" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE8A5;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="TxtBlockCount" Text="0 blocks" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE774;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="TxtTargetInfo" Text="Target: Web" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

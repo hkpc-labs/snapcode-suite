@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Snapcode (Unpackaged)": {
+      "commandName": "Project"
+    },
+    "Snapcode (Open newapp)": {
+      "commandName": "Project",
+      "commandLineArgs": "--project \"C:\\Users\\hardi\\Documents\\Snapcode\\repos\\newapp\""
+    }
+  }
+}

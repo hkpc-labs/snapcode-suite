@@ -1,0 +1,15 @@
+{
+  "name": "snapcode-compiler",
+  "version": "1.0.0",
+  "description": "SnapCode Compilation Microservice",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.12.0",
+    "hono": "^4.5.0",
+    "adm-zip": "^0.5.10"
+  }
+}

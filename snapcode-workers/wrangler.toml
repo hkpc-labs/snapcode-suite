@@ -1,0 +1,49 @@
+# ============================================================
+# SnapCode — Wrangler Configuration
+# Cloudflare Workers deployment config
+# ============================================================
+
+name = "snapcode-api"
+main = "src/state-worker.js"
+compatibility_date = "2024-09-01"
+
+# ── Environment Variables ──────────────────────────────────
+[vars]
+FIREBASE_PROJECT_ID = "rdclub-f9e66"
+R2_PUBLIC_DOMAIN = "snapcode-exports.r2.dev"
+
+# ── D1 Database ────────────────────────────────────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "snapcode-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+# ── KV Namespace (export job status) ───────────────────────
+[[kv_namespaces]]
+binding = "KV"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# ── R2 Bucket (zip file storage) ──────────────────────────
+[[r2_buckets]]
+binding = "EXPORTS_BUCKET"
+bucket_name = "snapcode-exports"
+
+# ── Cloudflare Queue ──────────────────────────────────────
+# Producer binding (Publisher Worker sends to this queue)
+[[queues.producers]]
+binding = "QUEUE"
+queue = "snapcode-export-queue"
+
+# Consumer binding (Consumer Worker reads from this queue)
+# Note: The consumer worker must be deployed separately
+# with its own wrangler.toml pointing to consumer-worker.js
+# [[queues.consumers]]
+# queue = "snapcode-export-queue"
+# max_batch_size = 5
+# max_batch_timeout = 30
+
+# ── Routes ─────────────────────────────────────────────────
+# Configure these when deploying to a custom domain
+# [routes]
+# pattern = "api.snapcode.dev/*"
+# zone_name = "snapcode.dev"

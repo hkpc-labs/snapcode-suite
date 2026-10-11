@@ -1,0 +1,28 @@
+<UserControl
+    x:Class="Snapcode.Views.DesignerNodeControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Snapcode.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    PointerPressed="UserControl_PointerPressed"
+    AllowDrop="True"
+    CanDrag="True"
+    DragStarting="UserControl_DragStarting"
+    DragOver="UserControl_DragOver"
+    Drop="UserControl_Drop"
+    RequestedTheme="Light">
+
+    <Grid Background="Transparent">
+        <!-- The actual mocked UI will be injected here in C# -->
+        <Grid x:Name="ContentHost" />
+        
+        <!-- The overlay mask for selection highlighting -->
+        <Border x:Name="SelectionBorder" BorderThickness="2" BorderBrush="Transparent" CornerRadius="2" Background="Transparent" IsHitTestVisible="False" />
+        
+        <Border x:Name="LayoutLabelBorder" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#88000000" CornerRadius="4" Padding="4,2" Margin="4" Visibility="Collapsed" IsHitTestVisible="False">
+            <TextBlock x:Name="LayoutLabelText" Foreground="White" FontSize="10" IsHitTestVisible="False" />
+        </Border>
+    </Grid>
+</UserControl>

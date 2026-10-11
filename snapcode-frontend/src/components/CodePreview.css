@@ -1,0 +1,101 @@
+/* ── Code Preview Panel ────────────────────────────────────── */
+
+.code-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0d1117;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.code-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #161b22;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.code-preview-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.code-file-icon {
+  font-size: 14px;
+}
+
+.code-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.code-line-count {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.code-preview-actions .copied {
+  color: var(--accent-success) !important;
+}
+
+.code-preview-body {
+  display: flex;
+  flex: 1;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.code-line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px 16px 16px;
+  text-align: right;
+  color: #484f58;
+  user-select: none;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(148, 163, 184, 0.06);
+  min-width: 40px;
+}
+
+.code-line-numbers span {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.code-preview-pre {
+  flex: 1;
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  background: transparent !important;
+  border: none !important;
+  font-size: 13px !important;
+}
+
+.code-preview-pre code {
+  font-family: var(--font-mono) !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  background: transparent !important;
+  white-space: pre !important;
+}
+
+/* Override PrismJS tomorrow theme for our dark background */
+.code-preview pre[class*="language-"],
+.code-preview code[class*="language-"] {
+  background: transparent !important;
+  text-shadow: none !important;
+}
