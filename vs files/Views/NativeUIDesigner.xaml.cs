@@ -180,32 +180,7 @@ namespace Snapcode.Views
 
         private Windows.UI.Color ParseHexColor(string hex, Windows.UI.Color fallback)
         {
-            if (string.IsNullOrWhiteSpace(hex)) return fallback;
-            hex = hex.Replace("#", "");
-            if (hex.Equals("Transparent", StringComparison.OrdinalIgnoreCase)) return Microsoft.UI.Colors.Transparent;
-            if (hex.Equals("White", StringComparison.OrdinalIgnoreCase)) return Microsoft.UI.Colors.White;
-            if (hex.Equals("Black", StringComparison.OrdinalIgnoreCase)) return Microsoft.UI.Colors.Black;
-            
-            try
-            {
-                if (hex.Length == 6)
-                {
-                    return Windows.UI.Color.FromArgb(255, 
-                        byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber),
-                        byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber),
-                        byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber));
-                }
-                if (hex.Length == 8)
-                {
-                    return Windows.UI.Color.FromArgb(
-                        byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber),
-                        byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber),
-                        byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber),
-                        byte.Parse(hex.Substring(6, 2), System.Globalization.NumberStyles.HexNumber));
-                }
-            }
-            catch { }
-            return fallback;
+            return AlignmentHelper.ParseColor(hex, fallback);
         }
 
         public event EventHandler<(string WidgetId, string EventType)> OpenEventWorkspaceRequested;
@@ -313,9 +288,10 @@ namespace Snapcode.Views
                 InputPropPadding.Text = _selectedWidget.Padding ?? "8";
                 InputPropMargin.Text = _selectedWidget.Margin ?? "0";
                 
+                bool hasBg = !string.IsNullOrWhiteSpace(_selectedWidget.BackgroundColor) && !_selectedWidget.BackgroundColor.Equals("Transparent", StringComparison.OrdinalIgnoreCase);
                 var bgColor = ParseHexColor(_selectedWidget.BackgroundColor, Microsoft.UI.Colors.Transparent);
-                PickerPropBgColor.Color = bgColor;
                 PreviewPropBgColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(bgColor);
+                PickerPropBgColor.Color = hasBg ? bgColor : Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243);
 
                 var txtColor = ParseHexColor(_selectedWidget.TextColor, Microsoft.UI.Colors.Black);
                 PickerPropTextColor.Color = txtColor;
@@ -332,9 +308,10 @@ namespace Snapcode.Views
                 InputPropBorderWidth.Text = _selectedWidget.BorderWidth ?? "0";
                 InputPropCornerRadius.Text = _selectedWidget.CornerRadius ?? "0";
                 
+                bool hasBorder = !string.IsNullOrWhiteSpace(_selectedWidget.BorderColor) && !_selectedWidget.BorderColor.Equals("Transparent", StringComparison.OrdinalIgnoreCase);
                 var borderColor = ParseHexColor(_selectedWidget.BorderColor, Microsoft.UI.Colors.Transparent);
-                PickerPropBorderColor.Color = borderColor;
                 PreviewPropBorderColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(borderColor);
+                PickerPropBorderColor.Color = hasBorder ? borderColor : Microsoft.UI.Colors.Black;
                 
                 ToggleShadow.IsOn = _selectedWidget.HasShadow;
 
@@ -477,9 +454,16 @@ namespace Snapcode.Views
             if (_isUpdatingSelectionUI) return;
             if (_selectedWidget != null)
             {
-                var hex = $"#{args.NewColor.A:X2}{args.NewColor.R:X2}{args.NewColor.G:X2}{args.NewColor.B:X2}";
+                var newColor = args.NewColor;
+                if (newColor.A == 0 && (args.OldColor.A == 0 || (newColor.R != 255 || newColor.G != 255 || newColor.B != 255)))
+                {
+                    newColor = Windows.UI.Color.FromArgb(255, newColor.R, newColor.G, newColor.B);
+                }
+                var hex = newColor.A == 255
+                    ? $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}"
+                    : $"#{newColor.A:X2}{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
                 _selectedWidget.BackgroundColor = hex;
-                PreviewPropBgColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(args.NewColor);
+                PreviewPropBgColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(newColor);
             }
         }
 
@@ -488,9 +472,16 @@ namespace Snapcode.Views
             if (_isUpdatingSelectionUI) return;
             if (_selectedWidget != null)
             {
-                var hex = $"#{args.NewColor.A:X2}{args.NewColor.R:X2}{args.NewColor.G:X2}{args.NewColor.B:X2}";
+                var newColor = args.NewColor;
+                if (newColor.A == 0 && (args.OldColor.A == 0 || (newColor.R != 255 || newColor.G != 255 || newColor.B != 255)))
+                {
+                    newColor = Windows.UI.Color.FromArgb(255, newColor.R, newColor.G, newColor.B);
+                }
+                var hex = newColor.A == 255
+                    ? $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}"
+                    : $"#{newColor.A:X2}{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
                 _selectedWidget.TextColor = hex;
-                PreviewPropTextColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(args.NewColor);
+                PreviewPropTextColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(newColor);
             }
         }
 
@@ -499,9 +490,23 @@ namespace Snapcode.Views
             if (_isUpdatingSelectionUI) return;
             if (_selectedWidget != null)
             {
-                var hex = $"#{args.NewColor.A:X2}{args.NewColor.R:X2}{args.NewColor.G:X2}{args.NewColor.B:X2}";
+                var newColor = args.NewColor;
+                if (newColor.A == 0 && (args.OldColor.A == 0 || (newColor.R != 255 || newColor.G != 255 || newColor.B != 255)))
+                {
+                    newColor = Windows.UI.Color.FromArgb(255, newColor.R, newColor.G, newColor.B);
+                }
+                var hex = newColor.A == 255
+                    ? $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}"
+                    : $"#{newColor.A:X2}{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
                 _selectedWidget.BorderColor = hex;
-                PreviewPropBorderColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(args.NewColor);
+                PreviewPropBorderColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(newColor);
+
+                // If BorderWidth was not set or 0, automatically default to 1 so the border is immediately visible!
+                if (string.IsNullOrWhiteSpace(_selectedWidget.BorderWidth) || _selectedWidget.BorderWidth == "0")
+                {
+                    _selectedWidget.BorderWidth = "1";
+                    InputPropBorderWidth.Text = "1";
+                }
             }
         }
 
@@ -510,9 +515,16 @@ namespace Snapcode.Views
             if (_isUpdatingSelectionUI) return;
             if (_selectedWidget != null)
             {
-                var hex = $"#{args.NewColor.A:X2}{args.NewColor.R:X2}{args.NewColor.G:X2}{args.NewColor.B:X2}";
+                var newColor = args.NewColor;
+                if (newColor.A == 0 && (args.OldColor.A == 0 || (newColor.R != 255 || newColor.G != 255 || newColor.B != 255)))
+                {
+                    newColor = Windows.UI.Color.FromArgb(255, newColor.R, newColor.G, newColor.B);
+                }
+                var hex = newColor.A == 255
+                    ? $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}"
+                    : $"#{newColor.A:X2}{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
                 _selectedWidget.ActiveColor = hex;
-                PreviewPropActiveColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(args.NewColor);
+                PreviewPropActiveColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(newColor);
             }
         }
 
@@ -521,9 +533,16 @@ namespace Snapcode.Views
             if (_isUpdatingSelectionUI) return;
             if (_selectedWidget != null)
             {
-                var hex = $"#{args.NewColor.A:X2}{args.NewColor.R:X2}{args.NewColor.G:X2}{args.NewColor.B:X2}";
+                var newColor = args.NewColor;
+                if (newColor.A == 0 && (args.OldColor.A == 0 || (newColor.R != 255 || newColor.G != 255 || newColor.B != 255)))
+                {
+                    newColor = Windows.UI.Color.FromArgb(255, newColor.R, newColor.G, newColor.B);
+                }
+                var hex = newColor.A == 255
+                    ? $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}"
+                    : $"#{newColor.A:X2}{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
                 _selectedWidget.ActiveColor = hex;
-                PreviewPropSliderActiveColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(args.NewColor);
+                PreviewPropSliderActiveColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(newColor);
             }
         }
 

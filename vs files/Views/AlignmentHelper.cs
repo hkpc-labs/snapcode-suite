@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI;
+using Windows.UI;
 
 namespace Snapcode.Views
 {
@@ -421,6 +425,179 @@ namespace Snapcode.Views
                 return $"const EdgeInsets.fromLTRB({lStr}, {tStr}, {rStr}, {bStr})";
             }
             return "";
+        }
+
+        /// <summary>
+        /// Parses color strings (named colors, 3/4/6/8-character hex) into Windows.UI.Color.
+        /// Includes auto-recovery for 0-alpha WinUI ColorPicker transparent bug.
+        /// </summary>
+        public static Windows.UI.Color ParseColor(string? hex, Windows.UI.Color fallback = default)
+        {
+            if (string.IsNullOrWhiteSpace(hex) || hex.Equals("Transparent", StringComparison.OrdinalIgnoreCase))
+                return fallback == default ? Microsoft.UI.Colors.Transparent : fallback;
+
+            string trimmed = hex.Trim();
+            string lower = trimmed.ToLowerInvariant().Replace(" ", "").Replace("_", "");
+
+            switch (lower)
+            {
+                case "white": return Microsoft.UI.Colors.White;
+                case "black": return Microsoft.UI.Colors.Black;
+                case "red":
+                case "materialred": return ColorHelper.FromArgb(255, 244, 67, 54); // #F44336
+                case "blue":
+                case "materialblue": return ColorHelper.FromArgb(255, 33, 150, 243); // #2196F3
+                case "green": return ColorHelper.FromArgb(255, 76, 175, 80); // #4CAF50
+                case "yellow": return ColorHelper.FromArgb(255, 255, 235, 59); // #FFEB3B
+                case "orange": return ColorHelper.FromArgb(255, 255, 152, 0); // #FF9800
+                case "purple": return ColorHelper.FromArgb(255, 156, 39, 176); // #9C27B0
+                case "pink": return ColorHelper.FromArgb(255, 233, 30, 99); // #E91E63
+                case "teal": return ColorHelper.FromArgb(255, 0, 150, 136); // #009688
+                case "cyan": return ColorHelper.FromArgb(255, 0, 188, 212); // #00BCD4
+                case "amber": return ColorHelper.FromArgb(255, 255, 193, 7); // #FFC107
+                case "grey":
+                case "gray": return ColorHelper.FromArgb(255, 158, 158, 158); // #9E9E9E
+                case "brown": return ColorHelper.FromArgb(255, 121, 85, 72); // #795548
+                case "deeporange": return ColorHelper.FromArgb(255, 255, 87, 34); // #FF5722
+                case "indigo": return ColorHelper.FromArgb(255, 63, 81, 181); // #3F51B5
+                case "lightblue": return ColorHelper.FromArgb(255, 3, 169, 244); // #03A9F4
+                case "lime": return ColorHelper.FromArgb(255, 205, 220, 57); // #CDDC39
+                case "deeppurple": return ColorHelper.FromArgb(255, 103, 58, 183); // #673AB7
+                case "lightgreen": return ColorHelper.FromArgb(255, 139, 195, 74); // #8BC34A
+            }
+
+            try
+            {
+                string raw = trimmed.Replace("#", "").Trim();
+                if (raw.Length == 3)
+                {
+                    raw = $"{raw[0]}{raw[0]}{raw[1]}{raw[1]}{raw[2]}{raw[2]}";
+                }
+                else if (raw.Length == 4)
+                {
+                    raw = $"{raw[0]}{raw[0]}{raw[1]}{raw[1]}{raw[2]}{raw[2]}{raw[3]}{raw[3]}";
+                }
+
+                byte a = 255;
+                if (raw.Length == 8)
+                {
+                    a = byte.Parse(raw.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                    raw = raw.Substring(2);
+                }
+                if (raw.Length == 6)
+                {
+                    byte r = byte.Parse(raw.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                    byte g = byte.Parse(raw.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+                    byte b = byte.Parse(raw.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+
+                    // Auto-correct WinUI ColorPicker 0-alpha bug when RGB is non-zero
+                    if (a == 0 && (r != 0 || g != 0 || b != 0))
+                    {
+                        a = 255;
+                    }
+                    return ColorHelper.FromArgb(a, r, g, b);
+                }
+            }
+            catch { }
+
+            return fallback == default ? Microsoft.UI.Colors.Transparent : fallback;
+        }
+
+        /// <summary>
+        /// Converts color strings to SolidColorBrush with fallback.
+        /// </summary>
+        public static SolidColorBrush ParseColorBrush(string? hex, Windows.UI.Color fallback = default)
+        {
+            return new SolidColorBrush(ParseColor(hex, fallback));
+        }
+
+        /// <summary>
+        /// Emits idiomatic Flutter Color Dart code (e.g. Colors.blue or const Color(0xFF2196F3)).
+        /// </summary>
+        public static string ToFlutterColorCode(string? colorStr)
+        {
+            if (string.IsNullOrWhiteSpace(colorStr) || colorStr.Equals("Transparent", StringComparison.OrdinalIgnoreCase))
+                return "";
+
+            string trimmed = colorStr.Trim();
+            string lower = trimmed.ToLowerInvariant().Replace(" ", "").Replace("_", "");
+
+            switch (lower)
+            {
+                case "white": return "Colors.white";
+                case "black": return "Colors.black";
+                case "red":
+                case "materialred": return "Colors.red";
+                case "blue":
+                case "materialblue": return "Colors.blue";
+                case "green": return "Colors.green";
+                case "yellow": return "Colors.yellow";
+                case "orange": return "Colors.orange";
+                case "purple": return "Colors.purple";
+                case "pink": return "Colors.pink";
+                case "teal": return "Colors.teal";
+                case "cyan": return "Colors.cyan";
+                case "amber": return "Colors.amber";
+                case "grey":
+                case "gray": return "Colors.grey";
+                case "brown": return "Colors.brown";
+                case "deeporange": return "Colors.deepOrange";
+                case "indigo": return "Colors.indigo";
+                case "lightblue": return "Colors.lightBlue";
+                case "lime": return "Colors.lime";
+                case "deeppurple": return "Colors.deepPurple";
+                case "lightgreen": return "Colors.lightGreen";
+            }
+
+            var col = ParseColor(colorStr, default);
+            if (col == default && !colorStr.StartsWith("#")) return "";
+            return $"const Color(0x{col.A:X2}{col.R:X2}{col.G:X2}{col.B:X2})";
+        }
+
+        /// <summary>
+        /// Emits Flutter BoxDecoration code containing color, borderRadius, border, and boxShadow.
+        /// </summary>
+        public static string ToFlutterBoxDecorationCode(string? bg, string? borderColor, string? borderWidth, string? cornerRadius, bool hasShadow)
+        {
+            var decProps = new List<string>();
+
+            string bgCode = ToFlutterColorCode(bg);
+            if (!string.IsNullOrWhiteSpace(bgCode))
+            {
+                decProps.Add($"color: {bgCode}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(cornerRadius) && double.TryParse(cornerRadius, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double cr) && cr > 0)
+            {
+                string crStr = cr % 1 == 0 ? ((int)cr).ToString() : cr.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                decProps.Add($"borderRadius: BorderRadius.circular({crStr})");
+            }
+
+            string borderColCode = ToFlutterColorCode(borderColor);
+            double bw = 0;
+            if (!string.IsNullOrWhiteSpace(borderWidth) && double.TryParse(borderWidth, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedBw) && parsedBw > 0)
+            {
+                bw = parsedBw;
+            }
+            else if (!string.IsNullOrWhiteSpace(borderColCode))
+            {
+                bw = 1.0;
+            }
+
+            if (bw > 0)
+            {
+                string bwStr = bw % 1 == 0 ? ((int)bw).ToString() : bw.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string colParam = !string.IsNullOrWhiteSpace(borderColCode) ? $"color: {borderColCode}, " : "";
+                decProps.Add($"border: Border.all({colParam}width: {bwStr})");
+            }
+
+            if (hasShadow)
+            {
+                decProps.Add("boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 4))]");
+            }
+
+            if (decProps.Count == 0) return "";
+            return $"BoxDecoration({string.Join(", ", decProps)})";
         }
 
         #endregion

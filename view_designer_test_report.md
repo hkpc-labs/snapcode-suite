@@ -1,5 +1,5 @@
 # View Designer & Widget Property Automated Verification Report
-*Executed at: 2026-10-11 23:47:13*
+*Executed at: 2026-10-12 00:12:23*
 
 ## 1. Widget Instantiation & Identity
   - [x] **PASS**: Create Widget: Row
@@ -165,7 +165,20 @@
   - [x] **PASS**: EdgeInsets: 4-way '4, 8, 12, 16' -> const EdgeInsets.fromLTRB
   - [x] **PASS**: Compiler: Text with Margin '8' and Height '100dp' wrapped in Padding and SizedBox
   - [x] **PASS**: Compiler: Container with Margin '8' emits native container margin
+  - [x] **PASS**: Color: Named 'Red' parses to Material Red #F44336
+  - [x] **PASS**: Color: 6-char '#2196F3' parses to full opacity Material Blue
+  - [x] **PASS**: Color: 0-Alpha bug '#002196F3' auto-heals to A = 255
+  - [x] **PASS**: Color Code: 'Material Blue' -> Colors.blue
+  - [x] **PASS**: Color Code: '#2196F3' -> const Color(0xFF2196F3)
+  - [x] **PASS**: BoxDecoration: Emits color, borderRadius, border, and boxShadow
+  - [x] **PASS**: Compiler: Container emits decoration with color, radius, border, and shadow
+  - [x] **PASS**: Compiler: Text emits TextStyle with color, fontSize, and fontWeight
+  - [x] **PASS**: Compiler: Button emits ElevatedButton.styleFrom with background, rounded corners, and border side
+  - [x] **PASS**: Compiler: TextField emits InputDecoration with fill color and outline border radius
+  - [x] **PASS**: Compiler: Checkbox emits activeColor
+  - [x] **PASS**: Compiler: Switch emits activeColor
+  - [x] **PASS**: Compiler: Slider emits activeColor
 
 ---
-### Result: 149/149 Passed (100%)
+### Result: 162/162 Passed (100%)
 **Status: ALL WIDGETS AND PROPERTIES FULLY OPERATIONAL AND VERIFIED.**

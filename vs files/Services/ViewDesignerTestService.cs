@@ -571,6 +571,66 @@ namespace Snapcode.Services
             Assert(marginContainerDart.Contains("margin: const EdgeInsets.all(8)"),
                 "Compiler: Container with Margin '8' emits native container margin");
 
+            // 10.9 Color, Border, CornerRadius Reflection & Compilation Suite
+            var colRed = AlignmentHelper.ParseColor("Red");
+            Assert(colRed.A == 255 && colRed.R == 244 && colRed.G == 67 && colRed.B == 54, "Color: Named 'Red' parses to Material Red #F44336");
+
+            var colHex6 = AlignmentHelper.ParseColor("#2196F3");
+            Assert(colHex6.A == 255 && colHex6.R == 33 && colHex6.G == 150 && colHex6.B == 243, "Color: 6-char '#2196F3' parses to full opacity Material Blue");
+
+            var colZeroAlphaHealed = AlignmentHelper.ParseColor("#002196F3");
+            Assert(colZeroAlphaHealed.A == 255 && colZeroAlphaHealed.R == 33, "Color: 0-Alpha bug '#002196F3' auto-heals to A = 255");
+
+            Assert(AlignmentHelper.ToFlutterColorCode("Material Blue") == "Colors.blue", "Color Code: 'Material Blue' -> Colors.blue");
+            Assert(AlignmentHelper.ToFlutterColorCode("#2196F3") == "const Color(0xFF2196F3)", "Color Code: '#2196F3' -> const Color(0xFF2196F3)");
+
+            string boxDec = AlignmentHelper.ToFlutterBoxDecorationCode("#2196F3", "#000000", "2", "12", true);
+            Assert(boxDec.Contains("color: const Color(0xFF2196F3)") && boxDec.Contains("borderRadius: BorderRadius.circular(12)") &&
+                   boxDec.Contains("border: Border.all(color: const Color(0xFF000000), width: 2)") && boxDec.Contains("boxShadow: const [BoxShadow("),
+                   "BoxDecoration: Emits color, borderRadius, border, and boxShadow");
+
+            var styledContainer = new WidgetItem
+            {
+                Type = "Container",
+                Id = "cnt_styled",
+                BackgroundColor = "#2196F3",
+                CornerRadius = "12",
+                BorderColor = "#000000",
+                BorderWidth = "2",
+                HasShadow = true
+            };
+            string cntDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(styledContainer) }));
+            Assert(cntDart.Contains("decoration: BoxDecoration(") && cntDart.Contains("borderRadius: BorderRadius.circular(12)"),
+                "Compiler: Container emits decoration with color, radius, border, and shadow");
+
+            var styledText = new WidgetItem { Type = "Text", Id = "txt_styled", Name = "Styled Label", TextColor = "#F44336", TextSize = "18", FontWeight = "Bold" };
+            string txtDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(styledText) }));
+            Assert(txtDart.Contains("style: TextStyle(") && txtDart.Contains("color: const Color(0xFFF44336)") && txtDart.Contains("fontSize: 18") && txtDart.Contains("FontWeight.bold"),
+                "Compiler: Text emits TextStyle with color, fontSize, and fontWeight");
+
+            var styledButton = new WidgetItem { Type = "Button", Id = "btn_styled", Name = "Click Me", BackgroundColor = "#4CAF50", CornerRadius = "24", BorderWidth = "2", BorderColor = "#FFFFFF" };
+            string btnStyledDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(styledButton) }));
+            Assert(btnStyledDart.Contains("style: ElevatedButton.styleFrom(") && btnStyledDart.Contains("backgroundColor: const Color(0xFF4CAF50)") &&
+                   btnStyledDart.Contains("borderRadius: BorderRadius.circular(24)") && btnStyledDart.Contains("width: 2"),
+                   "Compiler: Button emits ElevatedButton.styleFrom with background, rounded corners, and border side");
+
+            var styledTextField = new WidgetItem { Type = "TextField", Id = "tf_styled", HintText = "Enter email", BackgroundColor = "#F5F5F5", CornerRadius = "10", BorderWidth = "1.5" };
+            string tfDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(styledTextField) }));
+            Assert(tfDart.Contains("decoration: InputDecoration(") && tfDart.Contains("filled: true") && tfDart.Contains("OutlineInputBorder(borderRadius: BorderRadius.circular(10)"),
+                "Compiler: TextField emits InputDecoration with fill color and outline border radius");
+
+            var styledCheckbox = new WidgetItem { Type = "Checkbox", Id = "cb_styled", ActiveColor = "#E91E63" };
+            string cbDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(styledCheckbox) }));
+            Assert(cbDart.Contains("activeColor: const Color(0xFFE91E63)"), "Compiler: Checkbox emits activeColor");
+
+            var styledSwitch = new WidgetItem { Type = "Switch", Id = "sw_styled", ActiveColor = "#009688" };
+            string swDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(styledSwitch) }));
+            Assert(swDart.Contains("activeColor: const Color(0xFF009688)"), "Compiler: Switch emits activeColor");
+
+            var styledSlider = new WidgetItem { Type = "Slider", Id = "sl_styled", ActiveColor = "#FF9800" };
+            string slDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(styledSlider) }));
+            Assert(slDart.Contains("activeColor: const Color(0xFFFF9800)"), "Compiler: Slider emits activeColor");
+
             // Summary
             report.AppendLine("\n---");
             report.AppendLine($"### Result: {passed}/{total} Passed ({(failed == 0 ? "100%" : $"{Math.Round((double)passed/total*100, 1)}%")})");

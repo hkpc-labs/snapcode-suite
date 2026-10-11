@@ -92,34 +92,7 @@ namespace Snapcode.Views
 
         private SolidColorBrush ParseColor(string? hex, Windows.UI.Color fallback = default)
         {
-            if (string.IsNullOrWhiteSpace(hex) || hex.Equals("Transparent", StringComparison.OrdinalIgnoreCase))
-                return new SolidColorBrush(fallback == default ? Colors.Transparent : fallback);
-
-            if (hex.Equals("White", StringComparison.OrdinalIgnoreCase)) hex = "#FFFFFF";
-            else if (hex.Equals("Black", StringComparison.OrdinalIgnoreCase)) hex = "#000000";
-            else if (hex.Equals("Material Red", StringComparison.OrdinalIgnoreCase)) hex = "#F44336";
-            else if (hex.Equals("Material Blue", StringComparison.OrdinalIgnoreCase)) hex = "#2196F3";
-
-            try
-            {
-                hex = hex.Replace("#", "").Trim();
-                byte a = 255;
-                if (hex.Length == 8)
-                {
-                    a = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
-                    hex = hex.Substring(2);
-                }
-                if (hex.Length == 6)
-                {
-                    byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
-                    byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
-                    byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
-                    return new SolidColorBrush(ColorHelper.FromArgb(a, r, g, b));
-                }
-            }
-            catch { }
-
-            return new SolidColorBrush(fallback == default ? Colors.Transparent : fallback);
+            return AlignmentHelper.ParseColorBrush(hex, fallback);
         }
 
         private double ParseDouble(string? val, double def)
@@ -649,43 +622,133 @@ namespace Snapcode.Views
                     this.Height = double.NaN;
                 }
 
-                // Apply CornerRadius
-                double cr = ParseDouble(NodeItem.CornerRadius, 0);
-                if (cr > 0)
+                // 1. Background Color Application
+                if (hasCustomBg)
                 {
-                    if (mockElement is Border bdr) bdr.CornerRadius = new CornerRadius(cr);
-                    else if (mockElement is Control ctrl) ctrl.CornerRadius = new CornerRadius(cr);
-                    else if (mockElement is Grid gr) gr.CornerRadius = new CornerRadius(cr);
-                    else if (mockElement is StackPanel sp) sp.CornerRadius = new CornerRadius(cr);
+                    if (mockElement is Border bdrBg) bdrBg.Background = bgBrush;
+                    else if (mockElement is Control ctrlBg) ctrlBg.Background = bgBrush;
+                    else if (mockElement is Panel pnlBg) pnlBg.Background = bgBrush;
+                }
+                else if (NodeItem.Type == "Button")
+                {
+                    if (mockElement is Border bdrBg) bdrBg.Background = new SolidColorBrush(ColorHelper.FromArgb(255, 33, 150, 243));
+                }
+                else if (NodeItem.Type == "TextField")
+                {
+                    if (mockElement is Border bdrBg) bdrBg.Background = new SolidColorBrush(ColorHelper.FromArgb(255, 245, 245, 245));
+                }
+                else if (NodeItem.Type == "Expanded")
+                {
+                    if (mockElement is Border bdrBg) bdrBg.Background = new SolidColorBrush(ColorHelper.FromArgb(14, 33, 150, 243));
+                }
+                else
+                {
+                    if (mockElement is Border bdrBg) bdrBg.Background = new SolidColorBrush(Colors.Transparent);
+                    else if (mockElement is Control ctrlBg) ctrlBg.Background = new SolidColorBrush(Colors.Transparent);
+                    else if (mockElement is Panel pnlBg) pnlBg.Background = new SolidColorBrush(Colors.Transparent);
                 }
 
-                // Apply BorderWidth and BorderColor
-                double bw = ParseDouble(NodeItem.BorderWidth, 0);
-                if (bw > 0)
+                // 2. Corner Radius Application (respects explicit 0 override and widget defaults)
+                double effectiveCr;
+                if (!string.IsNullOrWhiteSpace(NodeItem.CornerRadius) && double.TryParse(NodeItem.CornerRadius, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedCr))
                 {
-                    var borderColor = ParseColor(NodeItem.BorderColor, Colors.Black);
+                    effectiveCr = Math.Max(0, parsedCr);
+                }
+                else
+                {
+                    if (NodeItem.Type == "Button") effectiveCr = 20;
+                    else if (NodeItem.Type == "TextField") effectiveCr = 8;
+                    else if (NodeItem.Type == "Image") effectiveCr = 4;
+                    else effectiveCr = 0;
+                }
+
+                if (mockElement is Border bdrCr) bdrCr.CornerRadius = new CornerRadius(effectiveCr);
+                else if (mockElement is Control ctrlCr) ctrlCr.CornerRadius = new CornerRadius(effectiveCr);
+                else if (mockElement is Grid grCr) grCr.CornerRadius = new CornerRadius(effectiveCr);
+                else if (mockElement is StackPanel spCr) spCr.CornerRadius = new CornerRadius(effectiveCr);
+
+                // 3. Border Width and Border Color Application
+                bool hasBorderColor = !string.IsNullOrWhiteSpace(NodeItem.BorderColor) && !NodeItem.BorderColor.Equals("Transparent", StringComparison.OrdinalIgnoreCase);
+                double effectiveBw;
+                if (!string.IsNullOrWhiteSpace(NodeItem.BorderWidth) && double.TryParse(NodeItem.BorderWidth, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedBw))
+                {
+                    effectiveBw = Math.Max(0, parsedBw);
+                }
+                else if (hasBorderColor)
+                {
+                    // If user picked a border color without explicit width, default to 1.5 for clear preview
+                    effectiveBw = 1.5;
+                }
+                else if (NodeItem.Type == "TextField")
+                {
+                    effectiveBw = 1.0;
+                }
+                else
+                {
+                    effectiveBw = 0;
+                }
+
+                SolidColorBrush borderColorBrush;
+                if (hasBorderColor)
+                {
+                    borderColorBrush = ParseColor(NodeItem.BorderColor);
+                }
+                else if (NodeItem.Type == "TextField")
+                {
+                    borderColorBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 200, 200, 200));
+                }
+                else
+                {
+                    borderColorBrush = new SolidColorBrush(Colors.Black);
+                }
+
+                if (effectiveBw > 0)
+                {
                     if (mockElement is Border bdr3)
                     {
-                        bdr3.BorderThickness = new Thickness(bw);
-                        bdr3.BorderBrush = borderColor;
+                        bdr3.BorderThickness = new Thickness(effectiveBw);
+                        bdr3.BorderBrush = borderColorBrush;
                     }
                     else if (mockElement is Control ctrl3)
                     {
-                        ctrl3.BorderThickness = new Thickness(bw);
-                        ctrl3.BorderBrush = borderColor;
+                        ctrl3.BorderThickness = new Thickness(effectiveBw);
+                        ctrl3.BorderBrush = borderColorBrush;
                     }
                     else if (mockElement is Grid gr3)
                     {
-                        gr3.BorderThickness = new Thickness(bw);
-                        gr3.BorderBrush = borderColor;
+                        gr3.BorderThickness = new Thickness(effectiveBw);
+                        gr3.BorderBrush = borderColorBrush;
+                    }
+                }
+                else
+                {
+                    if (mockElement is Border bdr3)
+                    {
+                        bdr3.BorderThickness = new Thickness(0);
+                        bdr3.BorderBrush = new SolidColorBrush(Colors.Transparent);
+                    }
+                    else if (mockElement is Control ctrl3)
+                    {
+                        ctrl3.BorderThickness = new Thickness(0);
+                        ctrl3.BorderBrush = new SolidColorBrush(Colors.Transparent);
+                    }
+                    else if (mockElement is Grid gr3)
+                    {
+                        gr3.BorderThickness = new Thickness(0);
+                        gr3.BorderBrush = new SolidColorBrush(Colors.Transparent);
                     }
                 }
 
-                // Apply Elevation Shadow
+                // 4. Elevation Shadow Application
                 if (NodeItem.HasShadow)
                 {
                     mockElement.Shadow = new ThemeShadow();
                     mockElement.Translation = new System.Numerics.Vector3(0, 0, 12);
+                }
+                else
+                {
+                    mockElement.Shadow = null;
+                    mockElement.Translation = new System.Numerics.Vector3(0, 0, 0);
                 }
 
                 ContentHost.Children.Add(mockElement);

@@ -232,6 +232,20 @@ Widget build(BuildContext context) {{
                         props.Add($"alignment: {flAlign}");
                     }
 
+                    // Padding
+                    if (node.TryGetProperty("padding", out var pProp) && !string.IsNullOrWhiteSpace(pProp.GetString()))
+                    {
+                        string pVal = pProp.GetString()!.Trim();
+                        if (!pVal.Equals("0", StringComparison.OrdinalIgnoreCase) && !pVal.Equals("0,0,0,0", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string edgeInsetsCode = AlignmentHelper.ToFlutterEdgeInsetsCode(pVal);
+                            if (!string.IsNullOrWhiteSpace(edgeInsetsCode))
+                            {
+                                props.Add($"padding: {edgeInsetsCode}");
+                            }
+                        }
+                    }
+
                     // Margin
                     if (node.TryGetProperty("margin", out var mProp) && !string.IsNullOrWhiteSpace(mProp.GetString()))
                     {
@@ -244,6 +258,19 @@ Widget build(BuildContext context) {{
                                 props.Add($"margin: {edgeInsetsCode}");
                             }
                         }
+                    }
+
+                    // Decoration (BoxDecoration: color, borderRadius, border, boxShadow)
+                    string bgCol = node.TryGetProperty("backgroundColor", out var bgP) ? bgP.GetString() ?? "" : "";
+                    string borderCol = node.TryGetProperty("borderColor", out var bcP) ? bcP.GetString() ?? "" : "";
+                    string borderW = node.TryGetProperty("borderWidth", out var bwP) ? bwP.GetString() ?? "" : "";
+                    string cornerR = node.TryGetProperty("cornerRadius", out var crP) ? crP.GetString() ?? "" : "";
+                    bool hasShadow = node.TryGetProperty("hasShadow", out var hsP) && hsP.ValueKind == JsonValueKind.True;
+
+                    string decorationCode = AlignmentHelper.ToFlutterBoxDecorationCode(bgCol, borderCol, borderW, cornerR, hasShadow);
+                    if (!string.IsNullOrWhiteSpace(decorationCode))
+                    {
+                        props.Add($"decoration: {decorationCode}");
                     }
 
                     // Child
@@ -318,14 +345,72 @@ Widget build(BuildContext context) {{
                 {
                     string textVal = node.TryGetProperty("text", out var tProp) ? tProp.GetString() ?? string.Empty : string.Empty;
                     textVal = textVal.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$");
-                    return $"Text(\"{textVal}\")";
+                    
+                    var styleProps = new List<string>();
+                    if (node.TryGetProperty("textColor", out var tcProp) && !string.IsNullOrWhiteSpace(tcProp.GetString()))
+                    {
+                        string cCode = AlignmentHelper.ToFlutterColorCode(tcProp.GetString());
+                        if (!string.IsNullOrWhiteSpace(cCode)) styleProps.Add($"color: {cCode}");
+                    }
+                    if (node.TryGetProperty("textSize", out var tsProp) && double.TryParse(tsProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ts) && ts > 0)
+                    {
+                        string tsStr = ts % 1 == 0 ? ((int)ts).ToString() : ts.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        styleProps.Add($"fontSize: {tsStr}");
+                    }
+                    if (node.TryGetProperty("fontWeight", out var fwProp) && fwProp.GetString() == "Bold")
+                    {
+                        styleProps.Add("fontWeight: FontWeight.bold");
+                    }
+                    if (node.TryGetProperty("fontFamily", out var ffProp) && !string.IsNullOrWhiteSpace(ffProp.GetString()))
+                    {
+                        styleProps.Add($"fontFamily: \"{ffProp.GetString()}\"");
+                    }
+
+                    string styleParam = styleProps.Count > 0 ? $", style: TextStyle({string.Join(", ", styleProps)})" : "";
+                    return $"Text(\"{textVal}\"{styleParam})";
                 }
 
                 case "Button":
                 {
                     string text = node.TryGetProperty("text", out var textProp) ? textProp.GetString() ?? string.Empty : string.Empty;
                     text = text.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$");
-                    return $"ElevatedButton(onPressed: () async {{{eventBlock}}}, child: Text(\"{text}\"))";
+                    
+                    var styleProps = new List<string>();
+                    if (node.TryGetProperty("backgroundColor", out var bgProp) && !string.IsNullOrWhiteSpace(bgProp.GetString()))
+                    {
+                        string cCode = AlignmentHelper.ToFlutterColorCode(bgProp.GetString());
+                        if (!string.IsNullOrWhiteSpace(cCode)) styleProps.Add($"backgroundColor: {cCode}");
+                    }
+                    if (node.TryGetProperty("textColor", out var tcProp) && !string.IsNullOrWhiteSpace(tcProp.GetString()))
+                    {
+                        string cCode = AlignmentHelper.ToFlutterColorCode(tcProp.GetString());
+                        if (!string.IsNullOrWhiteSpace(cCode)) styleProps.Add($"foregroundColor: {cCode}");
+                    }
+
+                    double cr = node.TryGetProperty("cornerRadius", out var crP) && double.TryParse(crP.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dCr) ? dCr : -1;
+                    string bc = node.TryGetProperty("borderColor", out var bcP) ? bcP.GetString() ?? "" : "";
+                    double bw = node.TryGetProperty("borderWidth", out var bwP) && double.TryParse(bwP.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dBw) ? dBw : 0;
+                    string bcCode = AlignmentHelper.ToFlutterColorCode(bc);
+
+                    if (cr >= 0 || bw > 0)
+                    {
+                        var shapeParams = new List<string>();
+                        if (cr >= 0)
+                        {
+                            string crStr = cr % 1 == 0 ? ((int)cr).ToString() : cr.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            shapeParams.Add($"borderRadius: BorderRadius.circular({crStr})");
+                        }
+                        if (bw > 0)
+                        {
+                            string bwStr = bw % 1 == 0 ? ((int)bw).ToString() : bw.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            string colParam = !string.IsNullOrWhiteSpace(bcCode) ? $"color: {bcCode}, " : "";
+                            shapeParams.Add($"side: BorderSide({colParam}width: {bwStr})");
+                        }
+                        styleProps.Add($"shape: RoundedRectangleBorder({string.Join(", ", shapeParams)})");
+                    }
+
+                    string styleParam = styleProps.Count > 0 ? $"style: ElevatedButton.styleFrom({string.Join(", ", styleProps)}), " : "";
+                    return $"ElevatedButton({styleParam}onPressed: () async {{{eventBlock}}}, child: Text(\"{text}\"))";
                 }
 
                 case "TextField":
@@ -334,11 +419,45 @@ Widget build(BuildContext context) {{
                     string hint = node.TryGetProperty("hintText", out var hintProp) ? hintProp.GetString() ?? "" : "";
                     hint = hint.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$");
                     
+                    var decorProps = new List<string>();
+                    if (!string.IsNullOrEmpty(hint)) decorProps.Add($"hintText: \"{hint}\"");
+
+                    string bgCol = node.TryGetProperty("backgroundColor", out var bgP) ? bgP.GetString() ?? "" : "";
+                    string bgCode = AlignmentHelper.ToFlutterColorCode(bgCol);
+                    if (!string.IsNullOrWhiteSpace(bgCode))
+                    {
+                        decorProps.Add("filled: true");
+                        decorProps.Add($"fillColor: {bgCode}");
+                    }
+
+                    double cr = node.TryGetProperty("cornerRadius", out var crP) && double.TryParse(crP.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dCr) ? dCr : -1;
+                    string bc = node.TryGetProperty("borderColor", out var bcP) ? bcP.GetString() ?? "" : "";
+                    double bw = node.TryGetProperty("borderWidth", out var bwP) && double.TryParse(bwP.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dBw) ? dBw : 0;
+                    string bcCode = AlignmentHelper.ToFlutterColorCode(bc);
+
+                    if (cr > 0 || bw > 0)
+                    {
+                        var borderParams = new List<string>();
+                        if (cr > 0)
+                        {
+                            string crStr = cr % 1 == 0 ? ((int)cr).ToString() : cr.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            borderParams.Add($"borderRadius: BorderRadius.circular({crStr})");
+                        }
+                        if (bw > 0)
+                        {
+                            string bwStr = bw % 1 == 0 ? ((int)bw).ToString() : bw.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            string colParam = !string.IsNullOrWhiteSpace(bcCode) ? $"color: {bcCode}, " : "";
+                            borderParams.Add($"borderSide: BorderSide({colParam}width: {bwStr})");
+                        }
+                        decorProps.Add($"border: OutlineInputBorder({string.Join(", ", borderParams)})");
+                    }
+
+                    string decorParam = decorProps.Count > 0 ? $", decoration: InputDecoration({string.Join(", ", decorProps)})" : "";
                     if (!string.IsNullOrEmpty(tfId))
                     {
-                        return $"TextField(controller: _controllers['{tfId}'], decoration: InputDecoration(hintText: \"{hint}\"))";
+                        return $"TextField(controller: _controllers['{tfId}']{decorParam})";
                     }
-                    return "TextField()";
+                    return $"TextField({(decorProps.Count > 0 ? $"decoration: InputDecoration({string.Join(", ", decorProps)})" : "")})";
                 }
 
                 case "Image":
@@ -350,13 +469,27 @@ Widget build(BuildContext context) {{
                 case "Checkbox":
                 {
                     string cbVar = node.TryGetProperty("id", out var cbId) ? cbId.GetString() ?? "checkboxValue" : "checkboxValue";
-                    return $"Checkbox(value: {cbVar}, onChanged: (bool? value) async {{{eventBlock}}})";
+                    var cbProps = new List<string> { $"value: {cbVar}" };
+                    if (node.TryGetProperty("activeColor", out var acP) && !string.IsNullOrWhiteSpace(acP.GetString()))
+                    {
+                        string acCode = AlignmentHelper.ToFlutterColorCode(acP.GetString());
+                        if (!string.IsNullOrWhiteSpace(acCode)) cbProps.Add($"activeColor: {acCode}");
+                    }
+                    cbProps.Add($"onChanged: (bool? value) async {{{eventBlock}}}");
+                    return $"Checkbox({string.Join(", ", cbProps)})";
                 }
 
                 case "Switch":
                 {
                     string swVar = node.TryGetProperty("id", out var swId) ? swId.GetString() ?? "switchValue" : "switchValue";
-                    return $"Switch(value: {swVar}, onChanged: (bool value) async {{{eventBlock}}})";
+                    var swProps = new List<string> { $"value: {swVar}" };
+                    if (node.TryGetProperty("activeColor", out var acP) && !string.IsNullOrWhiteSpace(acP.GetString()))
+                    {
+                        string acCode = AlignmentHelper.ToFlutterColorCode(acP.GetString());
+                        if (!string.IsNullOrWhiteSpace(acCode)) swProps.Add($"activeColor: {acCode}");
+                    }
+                    swProps.Add($"onChanged: (bool value) async {{{eventBlock}}}");
+                    return $"Switch({string.Join(", ", swProps)})";
                 }
 
                 case "Slider":
@@ -366,7 +499,20 @@ Widget build(BuildContext context) {{
                     double curVal = node.TryGetProperty("currentValue", out var curP) && curP.TryGetDouble(out var dCur) ? dCur : minVal;
                     if (curVal < minVal) curVal = minVal;
                     if (curVal > maxVal) curVal = maxVal;
-                    return $"Slider(value: {curVal.ToString(System.Globalization.CultureInfo.InvariantCulture)}, min: {minVal.ToString(System.Globalization.CultureInfo.InvariantCulture)}, max: {maxVal.ToString(System.Globalization.CultureInfo.InvariantCulture)}, onChanged: (double value) async {{{eventBlock}}})";
+                    
+                    var slProps = new List<string>
+                    {
+                        $"value: {curVal.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                        $"min: {minVal.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                        $"max: {maxVal.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+                    };
+                    if (node.TryGetProperty("activeColor", out var acP) && !string.IsNullOrWhiteSpace(acP.GetString()))
+                    {
+                        string acCode = AlignmentHelper.ToFlutterColorCode(acP.GetString());
+                        if (!string.IsNullOrWhiteSpace(acCode)) slProps.Add($"activeColor: {acCode}");
+                    }
+                    slProps.Add($"onChanged: (double value) async {{{eventBlock}}}");
+                    return $"Slider({string.Join(", ", slProps)})";
                 }
 
                 default:
