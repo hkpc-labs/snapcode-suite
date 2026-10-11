@@ -236,6 +236,8 @@
                             <x:String>Center</x:String>
                             <x:String>End</x:String>
                             <x:String>SpaceBetween</x:String>
+                            <x:String>SpaceAround</x:String>
+                            <x:String>SpaceEvenly</x:String>
                         </ComboBox>
                         <ComboBox x:Name="ComboCrossAxis" Header="Cross Axis Alignment" HorizontalAlignment="Stretch" SelectionChanged="ComboCrossAxis_SelectionChanged">
                             <x:String>Start</x:String>

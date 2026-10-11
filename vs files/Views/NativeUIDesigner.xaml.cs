@@ -55,10 +55,10 @@ namespace Snapcode.Views
         private string _borderColor = "Transparent";
         public string BorderColor { get => _borderColor; set { _borderColor = value; OnPropertyChanged(nameof(BorderColor)); } }
 
-        private string _alignment = "TopLeft";
+        private string _alignment = "";
         public string Alignment { get => _alignment; set { _alignment = value; OnPropertyChanged(nameof(Alignment)); } }
 
-        private string _gravity = "TopLeft";
+        private string _gravity = "";
         public string Gravity { get => _gravity; set { _gravity = value; OnPropertyChanged(nameof(Gravity)); } }
 
         private string _assetPath = "";
@@ -71,10 +71,10 @@ namespace Snapcode.Views
         private string _textAlign = "Left";
         public string TextAlign { get => _textAlign; set { _textAlign = value; OnPropertyChanged(nameof(TextAlign)); } }
 
-        private string _mainAxisAlignment = "Start";
+        private string _mainAxisAlignment = "";
         public string MainAxisAlignment { get => _mainAxisAlignment; set { _mainAxisAlignment = value; OnPropertyChanged(nameof(MainAxisAlignment)); } }
 
-        private string _crossAxisAlignment = "Start";
+        private string _crossAxisAlignment = "";
         public string CrossAxisAlignment { get => _crossAxisAlignment; set { _crossAxisAlignment = value; OnPropertyChanged(nameof(CrossAxisAlignment)); } }
 
         private string _boxFit = "Contain";
@@ -316,8 +316,8 @@ namespace Snapcode.Views
                 PreviewPropTextColor.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(txtColor);
                 InputPropTextSize.Text = _selectedWidget.TextSize ?? "14";
                 
-                InputPropAlignment.Text = _selectedWidget.Alignment ?? "TopLeft";
-                InputPropGravity.Text = _selectedWidget.Gravity ?? "TopLeft";
+                InputPropAlignment.Text = _selectedWidget.Alignment ?? "";
+                InputPropGravity.Text = _selectedWidget.Gravity ?? "";
                 InputPropBorderWidth.Text = _selectedWidget.BorderWidth ?? "0";
                 InputPropCornerRadius.Text = _selectedWidget.CornerRadius ?? "0";
                 
@@ -345,8 +345,8 @@ namespace Snapcode.Views
                 }
                 if (PanelFlexSpecific.Visibility == Visibility.Visible)
                 {
-                    ComboMainAxis.SelectedItem = _selectedWidget.MainAxisAlignment ?? "Start";
-                    ComboCrossAxis.SelectedItem = _selectedWidget.CrossAxisAlignment ?? "Start";
+                    ComboMainAxis.SelectedItem = string.IsNullOrWhiteSpace(_selectedWidget.MainAxisAlignment) ? "Start" : _selectedWidget.MainAxisAlignment;
+                    ComboCrossAxis.SelectedItem = string.IsNullOrWhiteSpace(_selectedWidget.CrossAxisAlignment) ? "Center" : _selectedWidget.CrossAxisAlignment;
                 }
                 if (PanelImageSpecific.Visibility == Visibility.Visible)
                 {
@@ -568,7 +568,9 @@ namespace Snapcode.Views
                     if (t == "Row" || t == "Column")
                     {
                         newItem.Width = "Match Parent";
-                        newItem.Height = "Match Parent";
+                        newItem.Height = t == "Column" ? "Match Parent" : "Auto";
+                        newItem.MainAxisAlignment = "Start";
+                        newItem.CrossAxisAlignment = "Center";
                     }
 
                     CanvasItems.Add(newItem);
@@ -888,13 +890,13 @@ namespace Snapcode.Views
                 CornerRadius = elem.TryGetProperty("cornerRadius", out var crProp) ? crProp.GetString() ?? "0" : "0",
                 BorderWidth = elem.TryGetProperty("borderWidth", out var bwProp) ? bwProp.GetString() ?? "0" : "0",
                 BorderColor = elem.TryGetProperty("borderColor", out var bcProp) ? bcProp.GetString() ?? "Transparent" : "Transparent",
-                Alignment = elem.TryGetProperty("alignment", out var aProp) ? aProp.GetString() ?? "TopLeft" : "TopLeft",
-                Gravity = elem.TryGetProperty("gravity", out var gProp) ? gProp.GetString() ?? "TopLeft" : "TopLeft",
+                Alignment = elem.TryGetProperty("alignment", out var aProp) ? aProp.GetString() ?? "" : "",
+                Gravity = elem.TryGetProperty("gravity", out var gProp) ? gProp.GetString() ?? "" : "",
                 AssetPath = elem.TryGetProperty("assetPath", out var apProp) ? apProp.GetString() ?? "" : "",
                 FontWeight = elem.TryGetProperty("fontWeight", out var fwProp) ? fwProp.GetString() ?? "Normal" : "Normal",
                 TextAlign = elem.TryGetProperty("textAlign", out var taProp) ? taProp.GetString() ?? "Left" : "Left",
-                MainAxisAlignment = elem.TryGetProperty("mainAxisAlignment", out var maaProp) ? maaProp.GetString() ?? "Start" : "Start",
-                CrossAxisAlignment = elem.TryGetProperty("crossAxisAlignment", out var caaProp) ? caaProp.GetString() ?? "Start" : "Start",
+                MainAxisAlignment = elem.TryGetProperty("mainAxisAlignment", out var maaProp) ? maaProp.GetString() ?? "" : "",
+                CrossAxisAlignment = elem.TryGetProperty("crossAxisAlignment", out var caaProp) ? caaProp.GetString() ?? "" : "",
                 BoxFit = elem.TryGetProperty("boxFit", out var bfProp) ? bfProp.GetString() ?? "Contain" : "Contain",
                 ObscureText = elem.TryGetProperty("obscureText", out var otProp) && otProp.ValueKind == JsonValueKind.True,
                 ScrollDirection = elem.TryGetProperty("scrollDirection", out var sdProp) ? sdProp.GetString() ?? "Vertical" : "Vertical",

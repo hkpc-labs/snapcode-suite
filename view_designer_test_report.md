@@ -1,5 +1,5 @@
 # View Designer & Widget Property Automated Verification Report
-*Executed at: 2026-10-11 19:30:30*
+*Executed at: 2026-10-11 20:29:34*
 
 ## 1. Widget Instantiation & Identity
   - [x] **PASS**: Create Widget: Row
@@ -100,8 +100,33 @@
   - [x] **PASS**: Flex: Attached Flex factor property getter/setter
   - [x] **PASS**: Layout: Nested Row inside Column serialization
   - [x] **PASS**: Layout: Nested Row/Column with Expanded flex proportional code generation
+  - [x] **PASS**: Alignment: ParseGravity 'center' -> Center, Center
+  - [x] **PASS**: Alignment: ParseGravity 'center_horizontal' -> Center, Top
+  - [x] **PASS**: Alignment: ParseGravity 'center_vertical' -> Left, Center
+  - [x] **PASS**: Alignment: ParseGravity 'center_horizontal|bottom' -> Center, Bottom
+  - [x] **PASS**: Alignment: ParseGravity 'stretch' -> Stretch, Stretch
+  - [x] **PASS**: Alignment: 9-point TopLeft
+  - [x] **PASS**: Alignment: 9-point TopCenter
+  - [x] **PASS**: Alignment: 9-point TopRight
+  - [x] **PASS**: Alignment: 9-point CenterLeft
+  - [x] **PASS**: Alignment: 9-point CenterRight
+  - [x] **PASS**: Alignment: 9-point BottomLeft
+  - [x] **PASS**: Alignment: 9-point BottomCenter
+  - [x] **PASS**: Alignment: 9-point BottomRight
+  - [x] **PASS**: Alignment: ToFlutterAlignmentCode 'center'
+  - [x] **PASS**: Alignment: ToFlutterAlignmentCode 'TopLeft'
+  - [x] **PASS**: Alignment: ToFlutterAlignmentCode 'BottomRight'
+  - [x] **PASS**: Alignment: Row Gravity 'center' -> MainAxis=Center, CrossAxis=Center
+  - [x] **PASS**: Alignment: Row Gravity 'center_horizontal|bottom' -> MainAxis=Center, CrossAxis=End
+  - [x] **PASS**: Alignment: Column Gravity 'center' -> MainAxis=Center, CrossAxis=Center
+  - [x] **PASS**: Alignment: Column Gravity 'center_horizontal|bottom' -> MainAxis=End, CrossAxis=Center
+  - [x] **PASS**: Alignment: Container child inherits parent Gravity
+  - [x] **PASS**: Alignment: Container child explicit Alignment overrides parent Gravity
+  - [x] **PASS**: Alignment: Match Parent dimensions enforce Stretch precedence
+  - [x] **PASS**: Compiler: Row emits mainAxisAlignment and crossAxisAlignment
+  - [x] **PASS**: Compiler: Container emits alignment, width, and height
   - [x] **PASS**: Reactivity: PropertyChanged event fires with updated value for live reflection
 
 ---
-### Result: 87/87 Passed (100%)
+### Result: 112/112 Passed (100%)
 **Status: ALL WIDGETS AND PROPERTIES FULLY OPERATIONAL AND VERIFIED.**

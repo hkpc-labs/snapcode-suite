@@ -331,6 +331,90 @@ namespace Snapcode.Services
             Assert(nestedDart.Contains("Column(") && nestedDart.Contains("Row(") && nestedDart.Contains("Expanded(flex: 1") && nestedDart.Contains("Expanded(flex: 2"),
                 "Layout: Nested Row/Column with Expanded flex proportional code generation");
 
+            // Section 8: Alignment, Gravity Mesh & Flutter Flex Parity Tests
+            // 8.1 Gravity Parsing
+            var (cHoriz, cVert) = AlignmentHelper.ParseGravity("center");
+            Assert(cHoriz == Microsoft.UI.Xaml.HorizontalAlignment.Center && cVert == Microsoft.UI.Xaml.VerticalAlignment.Center,
+                "Alignment: ParseGravity 'center' -> Center, Center");
+
+            var (chHoriz, chVert) = AlignmentHelper.ParseGravity("center_horizontal");
+            Assert(chHoriz == Microsoft.UI.Xaml.HorizontalAlignment.Center && chVert == Microsoft.UI.Xaml.VerticalAlignment.Top,
+                "Alignment: ParseGravity 'center_horizontal' -> Center, Top");
+
+            var (cvHoriz, cvVert) = AlignmentHelper.ParseGravity("center_vertical");
+            Assert(cvHoriz == Microsoft.UI.Xaml.HorizontalAlignment.Left && cvVert == Microsoft.UI.Xaml.VerticalAlignment.Center,
+                "Alignment: ParseGravity 'center_vertical' -> Left, Center");
+
+            var (pipedH, pipedV) = AlignmentHelper.ParseGravity("center_horizontal|bottom");
+            Assert(pipedH == Microsoft.UI.Xaml.HorizontalAlignment.Center && pipedV == Microsoft.UI.Xaml.VerticalAlignment.Bottom,
+                "Alignment: ParseGravity 'center_horizontal|bottom' -> Center, Bottom");
+
+            var (strH, strV) = AlignmentHelper.ParseGravity("stretch");
+            Assert(strH == Microsoft.UI.Xaml.HorizontalAlignment.Stretch && strV == Microsoft.UI.Xaml.VerticalAlignment.Stretch,
+                "Alignment: ParseGravity 'stretch' -> Stretch, Stretch");
+
+            // 8.2 9-Point Named Alignment Points
+            Assert(AlignmentHelper.ParseGravity("TopLeft") == (Microsoft.UI.Xaml.HorizontalAlignment.Left, Microsoft.UI.Xaml.VerticalAlignment.Top), "Alignment: 9-point TopLeft");
+            Assert(AlignmentHelper.ParseGravity("TopCenter") == (Microsoft.UI.Xaml.HorizontalAlignment.Center, Microsoft.UI.Xaml.VerticalAlignment.Top), "Alignment: 9-point TopCenter");
+            Assert(AlignmentHelper.ParseGravity("TopRight") == (Microsoft.UI.Xaml.HorizontalAlignment.Right, Microsoft.UI.Xaml.VerticalAlignment.Top), "Alignment: 9-point TopRight");
+            Assert(AlignmentHelper.ParseGravity("CenterLeft") == (Microsoft.UI.Xaml.HorizontalAlignment.Left, Microsoft.UI.Xaml.VerticalAlignment.Center), "Alignment: 9-point CenterLeft");
+            Assert(AlignmentHelper.ParseGravity("CenterRight") == (Microsoft.UI.Xaml.HorizontalAlignment.Right, Microsoft.UI.Xaml.VerticalAlignment.Center), "Alignment: 9-point CenterRight");
+            Assert(AlignmentHelper.ParseGravity("BottomLeft") == (Microsoft.UI.Xaml.HorizontalAlignment.Left, Microsoft.UI.Xaml.VerticalAlignment.Bottom), "Alignment: 9-point BottomLeft");
+            Assert(AlignmentHelper.ParseGravity("BottomCenter") == (Microsoft.UI.Xaml.HorizontalAlignment.Center, Microsoft.UI.Xaml.VerticalAlignment.Bottom), "Alignment: 9-point BottomCenter");
+            Assert(AlignmentHelper.ParseGravity("BottomRight") == (Microsoft.UI.Xaml.HorizontalAlignment.Right, Microsoft.UI.Xaml.VerticalAlignment.Bottom), "Alignment: 9-point BottomRight");
+
+            // 8.3 Flutter Code Mapping
+            Assert(AlignmentHelper.ToFlutterAlignmentCode("center") == "Alignment.center", "Alignment: ToFlutterAlignmentCode 'center'");
+            Assert(AlignmentHelper.ToFlutterAlignmentCode("TopLeft") == "Alignment.topLeft", "Alignment: ToFlutterAlignmentCode 'TopLeft'");
+            Assert(AlignmentHelper.ToFlutterAlignmentCode("BottomRight") == "Alignment.bottomRight", "Alignment: ToFlutterAlignmentCode 'BottomRight'");
+
+            // 8.4 Gravity to Flex Mapping for Row & Column
+            var rowFlexCenter = AlignmentHelper.MapGravityToFlex("center", Microsoft.UI.Xaml.Controls.Orientation.Horizontal);
+            Assert(rowFlexCenter.MainAxis == FlutterMainAxisAlignment.Center && rowFlexCenter.CrossAxis == FlutterCrossAxisAlignment.Center,
+                "Alignment: Row Gravity 'center' -> MainAxis=Center, CrossAxis=Center");
+
+            var rowFlexCustom = AlignmentHelper.MapGravityToFlex("center_horizontal|bottom", Microsoft.UI.Xaml.Controls.Orientation.Horizontal);
+            Assert(rowFlexCustom.MainAxis == FlutterMainAxisAlignment.Center && rowFlexCustom.CrossAxis == FlutterCrossAxisAlignment.End,
+                "Alignment: Row Gravity 'center_horizontal|bottom' -> MainAxis=Center, CrossAxis=End");
+
+            var colFlexCenter = AlignmentHelper.MapGravityToFlex("center", Microsoft.UI.Xaml.Controls.Orientation.Vertical);
+            Assert(colFlexCenter.MainAxis == FlutterMainAxisAlignment.Center && colFlexCenter.CrossAxis == FlutterCrossAxisAlignment.Center,
+                "Alignment: Column Gravity 'center' -> MainAxis=Center, CrossAxis=Center");
+
+            var colFlexCustom = AlignmentHelper.MapGravityToFlex("center_horizontal|bottom", Microsoft.UI.Xaml.Controls.Orientation.Vertical);
+            Assert(colFlexCustom.MainAxis == FlutterMainAxisAlignment.End && colFlexCustom.CrossAxis == FlutterCrossAxisAlignment.Center,
+                "Alignment: Column Gravity 'center_horizontal|bottom' -> MainAxis=End, CrossAxis=Center");
+
+            // 8.5 Container Child Alignment Resolution & Overrides
+            var containerParent = new WidgetItem { Type = "Container", Gravity = "center" };
+            var childInherited = new WidgetItem { Type = "Text", Name = "Inherited Text" };
+            var (effH1, effV1) = AlignmentHelper.ResolveEffectiveChildAlignment(childInherited, containerParent);
+            Assert(effH1 == Microsoft.UI.Xaml.HorizontalAlignment.Center && effV1 == Microsoft.UI.Xaml.VerticalAlignment.Center,
+                "Alignment: Container child inherits parent Gravity");
+
+            var childOverride = new WidgetItem { Type = "Text", Name = "Overridden Text", Alignment = "BottomRight" };
+            var (effH2, effV2) = AlignmentHelper.ResolveEffectiveChildAlignment(childOverride, containerParent);
+            Assert(effH2 == Microsoft.UI.Xaml.HorizontalAlignment.Right && effV2 == Microsoft.UI.Xaml.VerticalAlignment.Bottom,
+                "Alignment: Container child explicit Alignment overrides parent Gravity");
+
+            var childMatchParent = new WidgetItem { Type = "Text", Name = "Match Parent Text", Width = "Match Parent", Height = "Match Parent" };
+            var (effH3, effV3) = AlignmentHelper.ResolveEffectiveChildAlignment(childMatchParent, containerParent);
+            Assert(effH3 == Microsoft.UI.Xaml.HorizontalAlignment.Stretch && effV3 == Microsoft.UI.Xaml.VerticalAlignment.Stretch,
+                "Alignment: Match Parent dimensions enforce Stretch precedence");
+
+            // 8.6 Flutter Compiler Output with Alignment & Gravity
+            var testAlignRow = new WidgetItem { Type = "Row", Id = "align_row", MainAxisAlignment = "Center", CrossAxisAlignment = "Center" };
+            testAlignRow.Children.Add(new WidgetItem { Type = "Text", Id = "row_txt", Name = "Centered Item" });
+            string rowAlignDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(testAlignRow) }));
+            Assert(rowAlignDart.Contains("mainAxisAlignment: MainAxisAlignment.center") && rowAlignDart.Contains("crossAxisAlignment: CrossAxisAlignment.center"),
+                "Compiler: Row emits mainAxisAlignment and crossAxisAlignment");
+
+            var testAlignContainer = new WidgetItem { Type = "Container", Id = "align_box", Width = "250", Height = "120", Alignment = "Center" };
+            testAlignContainer.Children.Add(new WidgetItem { Type = "Button", Id = "box_btn", Name = "Action Button" });
+            string containerAlignDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(testAlignContainer) }));
+            Assert(containerAlignDart.Contains("alignment: Alignment.center") && containerAlignDart.Contains("width: 250") && containerAlignDart.Contains("height: 120"),
+                "Compiler: Container emits alignment, width, and height");
+
             // Two-Way Property Reactivity Check
             bool propChangedFired = false;
             string changedPropName = "";

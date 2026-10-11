@@ -226,13 +226,14 @@ namespace Snapcode.Views
 
             // Determine final desired cross size
             double finalCrossSize;
-            if (CrossAxisAlignment == FlutterCrossAxisAlignment.Stretch && !double.IsInfinity(crossAvailable))
+            bool isCrossBounded = !double.IsInfinity(crossAvailable) && !double.IsNaN(crossAvailable);
+            if (CrossAxisAlignment == FlutterCrossAxisAlignment.Stretch && isCrossBounded)
             {
                 finalCrossSize = crossAvailable;
             }
             else
             {
-                finalCrossSize = double.IsInfinity(crossAvailable) ? maxCrossSize : Math.Min(maxCrossSize, crossAvailable);
+                finalCrossSize = isCrossBounded ? Math.Min(maxCrossSize, crossAvailable) : maxCrossSize;
             }
 
             return isVertical

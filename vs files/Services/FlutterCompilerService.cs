@@ -1,6 +1,9 @@
 using System;
 using System.Text.Json;
 using System.Collections.Generic;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Snapcode.Views;
 
 namespace SnapCode.Services
 {
@@ -85,6 +88,58 @@ Widget build(BuildContext context) {{
             {
                 case "Row":
                 case "Column":
+                {
+                    var children = new List<string>();
+                    if (node.TryGetProperty("children", out var childrenProp) && childrenProp.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var child in childrenProp.EnumerateArray())
+                        {
+                            children.Add(CompileWidget(child));
+                        }
+                    }
+
+                    var props = new List<string>();
+
+                    // MainAxisAlignment
+                    string mainAxis = "";
+                    if (node.TryGetProperty("mainAxisAlignment", out var maProp) && !string.IsNullOrWhiteSpace(maProp.GetString()))
+                    {
+                        mainAxis = maProp.GetString()!;
+                    }
+                    else if (node.TryGetProperty("gravity", out var gProp) && !string.IsNullOrWhiteSpace(gProp.GetString()))
+                    {
+                        var (gm, _) = AlignmentHelper.MapGravityToFlex(gProp.GetString(), type == "Row" ? Orientation.Horizontal : Orientation.Vertical);
+                        mainAxis = gm.ToString();
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(mainAxis) && !mainAxis.Equals("Start", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string maCamel = char.ToLowerInvariant(mainAxis[0]) + mainAxis.Substring(1);
+                        props.Add($"mainAxisAlignment: MainAxisAlignment.{maCamel}");
+                    }
+
+                    // CrossAxisAlignment
+                    string crossAxis = "";
+                    if (node.TryGetProperty("crossAxisAlignment", out var caProp) && !string.IsNullOrWhiteSpace(caProp.GetString()))
+                    {
+                        crossAxis = caProp.GetString()!;
+                    }
+                    else if (node.TryGetProperty("gravity", out var gProp2) && !string.IsNullOrWhiteSpace(gProp2.GetString()))
+                    {
+                        var (_, gc) = AlignmentHelper.MapGravityToFlex(gProp2.GetString(), type == "Row" ? Orientation.Horizontal : Orientation.Vertical);
+                        crossAxis = gc.ToString();
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(crossAxis))
+                    {
+                        string caCamel = char.ToLowerInvariant(crossAxis[0]) + crossAxis.Substring(1);
+                        props.Add($"crossAxisAlignment: CrossAxisAlignment.{caCamel}");
+                    }
+
+                    props.Add($"children: [{string.Join(", ", children)}]");
+                    return $"{type}({string.Join(", ", props)})";
+                }
+
                 case "ListView":
                 {
                     var children = new List<string>();
@@ -95,16 +150,51 @@ Widget build(BuildContext context) {{
                             children.Add(CompileWidget(child));
                         }
                     }
-                    return $"{type}(children: [{string.Join(", ", children)}])";
+                    return $"ListView(children: [{string.Join(", ", children)}])";
                 }
 
                 case "Container":
                 {
+                    var props = new List<string>();
+
+                    // Width
+                    if (node.TryGetProperty("width", out var wProp))
+                    {
+                        string wVal = wProp.GetString() ?? "";
+                        if (wVal == "Match Parent") props.Add("width: double.infinity");
+                        else if (double.TryParse(wVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double wNum) && wNum > 0)
+                            props.Add($"width: {wNum.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    }
+
+                    // Height
+                    if (node.TryGetProperty("height", out var hProp))
+                    {
+                        string hVal = hProp.GetString() ?? "";
+                        if (hVal == "Match Parent") props.Add("height: double.infinity");
+                        else if (double.TryParse(hVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double hNum) && hNum > 0)
+                            props.Add($"height: {hNum.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    }
+
+                    // Alignment
+                    string alignStr = "";
+                    if (node.TryGetProperty("alignment", out var aProp) && !string.IsNullOrWhiteSpace(aProp.GetString()))
+                        alignStr = aProp.GetString()!;
+                    else if (node.TryGetProperty("gravity", out var gProp) && !string.IsNullOrWhiteSpace(gProp.GetString()))
+                        alignStr = gProp.GetString()!;
+
+                    if (!string.IsNullOrWhiteSpace(alignStr) && !alignStr.Equals("Default", StringComparison.OrdinalIgnoreCase) && !alignStr.Equals("TopLeft", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string flAlign = AlignmentHelper.ToFlutterAlignmentCode(alignStr);
+                        props.Add($"alignment: {flAlign}");
+                    }
+
+                    // Child
                     if (node.TryGetProperty("children", out var childrenProp) && childrenProp.ValueKind == JsonValueKind.Array && childrenProp.GetArrayLength() > 0)
                     {
-                        return $"Container(child: {CompileWidget(childrenProp[0])})";
+                        props.Add($"child: {CompileWidget(childrenProp[0])}");
                     }
-                    return "Container()";
+
+                    return props.Count > 0 ? $"Container({string.Join(", ", props)})" : "Container()";
                 }
 
                 case "ScrollView":
