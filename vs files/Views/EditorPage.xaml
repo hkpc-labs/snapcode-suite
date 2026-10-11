@@ -9,6 +9,9 @@
     Background="Transparent">
 
     <Grid>
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Modifiers="Control" Key="S" Invoked="GlobalSave_Invoked" />
+        </Grid.KeyboardAccelerators>
         <Grid.RowDefinitions>
             <RowDefinition Height="40" /> <!-- Custom Title Bar Region (with Menus) -->
             <RowDefinition Height="32" /> <!-- Compact ToolBar Region -->
@@ -51,7 +54,7 @@
         <!-- COMPACT HORIZONTAL TOOLBAR -->
         <CommandBar Grid.Row="1" DefaultLabelPosition="Collapsed" Background="Transparent" BorderThickness="0" Padding="12,0,12,0">
             <!-- Icon only buttons for quick access -->
-            <AppBarButton x:Name="BtnSaveQuick" Icon="Save" Click="BtnSave_Click" ToolTipService.ToolTip="Save" />
+            <AppBarButton x:Name="BtnSaveQuick" Icon="Save" Click="BtnSave_Click" ToolTipService.ToolTip="Save (Ctrl+S)" />
             <AppBarButton x:Name="BtnAssetsQuick" Icon="Pictures" Click="BtnAssets_Click" ToolTipService.ToolTip="Assets" />
             <AppBarSeparator />
             <AppBarButton x:Name="BtnClearAllQuick" Icon="Delete" Click="BtnClearBlocks_Click" ToolTipService.ToolTip="Clear Cache" />

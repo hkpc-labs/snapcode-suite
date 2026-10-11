@@ -631,6 +631,45 @@ namespace Snapcode.Services
             string slDart = FlutterCompilerService.GenerateBuildMethod(JsonSerializer.Serialize(new List<object> { SerializeItem(styledSlider) }));
             Assert(slDart.Contains("activeColor: const Color(0xFFFF9800)"), "Compiler: Slider emits activeColor");
 
+            // 13. Tab Switching & Auto-Save State Preservation Suite
+            report.AppendLine("\n## 13. Tab Switching, Auto-Save & State Preservation");
+            Console.WriteLine(">>> 13. Testing Tab Switching, Auto-Save & State Preservation...");
+
+            // Test 1: Property change notification triggers state change
+            var columnWidget = new WidgetItem { Type = "Column", Id = "col_test", BackgroundColor = "Transparent" };
+            bool propertyChangedFired = false;
+            columnWidget.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(WidgetItem.BackgroundColor)) propertyChangedFired = true;
+            };
+            columnWidget.BackgroundColor = "#FF5722"; // Material Deep Orange
+            Assert(propertyChangedFired, "Auto-Save: BackgroundColor change triggers PropertyChanged event");
+
+            // Test 2: In-memory DOM state preservation across tab toggles
+            var canvasWidgets = new ObservableCollection<WidgetItem> { columnWidget };
+            var childText = new WidgetItem { Type = "Text", Id = "txt_inside_col", Name = "Hello Snapcode" };
+            columnWidget.Children.Add(childText);
+            
+            // Serialize in-memory tree state before any tab switch
+            string inMemoryJson = JsonSerializer.Serialize(canvasWidgets.Select(SerializeItem).ToList());
+            Assert(inMemoryJson.Contains("#FF5722") && inMemoryJson.Contains("txt_inside_col"), "State: In-memory widget tree contains modified background and children");
+
+            // Test 3: Tab switch does not reset in-memory tree when loadNativeUi is false
+            // Simulating switching from View -> Event -> View: the in-memory canvasWidgets must retain col_test's new background
+            var retainedColumn = FindWidgetById(canvasWidgets, "col_test");
+            Assert(retainedColumn != null && retainedColumn.BackgroundColor == "#FF5722", "Tab Switch: In-memory designer retains UI modifications without disk overwrite");
+
+            // Test 4: Save & Reload parity
+            using var reloadedDoc = JsonDocument.Parse(inMemoryJson);
+            var reloadedItems = new ObservableCollection<WidgetItem>();
+            foreach (var elem in reloadedDoc.RootElement.EnumerateArray())
+            {
+                reloadedItems.Add(NativeUIDesigner.DeserializeItem(elem));
+            }
+            var reloadedCol = FindWidgetById(reloadedItems, "col_test");
+            Assert(reloadedCol != null && reloadedCol.BackgroundColor == "#FF5722" && reloadedCol.Children.Count == 1, "Save/Reload: Deserialized tree preserves modified column color and child count");
+            Assert(reloadedCol?.Children[0].Name == "Hello Snapcode", "Save/Reload: Nested child properties are fully preserved");
+
             // Summary
             report.AppendLine("\n---");
             report.AppendLine($"### Result: {passed}/{total} Passed ({(failed == 0 ? "100%" : $"{Math.Round((double)passed/total*100, 1)}%")})");

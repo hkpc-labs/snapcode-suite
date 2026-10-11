@@ -28,16 +28,47 @@ namespace Snapcode.Views
         private bool _isSwitchingPage = false;
         private string _currentEventContext = null;
         private bool _isProgrammaticTabChange = false;
+        private DispatcherTimer _autoSaveTimer;
 
         public EditorPage()
         {
             this.InitializeComponent();
+
+            _autoSaveTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(400)
+            };
+            _autoSaveTimer.Tick += AutoSaveTimer_Tick;
+
             if (NativeDesigner != null)
             {
                 NativeDesigner.WidgetTreeFlatJsonChanged += NativeDesigner_WidgetTreeFlatJsonChanged;
                 NativeDesigner.UIStateChanged += NativeDesigner_UIStateChanged;
                 NativeDesigner.OpenEventWorkspaceRequested += NativeDesigner_OpenEventWorkspaceRequested;
+                NativeDesigner.SaveRequested += NativeDesigner_SaveRequested;
             }
+        }
+
+        private async void AutoSaveTimer_Tick(object sender, object e)
+        {
+            _autoSaveTimer.Stop();
+            if (_hasUnsavedChanges)
+            {
+                await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
+            }
+        }
+
+        private async void NativeDesigner_SaveRequested(object sender, EventArgs e)
+        {
+            _autoSaveTimer.Stop();
+            await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
+        }
+
+        private async void GlobalSave_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            args.Handled = true;
+            _autoSaveTimer.Stop();
+            await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
         }
 
         private async void NativeDesigner_OpenEventWorkspaceRequested(object sender, (string WidgetId, string EventType) args)
@@ -77,8 +108,11 @@ namespace Snapcode.Views
             DispatcherQueue.TryEnqueue(() =>
             {
                 StatusSaveIcon.Glyph = ""; // Unsaved dot
-                TxtSaveStatus.Text = "Unsaved changes";
+                TxtSaveStatus.Text = "Saving...";
             });
+
+            _autoSaveTimer.Stop();
+            _autoSaveTimer.Start();
         }
 
         private async void NativeDesigner_WidgetTreeFlatJsonChanged(object sender, string jsonList)
@@ -194,6 +228,12 @@ namespace Snapcode.Views
                 NativeDesigner.WidgetTreeFlatJsonChanged -= NativeDesigner_WidgetTreeFlatJsonChanged;
                 NativeDesigner.UIStateChanged -= NativeDesigner_UIStateChanged;
                 NativeDesigner.OpenEventWorkspaceRequested -= NativeDesigner_OpenEventWorkspaceRequested;
+                NativeDesigner.SaveRequested -= NativeDesigner_SaveRequested;
+            }
+
+            if (_autoSaveTimer != null)
+            {
+                _autoSaveTimer.Stop();
             }
         }
 
@@ -348,7 +388,7 @@ namespace Snapcode.Views
             }
         }
 
-        private async Task LoadSavedWorkspaceAsync()
+        private async Task LoadSavedWorkspaceAsync(bool loadNativeUi = true)
         {
             if (!_isWebViewReady || string.IsNullOrEmpty(_projectPath)) return;
 
@@ -369,19 +409,22 @@ namespace Snapcode.Views
                     TxtSaveStatus.Text = "Loaded";
                 }
                 
-                // Load Native UI state
-                try
+                // Load Native UI state only when requested (e.g. project load or page change, NOT on tab switch)
+                if (loadNativeUi)
                 {
-                    string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
-                    if (NativeDesigner != null)
+                    try
                     {
-                        NativeDesigner.SetPageName(_currentPageName);
-                        NativeDesigner.LoadUIJson(uiJson);
+                        string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
+                        if (NativeDesigner != null)
+                        {
+                            NativeDesigner.SetPageName(_currentPageName);
+                            NativeDesigner.LoadUIJson(uiJson);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to inject UI state: {ex.Message}");
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to inject UI state: {ex.Message}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -424,7 +467,7 @@ namespace Snapcode.Views
 
         private async Task SaveWorkspaceAsync(string overridePageName = null, string overrideEventContext = null)
         {
-            if (!_isWebViewReady || string.IsNullOrEmpty(_projectPath)) return;
+            if (string.IsNullOrEmpty(_projectPath)) return;
 
             string pageToSave = overridePageName ?? _currentPageName;
             string contextToSave = overrideEventContext ?? _currentEventContext;
@@ -432,15 +475,25 @@ namespace Snapcode.Views
             await _saveLock.WaitAsync();
             try
             {
-                string workspaceJson = await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.getWorkspace()");
-
-                if (workspaceJson.StartsWith("\"") && workspaceJson.EndsWith("\""))
+                if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null)
                 {
-                    workspaceJson = JsonSerializer.Deserialize<string>(workspaceJson) ?? "{}";
-                }
+                    try
+                    {
+                        string workspaceJson = await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.getWorkspace()");
 
-                string workspaceFile = contextToSave != null ? $"{pageToSave}_{contextToSave}" : pageToSave;
-                await ProjectService.SavePageWorkspaceAsync(_projectPath, workspaceFile, workspaceJson);
+                        if (workspaceJson.StartsWith("\"") && workspaceJson.EndsWith("\""))
+                        {
+                            workspaceJson = JsonSerializer.Deserialize<string>(workspaceJson) ?? "{}";
+                        }
+
+                        string workspaceFile = contextToSave != null ? $"{pageToSave}_{contextToSave}" : pageToSave;
+                        await ProjectService.SavePageWorkspaceAsync(_projectPath, workspaceFile, workspaceJson);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to save Blockly workspace: {ex.Message}");
+                    }
+                }
 
                 if (NativeDesigner != null)
                 {
@@ -654,11 +707,18 @@ namespace Snapcode.Views
             {
                 string tag = item.Tag.ToString() ?? "";
 
+                // Flush auto-save before changing tabs so no edits are lost
+                _autoSaveTimer.Stop();
+                if (_hasUnsavedChanges)
+                {
+                    await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
+                }
+
                 if (tag == "event" && !_isProgrammaticTabChange)
                 {
                     _currentEventContext = null;
                     PopulateEventList();
-                    await LoadSavedWorkspaceAsync();
+                    await LoadSavedWorkspaceAsync(loadNativeUi: false);
                 }
                 else if (tag == "event" && _isProgrammaticTabChange)
                 {

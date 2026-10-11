@@ -699,6 +699,7 @@ namespace Snapcode.Views
 
         public event EventHandler<string> WidgetTreeFlatJsonChanged;
         public event EventHandler UIStateChanged;
+        public event EventHandler SaveRequested;
 
         private void UpdateWidgetNavigator()
         {
@@ -917,6 +918,7 @@ namespace Snapcode.Views
                 _isRestoringState = true;
                 LoadUIJson(previousState);
                 _isRestoringState = false;
+                UIStateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -929,6 +931,7 @@ namespace Snapcode.Views
                 _isRestoringState = true;
                 LoadUIJson(nextState);
                 _isRestoringState = false;
+                UIStateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -951,6 +954,12 @@ namespace Snapcode.Views
         private void Redo_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
         {
             Redo();
+            args.Handled = true;
+        }
+
+        private void Save_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            SaveRequested?.Invoke(this, EventArgs.Empty);
             args.Handled = true;
         }
 

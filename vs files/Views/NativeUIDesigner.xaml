@@ -10,6 +10,7 @@
 
     <Grid KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Modifiers="Control" Key="S" Invoked="Save_Invoked" />
             <KeyboardAccelerator Modifiers="Control" Key="Z" Invoked="Undo_Invoked" />
             <KeyboardAccelerator Modifiers="Control,Shift" Key="Z" Invoked="Redo_Invoked" />
             <KeyboardAccelerator Modifiers="Control" Key="Y" Invoked="Redo_Invoked" />
