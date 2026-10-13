@@ -566,6 +566,13 @@ namespace Snapcode.Views
             {
                 decProps.Add($"color: {bgCode}");
             }
+            else if (hasShadow)
+            {
+                // In Flutter, a BoxShadow paints behind the container surface.
+                // If the container has no background color, the shadow bleeds through the transparent container.
+                // Provide a default white background so it appears as a clean elevated surface, exactly matching the designer.
+                decProps.Add("color: Colors.white");
+            }
 
             if (!string.IsNullOrWhiteSpace(cornerRadius) && double.TryParse(cornerRadius, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double cr) && cr > 0)
             {

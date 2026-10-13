@@ -44,9 +44,39 @@
 
         <!-- Canvas -->
         <Grid Grid.Column="1" Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Canvas Top Toolbar (Orientation Toggle & Viewport Info) -->
+            <Border Grid.Row="0" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="12,6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE8EA;" FontSize="14" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock x:Name="TxtCanvasInfo" Text="360 x 720 (Portrait)" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="BtnRotateCanvas" Click="BtnRotateCanvas_Click" ToolTipService.ToolTip="Toggle Canvas Orientation (Portrait 📱 / Landscape 🔄)" Padding="8,4" CornerRadius="4">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon x:Name="IconOrientation" Glyph="&#xE7AD;" FontSize="13" />
+                                <TextBlock x:Name="TxtOrientationLabel" Text="Rotate View" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                 <!-- Phone Frame Mockup -->
-                <Border Width="360" Height="720" Background="White" CornerRadius="16" BorderBrush="{ThemeResource TextFillColorPrimaryBrush}" BorderThickness="4" Margin="32" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border x:Name="PhoneFrameBorder" Width="360" Height="720" Background="White" CornerRadius="16" BorderBrush="{ThemeResource TextFillColorPrimaryBrush}" BorderThickness="4" Margin="32" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="24" /> <!-- Status Bar -->
@@ -55,7 +85,7 @@
                         </Grid.RowDefinitions>
                         
                         <!-- Fake Status Bar -->
-                        <Grid Grid.Row="0" Background="#0288D1">
+                        <Grid x:Name="MockStatusBar" Grid.Row="0" Background="#0288D1">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,0,8,0">
                                 <FontIcon Glyph="&#xE701;" FontSize="12" Foreground="White" /> <!-- Wifi -->
                                 <FontIcon Glyph="&#xE83F;" FontSize="12" Foreground="White" /> <!-- Battery -->
@@ -64,7 +94,8 @@
                         </Grid>
                         
                         <!-- Fake Tool Bar -->
-                        <Grid Grid.Row="1" Background="#03A9F4">
+                        <Grid x:Name="MockToolBar" Grid.Row="1" Background="#03A9F4">
+                            <Button x:Name="BtnDrawerLeading" Content="&#xE700;" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="White" BorderThickness="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0" Width="40" Height="40" Padding="0" Visibility="Collapsed" IsHitTestVisible="False" />
                             <TextBlock x:Name="TxtAppTitle" Text="main.dart" FontSize="18" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" Margin="16,0,0,0" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
                                 <Button x:Name="BtnUndo" Content="&#xE7A7;" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="White" BorderThickness="0" Click="BtnUndo_Click" />
@@ -72,8 +103,23 @@
                             </StackPanel>
                         </Grid>
                         
+                        <!-- Tool Bar Elevation Shadow -->
+                        <Border x:Name="MockAppBarShadow" Grid.Row="2" VerticalAlignment="Top" Height="8" Visibility="Collapsed" IsHitTestVisible="False">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                    <GradientStop Color="#4D000000" Offset="0" />
+                                    <GradientStop Color="#00000000" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        
                         <!-- Real Drag/Drop Canvas -->
                         <Grid Grid.Row="2" x:Name="RootCanvas" AllowDrop="True" DragOver="RootCanvas_DragOver" Drop="RootCanvas_Drop" Background="Transparent" />
+
+                        <!-- Mock Floating Action Button -->
+                        <Button x:Name="MockFAB" Grid.Row="2" Width="56" Height="56" CornerRadius="28" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16" Background="#2196F3" Foreground="White" Visibility="Collapsed" IsHitTestVisible="False" Padding="0">
+                            <FontIcon x:Name="MockFABIcon" Glyph="&#xE710;" FontSize="20" Foreground="White" />
+                        </Button>
                     </Grid>
                 </Border>
             </ScrollViewer>

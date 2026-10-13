@@ -488,7 +488,7 @@ namespace Snapcode.Views
                             CornerRadius = new CornerRadius(8),
                             Padding = new Thickness(12, 8, 12, 8),
                             Margin = new Thickness(2),
-                            MinWidth = isHoriz ? 120 : double.NaN
+                            MinWidth = isHoriz ? 120 : 0
                         };
 
                         var tileGrid = new Grid();

@@ -40,7 +40,16 @@
                         <MenuFlyoutItem Text="Code Preview" Click="BtnToggleCode_Click" />
                     </MenuBarItem>
                     <MenuBarItem Title="Build">
-                        <MenuFlyoutItem Text="Run Project" Click="BtnRun_Click" />
+                        <MenuFlyoutItem Text="Run Project (Start/Stop)" Click="BtnRun_Click" />
+                        <MenuFlyoutItem Text="Hot Reload (r)" Click="BtnHotReload_Click" />
+                        <MenuFlyoutItem Text="Hot Restart (R)" Click="BtnHotRestart_Click" />
+                        <MenuFlyoutItem Text="Stop Application (q)" Click="BtnStop_Click" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Android Emulator Manager..." Click="BtnOpenEmulatorManager_Click" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Toggle Debug Console" Click="BtnToggleConsole_Click" />
+                        <MenuFlyoutItem Text="Open Dedicated Debug Window" Click="BtnPopOutConsole_Click" />
+                        <MenuFlyoutSeparator />
                         <MenuFlyoutItem Text="Clear Build Cache" Click="BtnClearBlocks_Click" />
                     </MenuBarItem>
                 </MenuBar>
@@ -62,20 +71,39 @@
             
             <CommandBar.Content>
                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,0,0">
-                    <ComboBox x:Name="ComboTarget" SelectedIndex="0" Width="100" Height="28" Padding="8,2" SelectionChanged="ComboTarget_SelectionChanged" Background="Transparent" BorderThickness="0">
+                    <ComboBox x:Name="ComboTarget" SelectedIndex="0" Width="95" Height="28" Padding="8,2" SelectionChanged="ComboTarget_SelectionChanged" Background="Transparent" BorderThickness="0">
                         <ComboBoxItem x:Name="ComboItemWeb" Content="Web" Tag="web" />
                         <ComboBoxItem x:Name="ComboItemAndroid" Content="Android" Tag="android" />
                         <ComboBoxItem x:Name="ComboItemWindows" Content="Windows" Tag="windows" />
                     </ComboBox>
 
-                    <ComboBox x:Name="ComboDevice" Width="140" Height="28" Padding="8,2" Background="Transparent" BorderThickness="0">
-                        <!-- Populated dynamically based on Target -->
+                    <ComboBox x:Name="ComboDevice" Width="150" Height="28" Padding="8,2" SelectionChanged="ComboDevice_SelectionChanged" Background="Transparent" BorderThickness="0">
+                        <!-- Populated dynamically based on Target & Discovery -->
                     </ComboBox>
-                    
-                    <Button x:Name="BtnRunQuick" Click="BtnRun_Click" Background="{ThemeResource SystemAccentColor}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" Height="28" CornerRadius="4" Padding="12,2" BorderThickness="0">
+
+                    <Button x:Name="BtnRefreshDevices" Click="BtnRefreshDevices_Click" Height="28" Width="28" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Refresh Devices &amp; Emulators">
+                        <FontIcon Glyph="&#xE72C;" FontSize="11" />
+                    </Button>
+
+                    <Button x:Name="BtnRunQuick" Click="BtnRun_Click" Background="{ThemeResource AccentFillColorDefaultBrush}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" Height="28" CornerRadius="4" Padding="12,2" BorderThickness="0" ToolTipService.ToolTip="Start Debugging (F5)">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE768;" FontSize="12" />
-                            <TextBlock Text="Start" FontSize="12" FontWeight="SemiBold" />
+                            <FontIcon x:Name="IconRunQuick" Glyph="&#xE768;" FontSize="12" />
+                            <TextBlock x:Name="TxtRunQuick" Text="Start" FontSize="12" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="BtnHotReloadQuick" Click="BtnHotReload_Click" IsEnabled="False" Height="28" Width="30" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Hot Reload (r / Ctrl+F10)">
+                        <FontIcon Glyph="&#xE72C;" FontSize="12" Foreground="#00BCD4" />
+                    </Button>
+
+                    <Button x:Name="BtnHotRestartQuick" Click="BtnHotRestart_Click" IsEnabled="False" Height="28" Width="30" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Hot Restart (R / Ctrl+Shift+F10)">
+                        <FontIcon Glyph="&#xE777;" FontSize="12" Foreground="#FF9800" />
+                    </Button>
+
+                    <Button x:Name="BtnToggleConsoleQuick" Click="BtnToggleConsole_Click" Height="28" Padding="8,2" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Toggle Debug Console">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <FontIcon Glyph="&#xE756;" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Console" FontSize="11" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -112,6 +140,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
+                        <RowDefinition x:Name="RowDebugConsole" Height="0" MinHeight="0" />
                     </Grid.RowDefinitions>
 
                     <NavigationView x:Name="EditorTabs" PaneDisplayMode="Top" IsBackButtonVisible="Collapsed" SelectionChanged="EditorTabs_SelectionChanged" IsSettingsVisible="False">
@@ -129,6 +158,11 @@
                             <NavigationViewItem Content="Components" Tag="component">
                                 <NavigationViewItem.Icon>
                                     <FontIcon Glyph="&#xE81E;" />
+                                </NavigationViewItem.Icon>
+                            </NavigationViewItem>
+                            <NavigationViewItem Content="Code Editor" Tag="code">
+                                <NavigationViewItem.Icon>
+                                    <FontIcon Glyph="&#xE70F;" />
                                 </NavigationViewItem.Icon>
                             </NavigationViewItem>
                         </NavigationView.MenuItems>
@@ -198,6 +232,29 @@
                                 <TextBlock Text="Add non-visual components like Intents, Timers, and Dialogs (Coming Soon)" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
                             </StackPanel>
                         </Grid>
+
+                        <!-- Code Panel (Project Explorer + Monaco Editor) -->
+                        <Grid x:Name="CodePanel" Canvas.ZIndex="0" Opacity="0" IsHitTestVisible="False" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="260" MinWidth="180" MaxWidth="500" />
+                                <ColumnDefinition Width="1" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Project Explorer -->
+                            <local:ProjectExplorerControl x:Name="ProjectExplorer" Grid.Column="0" />
+
+                            <!-- Divider -->
+                            <Grid Grid.Column="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                            <!-- Right: Monaco Code Editor -->
+                            <local:MonacoCodeEditorControl x:Name="MonacoEditor" Grid.Column="2" />
+                        </Grid>
+                    </Grid>
+
+                    <!-- Bottom Debug Console Drawer -->
+                    <Grid Grid.Row="2" x:Name="PanelDebugConsole" Visibility="Collapsed" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+                        <local:DebugConsoleControl x:Name="DebugConsole" />
                     </Grid>
                 </Grid>
             </SplitView.Content>
@@ -214,6 +271,13 @@
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <FontIcon x:Name="StatusSaveIcon" Glyph="&#xE73E;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 <TextBlock x:Name="TxtSaveStatus" Text="Ready" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="|" FontSize="11" Foreground="{ThemeResource TextFillColorDisabledBrush}" Margin="2,0" />
+                <Button x:Name="BtnStatusBarConsole" Click="BtnToggleConsole_Click" Background="Transparent" BorderThickness="0" Padding="4,2" CornerRadius="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE756;" FontSize="10" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock x:Name="TxtStatusConsole" Text="Debug Console (Idle)" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="24" VerticalAlignment="Center">

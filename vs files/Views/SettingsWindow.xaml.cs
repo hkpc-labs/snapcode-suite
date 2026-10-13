@@ -10,8 +10,11 @@ namespace Snapcode.Views
 {
     public sealed partial class SettingsWindow : Window
     {
-        public SettingsWindow()
+        private readonly string? _initialSection;
+
+        public SettingsWindow(string? initialSection = null)
         {
+            _initialSection = initialSection;
             this.InitializeComponent();
             SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop() { Kind = Microsoft.UI.Composition.SystemBackdrops.MicaKind.BaseAlt };
 
@@ -37,7 +40,15 @@ namespace Snapcode.Views
         private bool _isLoaded = false;
         private async void SettingsNav_Loaded(object sender, RoutedEventArgs e)
         {
-            SettingsNav.SelectedItem = SettingsNav.MenuItems[0];
+            if (!string.IsNullOrEmpty(_initialSection))
+            {
+                var targetItem = SettingsNav.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(m => m.Tag?.ToString() == _initialSection);
+                SettingsNav.SelectedItem = targetItem ?? SettingsNav.MenuItems[0];
+            }
+            else
+            {
+                SettingsNav.SelectedItem = SettingsNav.MenuItems[0];
+            }
             
             var config = await Snapcode.Services.ConfigService.LoadAsync();
             TextBoxFlutterSdk.Text = config.FlutterSdkPath ?? "";

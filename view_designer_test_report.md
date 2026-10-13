@@ -1,5 +1,5 @@
 # View Designer & Widget Property Automated Verification Report
-*Executed at: 2026-10-12 00:45:16*
+*Executed at: 2026-10-12 01:44:56*
 
 ## 1. Widget Instantiation & Identity
   - [x] **PASS**: Create Widget: Row
@@ -186,6 +186,35 @@
   - [x] **PASS**: Save/Reload: Deserialized tree preserves modified column color and child count
   - [x] **PASS**: Save/Reload: Nested child properties are fully preserved
 
+## 14. Advanced Code Editor, Code Preservation & File Isolation
+  - [x] **PASS**: Preservation: Successfully extracted user IMPORTS block
+  - [x] **PASS**: Preservation: Extracted imports contain http package
+  - [x] **PASS**: Preservation: Successfully extracted CLASS_MEMBERS block
+  - [x] **PASS**: Preservation: Extracted class members contain custom counter variable
+  - [x] **PASS**: Preservation: Successfully extracted CUSTOM_METHODS block
+  - [x] **PASS**: Preservation: Extracted custom method block contains fetchRemoteData
+  - [x] **PASS**: Preservation: Merged code preserves user custom imports
+  - [x] **PASS**: Preservation: Merged code preserves user class members
+  - [x] **PASS**: Preservation: Merged code preserves user custom methods
+  - [x] **PASS**: Preservation: Merged code retains newly generated visual designer code
+  - [x] **PASS**: Preservation on Disk: User custom imports survived designer regeneration
+  - [x] **PASS**: Preservation on Disk: User class members survived designer regeneration
+  - [x] **PASS**: Preservation on Disk: User custom methods survived designer regeneration
+  - [x] **PASS**: Preservation on Disk: Visual designer modifications accurately injected
+  - [x] **PASS**: Preservation: Untagged custom imports automatically detected and salvaged
+  - [x] **PASS**: Classifier: 'main' is recognized as visual page
+  - [x] **PASS**: Classifier: 'login_page' is recognized as visual page
+  - [x] **PASS**: Classifier: 'auth_service' is NOT a visual page (custom only)
+  - [x] **PASS**: Classifier: main.dart classified as VisualPage
+  - [x] **PASS**: Classifier: auth_service.dart classified as PureDartFile (hidden from UI Designer)
+  - [x] **PASS**: Classifier: GetVisualPages lists all visual pages
+  - [x] **PASS**: Classifier: GetVisualPages strictly excludes pure custom Dart files
+  - [x] **PASS**: Explorer: Dart file displays code glyph 
+  - [x] **PASS**: Explorer: Dart file displays Flutter teal color
+  - [x] **PASS**: Explorer: YAML file displays settings glyph 
+  - [x] **PASS**: Explorer: Closed folder displays folder glyph 
+  - [x] **PASS**: Explorer: Opened folder displays folder glyph 
+
 ---
-### Result: 167/167 Passed (100%)
+### Result: 194/194 Passed (100%)
 **Status: ALL WIDGETS AND PROPERTIES FULLY OPERATIONAL AND VERIFIED.**

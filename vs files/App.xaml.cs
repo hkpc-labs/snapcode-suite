@@ -44,6 +44,36 @@ namespace Snapcode
                 return;
             }
 
+            this.UnhandledException += (sender, e) =>
+            {
+                try
+                {
+                    string wsCrashLog = @"c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\app_crash.log";
+                    File.AppendAllText(wsCrashLog, $"[{DateTime.Now}] UNHANDLED XAML EXCEPTION: {e.Message}\r\nException: {e.Exception}\r\nStackTrace: {e.Exception?.StackTrace}\r\nInner: {e.Exception?.InnerException}\r\n\r\n");
+                }
+                catch { }
+            };
+
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+            {
+                try
+                {
+                    string wsCrashLog = @"c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\app_crash.log";
+                    File.AppendAllText(wsCrashLog, $"[{DateTime.Now}] APPDOMAIN UNHANDLED: {e.ExceptionObject}\r\n\r\n");
+                }
+                catch { }
+            };
+
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (sender, e) =>
+            {
+                try
+                {
+                    string wsCrashLog = @"c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\app_crash.log";
+                    File.AppendAllText(wsCrashLog, $"[{DateTime.Now}] TASK SCHEDULER UNHANDLED: {e.Exception}\r\n\r\n");
+                }
+                catch { }
+            };
+
             InitializeComponent();
         }
 

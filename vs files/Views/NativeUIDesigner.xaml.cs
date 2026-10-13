@@ -878,9 +878,176 @@ namespace Snapcode.Views
             };
         }
 
+        private string _currentPageName = "main";
+        private bool _isLandscape = false;
+        private Snapcode.Models.PageMetadata? _currentMetadata;
+
         public void SetPageName(string name)
         {
-            TxtAppTitle.Text = $"{name}.dart";
+            _currentPageName = name;
+            if (_currentMetadata != null)
+            {
+                ApplyPageMetadata(_currentMetadata);
+            }
+            else
+            {
+                TxtAppTitle.Text = $"{name}.dart";
+            }
+        }
+
+        private void BtnRotateCanvas_Click(object sender, RoutedEventArgs e)
+        {
+            _isLandscape = !_isLandscape;
+            UpdateCanvasOrientation();
+        }
+
+        public void UpdateCanvasOrientation()
+        {
+            if (PhoneFrameBorder != null)
+            {
+                PhoneFrameBorder.Width = _isLandscape ? 720 : 360;
+                PhoneFrameBorder.Height = _isLandscape ? 360 : 720;
+            }
+            if (TxtCanvasInfo != null)
+            {
+                TxtCanvasInfo.Text = _isLandscape ? "720 x 360 (Landscape)" : "360 x 720 (Portrait)";
+            }
+            if (TxtOrientationLabel != null)
+            {
+                TxtOrientationLabel.Text = _isLandscape ? "Portrait" : "Landscape";
+            }
+        }
+
+        public void ApplyPageMetadata(Snapcode.Models.PageMetadata? metadata)
+        {
+            _currentMetadata = metadata;
+            if (metadata == null) return;
+
+            // Orientation
+            if (string.Equals(metadata.Orientation, "Landscape", StringComparison.OrdinalIgnoreCase))
+            {
+                _isLandscape = true;
+            }
+            else if (string.Equals(metadata.Orientation, "Portrait", StringComparison.OrdinalIgnoreCase))
+            {
+                _isLandscape = false;
+            }
+            UpdateCanvasOrientation();
+
+            // Status Bar
+            if (MockStatusBar != null)
+            {
+                MockStatusBar.Visibility = metadata.IsStatusBarHidden ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            // MockToolBar / AppBar
+            var barFgBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
+            if (!string.IsNullOrEmpty(metadata.AppBarForegroundColor))
+            {
+                var barFg = ParseHexColor(metadata.AppBarForegroundColor, Microsoft.UI.Colors.White);
+                barFgBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(barFg);
+            }
+
+            if (MockToolBar != null)
+            {
+                MockToolBar.Visibility = metadata.ShowAppBar ? Visibility.Visible : Visibility.Collapsed;
+                if (!string.IsNullOrEmpty(metadata.AppBarBackgroundColor))
+                {
+                    var barBg = ParseHexColor(metadata.AppBarBackgroundColor, Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243));
+                    MockToolBar.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(barBg);
+                }
+            }
+
+            // AppBar Leading Icon (Drawer or Back button)
+            if (BtnDrawerLeading != null)
+            {
+                if (metadata.HasDrawer || metadata.AppBarLeadingIcon == "menu")
+                {
+                    BtnDrawerLeading.Visibility = Visibility.Visible;
+                    BtnDrawerLeading.Content = "\uE700"; // Hamburger drawer icon
+                    BtnDrawerLeading.Foreground = barFgBrush;
+                }
+                else if (metadata.AppBarLeadingIcon == "back")
+                {
+                    BtnDrawerLeading.Visibility = Visibility.Visible;
+                    BtnDrawerLeading.Content = "\uE72B"; // Back arrow icon
+                    BtnDrawerLeading.Foreground = barFgBrush;
+                }
+                else
+                {
+                    BtnDrawerLeading.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            // Sync Undo / Redo buttons foreground with AppBar foreground
+            if (BtnUndo != null) BtnUndo.Foreground = barFgBrush;
+            if (BtnRedo != null) BtnRedo.Foreground = barFgBrush;
+
+            if (TxtAppTitle != null)
+            {
+                string title = !string.IsNullOrWhiteSpace(metadata.AppBarTitle)
+                    ? metadata.AppBarTitle
+                    : (!string.IsNullOrWhiteSpace(metadata.Title) ? metadata.Title : $"{_currentPageName}.dart");
+                TxtAppTitle.Text = title;
+                TxtAppTitle.Foreground = barFgBrush;
+                TxtAppTitle.HorizontalAlignment = metadata.AppBarCenterTitle ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+                TxtAppTitle.Margin = (metadata.AppBarCenterTitle || BtnDrawerLeading?.Visibility != Visibility.Visible)
+                    ? new Thickness(16, 0, 0, 0)
+                    : new Thickness(52, 0, 0, 0);
+            }
+
+            // AppBar Elevation Shadow
+            if (MockAppBarShadow != null)
+            {
+                if (metadata.ShowAppBar && metadata.AppBarElevation > 0)
+                {
+                    MockAppBarShadow.Visibility = Visibility.Visible;
+                    MockAppBarShadow.Height = Math.Max(4, Math.Min(16, metadata.AppBarElevation * 1.5));
+                    MockAppBarShadow.Opacity = Math.Min(1.0, 0.3 + (metadata.AppBarElevation * 0.07));
+                }
+                else
+                {
+                    MockAppBarShadow.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            // Floating Action Button
+            if (MockFAB != null)
+            {
+                if (metadata.HasFAB)
+                {
+                    MockFAB.Visibility = Visibility.Visible;
+                    if (!string.IsNullOrEmpty(metadata.FabBackgroundColor))
+                    {
+                        var fabBg = ParseHexColor(metadata.FabBackgroundColor, Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243));
+                        MockFAB.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(fabBg);
+                    }
+                    if (MockFABIcon != null)
+                    {
+                        string iconGlyph = metadata.FabIcon switch
+                        {
+                            "edit" => "\uE70F",
+                            "check" => "\uE73E",
+                            "camera" => "\uE722",
+                            "share" => "\uE72D",
+                            "message" => "\uE8BD",
+                            _ => "\uE710" // add
+                        };
+                        MockFABIcon.Glyph = iconGlyph;
+                    }
+                }
+                else
+                {
+                    MockFAB.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            // Scaffold background
+            if (RootCanvas != null && !string.IsNullOrEmpty(metadata.ScaffoldBackgroundColor))
+            {
+                var scaffoldBg = ParseHexColor(metadata.ScaffoldBackgroundColor, Microsoft.UI.Colors.White);
+                RootCanvas.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(scaffoldBg);
+            }
         }
 
         private Stack<string> _undoStack = new Stack<string>();

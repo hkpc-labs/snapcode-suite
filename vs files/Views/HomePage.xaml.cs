@@ -385,6 +385,7 @@ namespace Snapcode.Views
                 {
                     LogTextBlock.Text += "\n[SUCCESS] Project created successfully!\n";
                     await ProjectService.AppendBuildLogAsync(projectRoot, $"Project created: {name} ({platforms})");
+                    AssetService.SyncAssetsToFlutterProject(projectRoot);
 
                     var config = await ConfigService.LoadAsync();
                     config.RecentProjects.RemoveAll(p => string.Equals(p, projectRoot, StringComparison.OrdinalIgnoreCase));

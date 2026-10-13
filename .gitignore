@@ -21,3 +21,6 @@ $RECYCLE.BIN/
 
 # Snapshots archive folder
 snapshots/*.zip
+
+# Logs
+*.log

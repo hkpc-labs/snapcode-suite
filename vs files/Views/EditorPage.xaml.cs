@@ -2,8 +2,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Web.WebView2.Core;
+using Snapcode.Models;
 using Snapcode.Services;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -29,6 +31,8 @@ namespace Snapcode.Views
         private string _currentEventContext = null;
         private bool _isProgrammaticTabChange = false;
         private DispatcherTimer _autoSaveTimer;
+        private DebugLogsWindow? _standaloneDebugWindow;
+        private List<FlutterDevice> _discoveredDevices = new();
 
         public EditorPage()
         {
@@ -46,6 +50,23 @@ namespace Snapcode.Views
                 NativeDesigner.UIStateChanged += NativeDesigner_UIStateChanged;
                 NativeDesigner.OpenEventWorkspaceRequested += NativeDesigner_OpenEventWorkspaceRequested;
                 NativeDesigner.SaveRequested += NativeDesigner_SaveRequested;
+            }
+
+            if (ProjectExplorer != null)
+            {
+                ProjectExplorer.FileOpened += async (s, filePath) =>
+                {
+                    if (MonacoEditor != null)
+                    {
+                        await MonacoEditor.OpenFileAsync(filePath);
+                    }
+                };
+            }
+
+            if (DebugConsole != null)
+            {
+                DebugConsole.CloseRequested += (s, e) => ToggleDebugConsole(false);
+                DebugConsole.PopOutRequested += (s, e) => BtnPopOutConsole_Click(s, new RoutedEventArgs());
             }
         }
 
@@ -68,6 +89,16 @@ namespace Snapcode.Views
         {
             args.Handled = true;
             _autoSaveTimer.Stop();
+
+            if (EditorTabs?.SelectedItem is NavigationViewItem navItem && navItem.Tag?.ToString() == "code")
+            {
+                if (MonacoEditor != null)
+                {
+                    await MonacoEditor.SaveCurrentFileAsync();
+                }
+                return;
+            }
+
             await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
         }
 
@@ -163,18 +194,31 @@ namespace Snapcode.Views
                     TxtProjectName.Text = project.Name;
                     TxtProjectOrg.Text = project.Organization;
                     
+                    // Ensure Web, Android, and Windows targets are all available and visible
+                    ComboItemWeb.Visibility = Visibility.Visible;
+                    ComboItemAndroid.Visibility = Visibility.Visible;
+                    ComboItemWindows.Visibility = Visibility.Visible;
+
+                    // Automatically select default platform based on project metadata or host OS
                     if (project.Platforms != null)
                     {
-                        ComboItemWeb.Visibility = project.Platforms.Contains("web", StringComparison.OrdinalIgnoreCase) ? Visibility.Visible : Visibility.Collapsed;
-                        ComboItemAndroid.Visibility = project.Platforms.Contains("android", StringComparison.OrdinalIgnoreCase) ? Visibility.Visible : Visibility.Collapsed;
-                        ComboItemWindows.Visibility = project.Platforms.Contains("windows", StringComparison.OrdinalIgnoreCase) ? Visibility.Visible : Visibility.Collapsed;
-                        
-                        if (ComboTarget.SelectedItem is ComboBoxItem currentItem && currentItem.Visibility == Visibility.Collapsed)
+                        if (project.Platforms.Contains("windows", StringComparison.OrdinalIgnoreCase) &&
+                            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                         {
-                            if (ComboItemWeb.Visibility == Visibility.Visible) ComboTarget.SelectedItem = ComboItemWeb;
-                            else if (ComboItemAndroid.Visibility == Visibility.Visible) ComboTarget.SelectedItem = ComboItemAndroid;
-                            else if (ComboItemWindows.Visibility == Visibility.Visible) ComboTarget.SelectedItem = ComboItemWindows;
+                            ComboTarget.SelectedItem = ComboItemWindows;
                         }
+                        else if (project.Platforms.Contains("android", StringComparison.OrdinalIgnoreCase))
+                        {
+                            ComboTarget.SelectedItem = ComboItemAndroid;
+                        }
+                        else if (project.Platforms.Contains("web", StringComparison.OrdinalIgnoreCase))
+                        {
+                            ComboTarget.SelectedItem = ComboItemWeb;
+                        }
+                    }
+                    else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                    {
+                        ComboTarget.SelectedItem = ComboItemWindows;
                     }
                 }
                 else
@@ -182,21 +226,52 @@ namespace Snapcode.Views
                     // Legacy project (no .snapcode folder)
                     TxtProjectName.Text = _projectName;
                     TxtProjectOrg.Text = "";
+                    ComboItemWeb.Visibility = Visibility.Visible;
+                    ComboItemAndroid.Visibility = Visibility.Visible;
+                    ComboItemWindows.Visibility = Visibility.Visible;
+                    if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                    {
+                        ComboTarget.SelectedItem = ComboItemWindows;
+                    }
                 }
 
-                // Populate Pages
+                // Populate Pages (ensuring pure custom Dart files never appear here)
                 var pages = ProjectService.GetProjectPages(projectPath);
                 _isSwitchingPage = true;
                 ListPages.Items.Clear();
                 foreach (var p in pages)
                 {
-                    ListPages.Items.Add(p);
+                    if (ProjectFileClassifier.IsVisualPage(projectPath, p))
+                    {
+                        ListPages.Items.Add(p);
+                    }
                 }
                 _currentPageName = "main";
                 ListPages.SelectedItem = _currentPageName;
                 _isSwitchingPage = false;
 
+                // Immediately load Native UI state for the current page so widgets render on canvas instantly
+                try
+                {
+                    string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
+                    if (NativeDesigner != null)
+                    {
+                        var pageMeta = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
+                        NativeDesigner.ApplyPageMetadata(pageMeta);
+                        NativeDesigner.SetPageName(_currentPageName);
+                        NativeDesigner.LoadUIJson(uiJson);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to load initial UI state: {ex.Message}");
+                }
+
                 await InitializeWebViewAsync();
+
+                FlutterExecutionService.Instance.Initialize(this.DispatcherQueue);
+                FlutterExecutionService.Instance.StateChanged += ExecutionService_StateChanged;
+                _ = PopulateDevicesAsync(GetSelectedTarget());
             }
         }
 
@@ -211,6 +286,7 @@ namespace Snapcode.Views
         protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
         {
             base.OnNavigatingFrom(e);
+            FlutterExecutionService.Instance.StateChanged -= ExecutionService_StateChanged;
             if (App.MainWindow != null)
             {
                 App.MainWindow.SetTitleBar(null);
@@ -304,6 +380,11 @@ namespace Snapcode.Views
                     }
                 }
                 catch { /* Default to dark */ }
+
+                if (MonacoEditor != null)
+                {
+                    MonacoEditor.SetTheme(themeMode);
+                }
 
                 // Load the Blockly HTML
                 string htmlPath = Path.Combine(AppContext.BaseDirectory, "Assets", "BlockEditor", "index.html");
@@ -406,11 +487,14 @@ namespace Snapcode.Views
                 {
                     string safeJson = JsonSerializer.Serialize(workspaceJson);
                     await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadWorkspace({safeJson})");
-                    TxtSaveStatus.Text = "Loaded";
+                    DispatcherQueue?.TryEnqueue(() =>
+                    {
+                        TxtSaveStatus.Text = "Loaded";
+                    });
                 }
                 
                 // Load Native UI state only when requested (e.g. project load or page change, NOT on tab switch)
-                if (loadNativeUi)
+                if (loadNativeUi && (NativeDesigner == null || NativeDesigner.CanvasItems.Count == 0))
                 {
                     try
                     {
@@ -462,6 +546,15 @@ namespace Snapcode.Views
 
         private async void BtnSave_Click(object sender, RoutedEventArgs e)
         {
+            if (EditorTabs?.SelectedItem is NavigationViewItem navItem && navItem.Tag?.ToString() == "code")
+            {
+                if (MonacoEditor != null)
+                {
+                    await MonacoEditor.SaveCurrentFileAsync();
+                }
+                return;
+            }
+
             await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
         }
 
@@ -495,43 +588,110 @@ namespace Snapcode.Views
                     }
                 }
 
+                string savedUiJson = null;
                 if (NativeDesigner != null)
                 {
                     string uiJson = NativeDesigner.GetUIJson();
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] NativeDesigner.GetUIJson() returned: {uiJson}");
                     if (!string.IsNullOrEmpty(uiJson) && uiJson != "null")
                     {
                         if (uiJson.StartsWith("\"") && uiJson.EndsWith("\""))
                         {
-                            uiJson = JsonSerializer.Deserialize<string>(uiJson) ?? "{}";
+                            try
+                            {
+                                uiJson = JsonSerializer.Deserialize<string>(uiJson) ?? "{}";
+                                System.Diagnostics.Debug.WriteLine($"[EditorPage] Deserialized double-escaped UI JSON: {uiJson}");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to deserialize double-escaped UI JSON: {ex.Message}");
+                            }
                         }
-                        await ProjectService.SavePageUIAsync(_projectPath, pageToSave, uiJson);
+                        
+                        // Prevent accidental wipeout if designer hasn't loaded canvas items yet
+                        bool isCanvasEmpty = NativeDesigner.CanvasItems == null || NativeDesigner.CanvasItems.Count == 0;
+                        if (!isCanvasEmpty || _hasUnsavedChanges)
+                        {
+                            savedUiJson = uiJson;
+                            await ProjectService.SavePageUIAsync(_projectPath, pageToSave, uiJson);
+                            System.Diagnostics.Debug.WriteLine($"[EditorPage] Saved UI JSON for '{pageToSave}': {uiJson}");
+                        }
                     }
                 }
 
-                if (!string.IsNullOrWhiteSpace(_lastGeneratedCode) && pageToSave == "main")
+                if (string.IsNullOrEmpty(savedUiJson) || savedUiJson == "[]" || savedUiJson == "{}")
                 {
+                    try
+                    {
+                        string existingUi = await ProjectService.LoadPageUIAsync(_projectPath, pageToSave);
+                        if (!string.IsNullOrEmpty(existingUi) && existingUi != "[]" && existingUi != "{}")
+                        {
+                            savedUiJson = existingUi;
+                            System.Diagnostics.Debug.WriteLine($"[EditorPage] Loaded existing UI JSON fallback for '{pageToSave}': {savedUiJson}");
+                        }
+                    }
+                    catch { }
+                }
+
+                // Compile complete Flutter Dart page combining visual UI widgets and event blocks
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Generating complete Flutter page for '{pageToSave}' with UI JSON: {savedUiJson}");
+                    var pageMeta = await ProjectService.LoadPageMetadataAsync(_projectPath, pageToSave);
+                    string completeDartSource = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart(
+                        pageToSave,
+                        !string.IsNullOrEmpty(savedUiJson) ? savedUiJson : "[]",
+                        _lastGeneratedCode,
+                        pageMeta
+                    );
+
+                    string fileName = pageToSave.Equals("main", StringComparison.OrdinalIgnoreCase) 
+                        ? "main.dart" 
+                        : $"{pageToSave.ToLowerInvariant()}.dart";
+
                     string flutterLibPath = Path.Combine(_projectPath, ProjectService.FlutterFolderName, "lib");
                     if (Directory.Exists(flutterLibPath))
                     {
-                        await File.WriteAllTextAsync(Path.Combine(flutterLibPath, "main.dart"), _lastGeneratedCode);
+                        string dartFile = Path.Combine(flutterLibPath, fileName);
+                        await UserCodePreservationService.SaveDartFileWithPreservationAsync(dartFile, completeDartSource);
                     }
+
                     string legacyLibPath = Path.Combine(_projectPath, "lib");
                     if (Directory.Exists(legacyLibPath))
                     {
-                        await File.WriteAllTextAsync(Path.Combine(legacyLibPath, "main.dart"), _lastGeneratedCode);
+                        string dartFile = Path.Combine(legacyLibPath, fileName);
+                        await UserCodePreservationService.SaveDartFileWithPreservationAsync(dartFile, completeDartSource);
                     }
+
+                    // Sync assets to flutter/assets and pubspec.yaml
+                    AssetService.SyncAssetsToFlutterProject(_projectPath);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed generating page Dart code: {ex.Message}");
                 }
 
                 _hasUnsavedChanges = false;
-                StatusSaveIcon.Glyph = "\uE73E";
-                TxtSaveStatus.Text = $"Saved at {DateTime.Now:HH:mm:ss}";
+                DispatcherQueue?.TryEnqueue(() =>
+                {
+                    StatusSaveIcon.Glyph = "\uE73E";
+                    TxtSaveStatus.Text = $"Saved at {DateTime.Now:HH:mm:ss}";
+                });
+
+                if (FlutterExecutionService.Instance.IsRunning)
+                {
+                    _ = FlutterExecutionService.Instance.HotReloadAsync();
+                }
 
                 await ProjectService.AppendBuildLogAsync(_projectPath, $"Workspace {pageToSave} saved successfully.");
             }
             catch (Exception ex)
             {
-                StatusSaveIcon.Glyph = "\uEA39";
-                TxtSaveStatus.Text = $"Save failed: {ex.Message}";
+                DispatcherQueue?.TryEnqueue(() =>
+                {
+                    StatusSaveIcon.Glyph = "\uEA39";
+                    TxtSaveStatus.Text = $"Save failed: {ex.Message}";
+                });
             }
             finally
             {
@@ -597,26 +757,280 @@ namespace Snapcode.Views
         {
             try
             {
-                await SaveWorkspaceAsync();
-                var selectedTarget = (ComboTarget.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Web";
-                var selectedDevice = (ComboDevice?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Default Device";
-                
-                if (TxtTargetInfo != null) TxtTargetInfo.Text = $"Target: {selectedTarget}";
-
-                var dialog = new ContentDialog
+                var execService = FlutterExecutionService.Instance;
+                if (execService.IsRunning)
                 {
-                    Title = "Start Debugging",
-                    Content = $"Launching on {selectedDevice} ({selectedTarget}).\n\nHot Reload and live emulator launch will be fully integrated into the 'Run' tab in an upcoming Flutter Compilation update.",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.XamlRoot,
-                    RequestedTheme = (App.MainWindow?.Content as FrameworkElement)?.RequestedTheme ?? ElementTheme.Default
-                };
-                await dialog.ShowAsync();
+                    await execService.StopAsync();
+                    return;
+                }
+
+                // Save first so code is compiled
+                await SaveWorkspaceAsync();
+
+                FlutterDevice targetDevice;
+                if (ComboDevice?.SelectedItem is ComboBoxItem item && item.Tag is FlutterDevice dev)
+                {
+                    targetDevice = dev;
+                }
+                else
+                {
+                    string targetPlatform = GetSelectedTarget();
+                    if (targetPlatform == "windows")
+                    {
+                        targetDevice = _discoveredDevices.FirstOrDefault(d => d.Platform == DevicePlatform.Windows)
+                            ?? new FlutterDevice { Id = "windows", Name = "Windows (Desktop)", Platform = DevicePlatform.Windows, IsRunning = true };
+                    }
+                    else if (targetPlatform == "android")
+                    {
+                        targetDevice = _discoveredDevices.FirstOrDefault(d => d.Platform == DevicePlatform.Android)
+                            ?? new FlutterDevice { Id = "android", Name = "Android Device / Emulator", Platform = DevicePlatform.Android, IsEmulator = true };
+                    }
+                    else
+                    {
+                        targetDevice = _discoveredDevices.FirstOrDefault(d => d.Platform == DevicePlatform.Web)
+                            ?? new FlutterDevice { Id = "chrome", Name = "Chrome", Platform = DevicePlatform.Web };
+                    }
+                }
+
+                if (TxtTargetInfo != null)
+                {
+                    TxtTargetInfo.Text = $"Target: {targetDevice.DisplayName}";
+                }
+
+                // Open debug console drawer
+                ToggleDebugConsole(true);
+
+                await execService.StartRunAsync(_projectPath, targetDevice);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[EditorPage] BtnRun_Click failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[EditorPage] BtnRun_Click error: {ex.Message}");
             }
+        }
+
+        private void ExecutionService_StateChanged(object? sender, ExecutionState state)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                bool isRunning = state != ExecutionState.Idle;
+                if (IconRunQuick != null && TxtRunQuick != null)
+                {
+                    if (isRunning)
+                    {
+                        IconRunQuick.Glyph = "\uE71A"; // Stop
+                        TxtRunQuick.Text = "Stop";
+                        BtnRunQuick.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 244, 67, 54));
+                    }
+                    else
+                    {
+                        IconRunQuick.Glyph = "\uE768"; // Start
+                        TxtRunQuick.Text = "Start";
+                        if (Application.Current.Resources.TryGetValue("AccentFillColorDefaultBrush", out var brushObj) && brushObj is Microsoft.UI.Xaml.Media.Brush accentBrush)
+                        {
+                            BtnRunQuick.Background = accentBrush;
+                        }
+                        else if (Application.Current.Resources.TryGetValue("SystemAccentColor", out var colorObj) && colorObj is Windows.UI.Color accentColor)
+                        {
+                            BtnRunQuick.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(accentColor);
+                        }
+                    }
+                }
+
+                if (BtnHotReloadQuick != null)
+                    BtnHotReloadQuick.IsEnabled = isRunning && state != ExecutionState.Starting && state != ExecutionState.Building;
+                if (BtnHotRestartQuick != null)
+                    BtnHotRestartQuick.IsEnabled = isRunning && state != ExecutionState.Starting && state != ExecutionState.Building;
+
+                if (TxtStatusConsole != null)
+                {
+                    TxtStatusConsole.Text = state switch
+                    {
+                        ExecutionState.Idle => "Console: Idle",
+                        ExecutionState.Starting => "Console: Starting...",
+                        ExecutionState.Building => "Console: Building...",
+                        ExecutionState.Running => "Console: Running",
+                        ExecutionState.Reloading => "Console: Reloading...",
+                        ExecutionState.Restarting => "Console: Restarting...",
+                        ExecutionState.Stopping => "Console: Stopping...",
+                        _ => "Console"
+                    };
+                }
+            });
+        }
+
+        private async void BtnHotReload_Click(object sender, RoutedEventArgs e)
+        {
+            await FlutterExecutionService.Instance.HotReloadAsync();
+        }
+
+        private async void BtnHotRestart_Click(object sender, RoutedEventArgs e)
+        {
+            await FlutterExecutionService.Instance.HotRestartAsync();
+        }
+
+        private async void BtnStop_Click(object sender, RoutedEventArgs e)
+        {
+            await FlutterExecutionService.Instance.StopAsync();
+        }
+
+        private void BtnToggleConsole_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleDebugConsole();
+        }
+
+        private void ToggleDebugConsole(bool? open = null)
+        {
+            bool isOpen = open ?? (PanelDebugConsole.Visibility != Visibility.Visible);
+            if (isOpen)
+            {
+                PanelDebugConsole.Visibility = Visibility.Visible;
+                RowDebugConsole.Height = new GridLength(280);
+            }
+            else
+            {
+                PanelDebugConsole.Visibility = Visibility.Collapsed;
+                RowDebugConsole.Height = new GridLength(0);
+            }
+        }
+
+        private void BtnPopOutConsole_Click(object sender, RoutedEventArgs e)
+        {
+            if (_standaloneDebugWindow == null)
+            {
+                _standaloneDebugWindow = new DebugLogsWindow();
+                _standaloneDebugWindow.Closed += (s, args) => _standaloneDebugWindow = null;
+            }
+            _standaloneDebugWindow.Activate();
+        }
+
+        private void BtnOpenEmulatorManager_Click(object sender, RoutedEventArgs e)
+        {
+            OpenAndroidSettings();
+        }
+
+        private void OpenAndroidSettings()
+        {
+            var settingsWindow = new SettingsWindow("AndroidDevices");
+            settingsWindow.Activate();
+        }
+
+        private async void BtnRefreshDevices_Click(object sender, RoutedEventArgs e)
+        {
+            await PopulateDevicesAsync();
+        }
+
+        private void ComboTarget_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ComboTarget?.SelectedItem is ComboBoxItem item)
+            {
+                if (TxtTargetInfo != null)
+                {
+                    TxtTargetInfo.Text = $"Target: {item.Content}";
+                }
+                string tag = item.Tag?.ToString() ?? "web";
+                _ = PopulateDevicesAsync(tag);
+            }
+        }
+
+        private void ComboDevice_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ComboDevice?.SelectedItem is ComboBoxItem item)
+            {
+                if (item.Tag is FlutterDevice dev)
+                {
+                    if (TxtTargetInfo != null)
+                    {
+                        TxtTargetInfo.Text = $"Target: {dev.DisplayName}";
+                    }
+                }
+                else if (item.Tag is string tag && (tag == "manage_emulators" || tag == "settings_android"))
+                {
+                    if (ComboDevice.Items.Count > 1)
+                    {
+                        ComboDevice.SelectedIndex = 0;
+                    }
+                    OpenAndroidSettings();
+                }
+            }
+        }
+
+        private string GetSelectedTarget()
+        {
+            return (ComboTarget?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "web";
+        }
+
+        private async Task PopulateDevicesAsync(string target = null)
+        {
+            string activeTarget = target ?? GetSelectedTarget();
+            List<FlutterDevice> devices = new();
+            try
+            {
+                devices = await DeviceService.GetAllDevicesAndEmulatorsAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditorPage] PopulateDevicesAsync failed: {ex.Message}");
+            }
+
+            DispatcherQueue?.TryEnqueue(() =>
+            {
+                if (ComboDevice == null) return;
+
+                _discoveredDevices = devices;
+                ComboDevice.Items.Clear();
+
+                var matchingDevices = _discoveredDevices.Where(d =>
+                {
+                    if (activeTarget == "android") return d.Platform == DevicePlatform.Android;
+                    if (activeTarget == "web") return d.Platform == DevicePlatform.Web;
+                    if (activeTarget == "windows") return d.Platform == DevicePlatform.Windows;
+                    return true;
+                }).ToList();
+
+                if (activeTarget == "windows" && matchingDevices.Count == 0 && System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    matchingDevices.Add(new FlutterDevice
+                    {
+                        Id = "windows",
+                        Name = "Windows (Desktop)",
+                        Platform = DevicePlatform.Windows,
+                        IsRunning = true
+                    });
+                }
+
+                foreach (var dev in matchingDevices)
+                {
+                    var item = new ComboBoxItem
+                    {
+                        Content = dev.DisplayName,
+                        Tag = dev
+                    };
+                    ComboDevice.Items.Add(item);
+                }
+
+                if (activeTarget == "android")
+                {
+                    ComboDevice.Items.Add(new ComboBoxItem
+                    {
+                        Content = "⚙️ Android Emulator Settings...",
+                        Tag = "settings_android"
+                    });
+                }
+
+                if (ComboDevice.Items.Count > 0)
+                {
+                    ComboDevice.SelectedIndex = 0;
+                    if (ComboDevice.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag is FlutterDevice selDev && TxtTargetInfo != null)
+                    {
+                        TxtTargetInfo.Text = $"Target: {selDev.DisplayName}";
+                    }
+                }
+                else
+                {
+                    ComboDevice.Items.Add(new ComboBoxItem { Content = "No devices detected", Tag = null, IsEnabled = false });
+                    ComboDevice.SelectedIndex = 0;
+                }
+            });
         }
 
         private void BtnBack_Click(object sender, RoutedEventArgs e)
@@ -665,54 +1079,15 @@ namespace Snapcode.Views
                 Frame.Navigate(typeof(HomePage));
         }
 
-        private void ComboTarget_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (ComboTarget?.SelectedItem is ComboBoxItem item)
-            {
-                if (TxtTargetInfo != null)
-                {
-                    TxtTargetInfo.Text = $"Target: {item.Content}";
-                }
-
-                if (ComboDevice != null)
-                {
-                    ComboDevice.Items.Clear();
-                    string tag = item.Tag?.ToString() ?? "";
-                    
-                    if (tag == "android")
-                    {
-                        // In a real implementation, we would run `flutter devices` or `emulator -list-avds`
-                        ComboDevice.Items.Add(new ComboBoxItem { Content = "Pixel_4_API_30", Tag = "emulator-5554" });
-                        ComboDevice.Items.Add(new ComboBoxItem { Content = "No other devices", Tag = "none", IsEnabled = false });
-                    }
-                    else if (tag == "web")
-                    {
-                        ComboDevice.Items.Add(new ComboBoxItem { Content = "Chrome", Tag = "chrome" });
-                        ComboDevice.Items.Add(new ComboBoxItem { Content = "Edge", Tag = "edge" });
-                    }
-                    else if (tag == "windows")
-                    {
-                        ComboDevice.Items.Add(new ComboBoxItem { Content = "Windows (Desktop)", Tag = "windows" });
-                    }
-                    
-                    if (ComboDevice.Items.Count > 0)
-                        ComboDevice.SelectedIndex = 0;
-                }
-            }
-        }
-
         private async void EditorTabs_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
             if (args.SelectedItem is NavigationViewItem item && item.Tag != null)
             {
                 string tag = item.Tag.ToString() ?? "";
 
-                // Flush auto-save before changing tabs so no edits are lost
+                // Flush auto-save and compile page before changing tabs so no edits are lost
                 _autoSaveTimer.Stop();
-                if (_hasUnsavedChanges)
-                {
-                    await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
-                }
+                await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
 
                 if (tag == "event" && !_isProgrammaticTabChange)
                 {
@@ -725,8 +1100,45 @@ namespace Snapcode.Views
                     PopulateEventList();
                 }
                 
-                if (tag == "view" || tag == "event" || tag == "component")
+                if (tag == "code")
                 {
+                    ViewPanel.Opacity = 0;
+                    ViewPanel.IsHitTestVisible = false;
+                    Canvas.SetZIndex(ViewPanel, 1);
+
+                    EventPanel.Opacity = 0;
+                    EventPanel.IsHitTestVisible = false;
+                    Canvas.SetZIndex(EventPanel, 1);
+
+                    ComponentPanel.Opacity = 0;
+                    ComponentPanel.IsHitTestVisible = false;
+                    Canvas.SetZIndex(ComponentPanel, 1);
+
+                    CodePanel.Opacity = 1;
+                    CodePanel.IsHitTestVisible = true;
+                    Canvas.SetZIndex(CodePanel, 10);
+
+                    if (!string.IsNullOrEmpty(_projectPath))
+                    {
+                        ProjectExplorer.LoadProject(_projectPath);
+
+                        string mainDartPath = Path.Combine(_projectPath, ProjectService.FlutterFolderName, "lib", "main.dart");
+                        if (!File.Exists(mainDartPath))
+                        {
+                            mainDartPath = Path.Combine(_projectPath, "lib", "main.dart");
+                        }
+                        if (File.Exists(mainDartPath))
+                        {
+                            await MonacoEditor.OpenFileAsync(mainDartPath);
+                        }
+                    }
+                }
+                else if (tag == "view" || tag == "event" || tag == "component")
+                {
+                    CodePanel.Opacity = 0;
+                    CodePanel.IsHitTestVisible = false;
+                    Canvas.SetZIndex(CodePanel, 1);
+
                     ViewPanel.Opacity = tag == "view" ? 1 : 0;
                     ViewPanel.IsHitTestVisible = tag == "view";
                     Canvas.SetZIndex(ViewPanel, tag == "view" ? 10 : 1);
@@ -758,15 +1170,42 @@ namespace Snapcode.Views
 
         private async void BtnPageConfig_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new ContentDialog
+            try
             {
-                Title = "Page Configuration",
-                Content = "Page configuration properties will appear here (Coming Soon).",
-                CloseButtonText = "OK",
-                XamlRoot = this.XamlRoot,
-                RequestedTheme = (App.MainWindow?.Content as FrameworkElement)?.RequestedTheme ?? ElementTheme.Default
-            };
-            await dialog.ShowAsync();
+                var currentMeta = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName)
+                    ?? new Snapcode.Models.PageMetadata { Name = _currentPageName };
+
+                var dialog = new PageConfigurationDialog(_currentPageName, currentMeta)
+                {
+                    XamlRoot = this.XamlRoot,
+                    RequestedTheme = (App.MainWindow?.Content as FrameworkElement)?.RequestedTheme ?? ElementTheme.Default
+                };
+
+                var result = await dialog.ShowAsync();
+                if (result == ContentDialogResult.Primary)
+                {
+                    var updated = dialog.GetUpdatedMetadata();
+                    await ProjectService.SavePageMetadataAsync(_projectPath, _currentPageName, updated);
+
+                    // Apply to visual designer canvas immediately
+                    if (NativeDesigner != null)
+                    {
+                        NativeDesigner.ApplyPageMetadata(updated);
+                    }
+
+                    // Save workspace to regenerate Dart code with new page properties
+                    await SaveWorkspaceAsync();
+
+                    DispatcherQueue?.TryEnqueue(() =>
+                    {
+                        TxtSaveStatus.Text = $"Page configured: {_currentPageName}";
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditorPage] Page configuration dialog error: {ex.Message}");
+            }
         }
 
         private async void ListPages_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -810,6 +1249,7 @@ namespace Snapcode.Views
                             string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
                             if (NativeDesigner != null)
                             {
+                                NativeDesigner.ApplyPageMetadata(metadata);
                                 NativeDesigner.SetPageName(_currentPageName);
                                 NativeDesigner.LoadUIJson(uiJson);
                             }
@@ -819,7 +1259,10 @@ namespace Snapcode.Views
                             System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to inject UI state: {ex.Message}");
                         }
 
-                        TxtSaveStatus.Text = $"Loaded {pageName}";
+                        DispatcherQueue?.TryEnqueue(() =>
+                        {
+                            TxtSaveStatus.Text = $"Loaded {pageName}";
+                        });
                     }
                     catch (Exception ex)
                     {

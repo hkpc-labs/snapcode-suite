@@ -670,6 +670,175 @@ namespace Snapcode.Services
             Assert(reloadedCol != null && reloadedCol.BackgroundColor == "#FF5722" && reloadedCol.Children.Count == 1, "Save/Reload: Deserialized tree preserves modified column color and child count");
             Assert(reloadedCol?.Children[0].Name == "Hello Snapcode", "Save/Reload: Nested child properties are fully preserved");
 
+            // 14. Advanced Code Editor, User Code Preservation & File Isolation
+            report.AppendLine("\n## 14. Advanced Code Editor, Code Preservation & File Isolation");
+            Console.WriteLine(">>> 14. Testing User Code Preservation, Marker Parsing & Project File Classification...");
+
+            // 14.1 Extraction of user code blocks
+            string sampleExistingCode = @"import 'package:flutter/material.dart';
+// <!-- USER_CODE_START: IMPORTS -->
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+// <!-- USER_CODE_END: IMPORTS -->
+
+class MyApp extends StatefulWidget {
+  // <!-- USER_CODE_START: CLASS_MEMBERS -->
+  int customCounter = 42;
+  String? authToken;
+  // <!-- USER_CODE_END: CLASS_MEMBERS -->
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // <!-- USER_CODE_START: CUSTOM_METHODS -->
+  Future<void> fetchRemoteData() async {
+    final response = await http.get(Uri.parse('https://api.example.com'));
+  }
+  // <!-- USER_CODE_END: CUSTOM_METHODS -->
+
+  @override
+  Widget build(BuildContext context) {
+    return Container();
+  }
+}";
+
+            var extracted = UserCodePreservationService.ExtractUserCodeBlocks(sampleExistingCode);
+            Assert(extracted.ContainsKey(UserCodePreservationService.TagImports), "Preservation: Successfully extracted user IMPORTS block");
+            Assert(extracted[UserCodePreservationService.TagImports].Contains("package:http/http.dart"), "Preservation: Extracted imports contain http package");
+            Assert(extracted.ContainsKey(UserCodePreservationService.TagClassMembers), "Preservation: Successfully extracted CLASS_MEMBERS block");
+            Assert(extracted[UserCodePreservationService.TagClassMembers].Contains("customCounter = 42"), "Preservation: Extracted class members contain custom counter variable");
+            Assert(extracted.ContainsKey(UserCodePreservationService.TagCustomMethods), "Preservation: Successfully extracted CUSTOM_METHODS block");
+            Assert(extracted[UserCodePreservationService.TagCustomMethods].Contains("fetchRemoteData"), "Preservation: Extracted custom method block contains fetchRemoteData");
+
+            // 14.2 Code Merge into newly regenerated Flutter template
+            string freshlyGeneratedCode = @"import 'package:flutter/material.dart';
+
+class MyApp extends StatefulWidget {
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(body: Center(child: Text('Regenerated')));
+  }
+}";
+
+            string mergedCode = UserCodePreservationService.MergeUserCodeIntoGenerated(freshlyGeneratedCode, extracted);
+            Assert(mergedCode.Contains("package:http/http.dart"), "Preservation: Merged code preserves user custom imports");
+            Assert(mergedCode.Contains("customCounter = 42"), "Preservation: Merged code preserves user class members");
+            Assert(mergedCode.Contains("fetchRemoteData"), "Preservation: Merged code preserves user custom methods");
+            Assert(mergedCode.Contains("Regenerated"), "Preservation: Merged code retains newly generated visual designer code");
+
+            // 14.3 Non-destructive file preservation test on disk
+            string testTempDir = Path.Combine(Path.GetTempPath(), "snapcode_test_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(testTempDir);
+            try
+            {
+                string testDartFile = Path.Combine(testTempDir, "main.dart");
+                File.WriteAllText(testDartFile, sampleExistingCode);
+
+                // Simulate visual designer regeneration saving with preservation
+                string updatedGenerated = @"import 'package:flutter/material.dart';
+class MyApp extends StatefulWidget {
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+class _MyAppState extends State<MyApp> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(body: Text('Brand new button added'));
+  }
+}";
+
+                UserCodePreservationService.SaveDartFileWithPreservation(testDartFile, updatedGenerated);
+                string diskContent = File.ReadAllText(testDartFile);
+
+                Assert(diskContent.Contains("package:http/http.dart"), "Preservation on Disk: User custom imports survived designer regeneration");
+                Assert(diskContent.Contains("customCounter = 42"), "Preservation on Disk: User class members survived designer regeneration");
+                Assert(diskContent.Contains("fetchRemoteData"), "Preservation on Disk: User custom methods survived designer regeneration");
+                Assert(diskContent.Contains("Brand new button added"), "Preservation on Disk: Visual designer modifications accurately injected");
+
+                // 14.4 Untagged custom import heuristic fallback
+                string untaggedSource = @"import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class PageOne extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container();
+}";
+                var untaggedBlocks = UserCodePreservationService.ExtractUserCodeBlocks(untaggedSource);
+                Assert(untaggedBlocks.ContainsKey(UserCodePreservationService.TagImports) &&
+                       untaggedBlocks[UserCodePreservationService.TagImports].Contains("shared_preferences"),
+                       "Preservation: Untagged custom imports automatically detected and salvaged");
+
+                // 14.5 Project File Classification & Isolation
+                string dummyProjectRoot = Path.Combine(testTempDir, "sample_project");
+                string pagesDir = Path.Combine(dummyProjectRoot, ".snapcode", "pages");
+                Directory.CreateDirectory(pagesDir);
+
+                // Create visual page metadata for "login_page"
+                File.WriteAllText(Path.Combine(pagesDir, "login_page_meta.json"), "{\"Name\": \"login_page\"}");
+                File.WriteAllText(Path.Combine(pagesDir, "login_page_ui.json"), "{}");
+
+                // Create pure custom Dart files in lib/
+                string libDir = Path.Combine(dummyProjectRoot, "flutter", "lib");
+                string servicesDir = Path.Combine(libDir, "services");
+                Directory.CreateDirectory(servicesDir);
+                string authServicePath = Path.Combine(servicesDir, "auth_service.dart");
+                File.WriteAllText(authServicePath, "// Custom Auth Service");
+
+                Assert(ProjectFileClassifier.IsVisualPage(dummyProjectRoot, "main"), "Classifier: 'main' is recognized as visual page");
+                Assert(ProjectFileClassifier.IsVisualPage(dummyProjectRoot, "login_page"), "Classifier: 'login_page' is recognized as visual page");
+                Assert(!ProjectFileClassifier.IsVisualPage(dummyProjectRoot, "auth_service"), "Classifier: 'auth_service' is NOT a visual page (custom only)");
+
+                Assert(ProjectFileClassifier.ClassifyFile(dummyProjectRoot, "lib/main.dart") == ProjectFileType.VisualPage,
+                       "Classifier: main.dart classified as VisualPage");
+                Assert(ProjectFileClassifier.ClassifyFile(dummyProjectRoot, authServicePath) == ProjectFileType.PureDartFile,
+                       "Classifier: auth_service.dart classified as PureDartFile (hidden from UI Designer)");
+
+                var visualPages = ProjectFileClassifier.GetVisualPages(dummyProjectRoot);
+                Assert(visualPages.Contains("main") && visualPages.Contains("login_page"), "Classifier: GetVisualPages lists all visual pages");
+                Assert(!visualPages.Contains("auth_service"), "Classifier: GetVisualPages strictly excludes pure custom Dart files");
+
+                // 14.6 ProjectExplorer File Item Icons
+                var dartItem = new Snapcode.ViewModels.FileItemViewModel(authServicePath, isDirectory: false);
+                Assert(dartItem.IconGlyph == "\uE790", "Explorer: Dart file displays code glyph \uE790");
+                Assert(dartItem.IconColorHex == "#00B4AB", "Explorer: Dart file displays Flutter teal color");
+
+                var yamlItem = new Snapcode.ViewModels.FileItemViewModel("pubspec.yaml", isDirectory: false);
+                Assert(yamlItem.IconGlyph == "\uE7B8", "Explorer: YAML file displays settings glyph \uE7B8");
+
+                var folderItem = new Snapcode.ViewModels.FileItemViewModel("services", isDirectory: true);
+                Assert(folderItem.IconGlyph == "\uED25", "Explorer: Closed folder displays folder glyph \uED25");
+                folderItem.IsExpanded = true;
+                Assert(folderItem.IconGlyph == "\uED43", "Explorer: Opened folder displays folder glyph \uED43");
+
+                // 14.7 Full Page Code Generation (UI Designer + Blockly Integration)
+                string sampleUiJson = "[{\"id\":\"col_1\",\"type\":\"Column\",\"children\":[{\"id\":\"t_1\",\"type\":\"Text\",\"text\":\"Hello World\"},{\"id\":\"b_1\",\"type\":\"Button\",\"text\":\"Submit\"}]}]";
+                string sampleEventCode = "// EVENT_BINDING: onClick -> b_1\nshowDialog(context: context, builder: (_) => const AlertDialog(title: Text('Clicked!')));";
+                string fullMainDart = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart("main", sampleUiJson, sampleEventCode);
+
+                Assert(fullMainDart.Contains("void main() {"), "FullPageCodegen: main.dart contains entrypoint main()");
+                Assert(fullMainDart.Contains("class MyApp extends StatelessWidget"), "FullPageCodegen: main.dart contains MyApp widget");
+                Assert(fullMainDart.Contains("class MainPage extends StatefulWidget"), "FullPageCodegen: main.dart contains MainPage stateful widget");
+                Assert(fullMainDart.Contains("Text(\"Hello World\""), "FullPageCodegen: main.dart contains visual Text widget from canvas");
+                Assert(fullMainDart.Contains("ElevatedButton("), "FullPageCodegen: main.dart contains visual Button widget from canvas");
+                Assert(fullMainDart.Contains("showDialog(context: context"), "FullPageCodegen: main.dart contains event block logic inside state class");
+
+                string fullAuxDart = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart("profile", sampleUiJson, null);
+                Assert(fullAuxDart.Contains("class ProfilePage extends StatefulWidget"), "FullPageCodegen: Auxiliary page generates ProfilePage stateful widget");
+                Assert(!fullAuxDart.Contains("void main()"), "FullPageCodegen: Auxiliary page does not have main()");
+                Assert(fullAuxDart.Contains("Text(\"Hello World\""), "FullPageCodegen: Auxiliary page contains visual widgets");
+            }
+            finally
+            {
+                try { Directory.Delete(testTempDir, true); } catch { }
+            }
+
             // Summary
             report.AppendLine("\n---");
             report.AppendLine($"### Result: {passed}/{total} Passed ({(failed == 0 ? "100%" : $"{Math.Round((double)passed/total*100, 1)}%")})");

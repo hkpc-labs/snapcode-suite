@@ -1,0 +1,141 @@
+<UserControl
+    x:Class="Snapcode.Views.MonacoCodeEditorControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource LayerFillColorDefaultBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36" /> <!-- Tab bar -->
+            <RowDefinition Height="24" /> <!-- Breadcrumb bar -->
+            <RowDefinition Height="*" />  <!-- Editor Host -->
+            <RowDefinition Height="24" /> <!-- Editor Status bar -->
+        </Grid.RowDefinitions>
+
+        <!-- Top Tab Bar -->
+        <Grid Grid.Row="0" Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Scrollable Tabs List -->
+            <ScrollViewer
+                Grid.Column="0"
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Enabled"
+                VerticalScrollMode="Disabled">
+
+                <ListView
+                    x:Name="TabListView"
+                    SelectionMode="Single"
+                    SelectionChanged="TabListView_SelectionChanged"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    Padding="0">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="1" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="10,6" Background="Transparent" ColumnSpacing="8" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Icon -->
+                                <FontIcon Grid.Column="0" Glyph="{Binding IconGlyph}" FontSize="13" Foreground="{Binding IconBrush}" VerticalAlignment="Center" />
+
+                                <!-- File Name -->
+                                <TextBlock Grid.Column="1" Text="{Binding FileName}" FontSize="12" VerticalAlignment="Center" />
+
+                                <!-- Dirty indicator dot -->
+                                <FontIcon Grid.Column="2" Glyph="&#xEA3B;" FontSize="7" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Visibility="{Binding DirtyVisibility}" VerticalAlignment="Center" />
+
+                                <!-- Close Button -->
+                                <Button Grid.Column="3" Click="BtnCloseTab_Click" Tag="{Binding FilePath}" Background="Transparent" BorderThickness="0" Padding="4,2" CornerRadius="3" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE711;" FontSize="9" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </ScrollViewer>
+
+            <!-- Quick Action Toolbar -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,0,6,0">
+                <Button x:Name="BtnSaveTab" Click="BtnSaveTab_Click" Background="Transparent" BorderThickness="0" Padding="6,4" CornerRadius="4" ToolTipService.ToolTip="Save File (Ctrl+S)">
+                    <FontIcon Glyph="&#xE74E;" FontSize="12" />
+                </Button>
+                <Button x:Name="BtnCloseAllTabs" Click="BtnCloseAllTabs_Click" Background="Transparent" BorderThickness="0" Padding="6,4" CornerRadius="4" ToolTipService.ToolTip="Close All Tabs">
+                    <FontIcon Glyph="&#xE894;" FontSize="12" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Breadcrumb Bar -->
+        <Grid Grid.Row="1" Background="{ThemeResource LayerFillColorAltBrush}" Padding="12,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <TextBlock x:Name="TxtBreadcrumb" Text="No file open" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        </Grid>
+
+        <!-- Editor Host: WebView2 Monaco Editor + Native Fallback -->
+        <Grid Grid.Row="2">
+            <!-- Loading Indicator -->
+            <StackPanel x:Name="EditorLoadingPanel" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <ProgressRing IsActive="True" Width="28" Height="28" />
+                <TextBlock Text="Initializing Code Editor..." FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- Monaco WebView2 -->
+            <WebView2 x:Name="MonacoWebView" Visibility="Collapsed" />
+
+            <!-- Native WinUI 3 Editor Fallback -->
+            <TextBox
+                x:Name="NativeFallbackTextBox"
+                Visibility="Collapsed"
+                AcceptsReturn="True"
+                IsSpellCheckEnabled="False"
+                FontFamily="Consolas"
+                FontSize="13"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                BorderThickness="0"
+                Padding="12"
+                TextChanged="NativeFallbackTextBox_TextChanged"
+                KeyDown="NativeFallbackTextBox_KeyDown" />
+
+            <!-- Empty State Placeholder -->
+            <StackPanel x:Name="EmptyStatePanel" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" Visibility="Collapsed">
+                <FontIcon Glyph="&#xE790;" FontSize="40" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                <TextBlock Text="Select a file from the explorer to view or edit" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Bottom Editor Status Bar -->
+        <Grid Grid.Row="3" Background="{ThemeResource SubtleFillColorSecondaryBrush}" Padding="12,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <FontIcon x:Name="StatusSaveIcon" Glyph="&#xE73E;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="TxtEditorStatus" Text="Ready" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtLanguageMode" Text="Dart" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="UTF-8" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                <TextBlock x:Name="TxtEngineMode" Text="Monaco" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

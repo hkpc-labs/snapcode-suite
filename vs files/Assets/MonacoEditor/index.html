@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Monaco Code Editor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background-color: #1e1e1e; font-family: 'Consolas', 'Cascadia Code', 'Fira Code', monospace; }
+  body.theme-light { background-color: #ffffff; }
+
+  #editor-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+  #offline-container {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    flex-direction: row;
+    background: #1e1e1e;
+    color: #d4d4d4;
+  }
+  body.theme-light #offline-container {
+    background: #ffffff;
+    color: #1e1e1e;
+  }
+  #offline-line-numbers {
+    width: 48px;
+    padding: 10px 8px 10px 0;
+    text-align: right;
+    font-size: 13px;
+    line-height: 20px;
+    color: #858585;
+    background: rgba(0,0,0,0.1);
+    user-select: none;
+    border-right: 1px solid rgba(128,128,128,0.2);
+    overflow: hidden;
+  }
+  #offline-textarea {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 10px;
+    resize: none;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 20px;
+    tab-size: 2;
+    background: transparent;
+    color: inherit;
+    white-space: pre;
+    overflow: auto;
+  }
+  #loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1e1e1e;
+    color: #858585;
+    font-size: 13px;
+    z-index: 1000;
+  }
+  body.theme-light #loading-overlay {
+    background: #ffffff;
+    color: #616161;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+</head>
+<body class="theme-dark">
+
+<div id="editor-container"></div>
+
+<div id="offline-container">
+  <div id="offline-line-numbers">1</div>
+  <textarea id="offline-textarea" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div id="loading-overlay">
+  <span>Loading Code Editor...</span>
+</div>
+
+<script>
+  let editor = null;
+  let isMonacoLoaded = false;
+  let isDirty = false;
+  let currentFile = "";
+  let currentTheme = "vs-dark";
+
+  function postToHost(msg) {
+    if (window.chrome && window.chrome.webview) {
+      window.chrome.webview.postMessage(msg);
+    }
+  }
+
+  function registerDartLanguage() {
+    if (!window.monaco) return;
+    try {
+      monaco.languages.register({ id: 'dart' });
+      monaco.languages.setMonarchTokensProvider('dart', {
+        defaultToken: '',
+        tokenPostfix: '.dart',
+        keywords: [
+          'abstract', 'as', 'assert', 'async', 'await', 'break', 'case', 'catch',
+          'class', 'const', 'continue', 'covariant', 'default', 'deferred', 'do',
+          'dynamic', 'else', 'enum', 'export', 'extends', 'extension', 'external',
+          'factory', 'false', 'final', 'finally', 'for', 'Function', 'get', 'hide',
+          'if', 'implements', 'import', 'in', 'interface', 'is', 'late', 'library',
+          'mixin', 'new', 'null', 'of', 'on', 'operator', 'part', 'required', 'rethrow',
+          'return', 'set', 'show', 'static', 'super', 'switch', 'sync', 'this',
+          'throw', 'true', 'try', 'typedef', 'var', 'void', 'while', 'with', 'yield',
+          'Widget', 'StatelessWidget', 'StatefulWidget', 'BuildContext', 'State',
+          'Container', 'Column', 'Row', 'Text', 'ElevatedButton', 'ListView'
+        ],
+        typeKeywords: [
+          'int', 'double', 'String', 'bool', 'List', 'Map', 'Set', 'Future', 'Stream', 'void'
+        ],
+        tokenizer: {
+          root: [
+            [/[a-zA-Z_$][\w$]*/, {
+              cases: {
+                '@keywords': 'keyword',
+                '@typeKeywords': 'type',
+                '@default': 'identifier'
+              }
+            }],
+            { include: '@whitespace' },
+            [/[{}()\[\]]/, '@brackets'],
+            [/[;,.]/, 'delimiter'],
+            [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+            [/0[xX][0-9a-fA-F]+/, 'number.hex'],
+            [/\d+/, 'number'],
+            [/"([^"\\]|\\.)*"/, 'string'],
+            [/'([^'\\]|\\.)*'/, 'string'],
+            [/"""/, { token: 'string.quote', bracket: '@open', next: '@string_multi' }],
+            [/'''/, { token: 'string.quote', bracket: '@open', next: '@string_multi_single' }]
+          ],
+          whitespace: [
+            [/[ \t\r\n]+/, 'white'],
+            [/\/\*/, 'comment', '@comment'],
+            [/\/\/.*$/, 'comment'],
+          ],
+          comment: [
+            [/[^\/*]+/, 'comment'],
+            [/\*\//, 'comment', '@pop'],
+            [/[\/*]/, 'comment']
+          ],
+          string_multi: [
+            [/[^\\"]+/, 'string'],
+            [/"""/, { token: 'string.quote', bracket: '@close', next: '@pop' }],
+            [/./, 'string']
+          ],
+          string_multi_single: [
+            [/[^\\']+/, 'string'],
+            [/'''/, { token: 'string.quote', bracket: '@close', next: '@pop' }],
+            [/./, 'string']
+          ]
+        }
+      });
+    } catch(e) {
+      console.warn('Dart language register error:', e);
+    }
+  }
+
+  function initMonaco() {
+    if (typeof require === 'undefined') {
+      activateOfflineEditor();
+      return;
+    }
+
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      isMonacoLoaded = true;
+      registerDartLanguage();
+
+      const container = document.getElementById('editor-container');
+      editor = monaco.editor.create(container, {
+        value: '',
+        language: 'dart',
+        theme: currentTheme,
+        automaticLayout: true,
+        fontSize: 13,
+        lineNumbers: 'on',
+        minimap: { enabled: true },
+        scrollBeyondLastLine: false,
+        renderWhitespace: 'selection',
+        tabSize: 2,
+        insertSpaces: true,
+        wordWrap: 'off',
+        bracketPairColorization: { enabled: true }
+      });
+
+      // Ctrl+S / Cmd+S shortcut
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function () {
+        postToHost({ type: 'saveRequested', fileName: currentFile, content: editor.getValue() });
+      });
+
+      // Track modifications
+      editor.onDidChangeModelContent(function () {
+        if (!isDirty) {
+          isDirty = true;
+          postToHost({ type: 'contentChanged', fileName: currentFile, isDirty: true });
+        }
+      });
+
+      document.getElementById('loading-overlay').style.display = 'none';
+      postToHost({ type: 'editorReady', mode: 'monaco' });
+    }, function (err) {
+      console.warn('Monaco load failed, falling back to offline editor', err);
+      activateOfflineEditor();
+    });
+  }
+
+  function activateOfflineEditor() {
+    isMonacoLoaded = false;
+    document.getElementById('editor-container').style.display = 'none';
+    const offline = document.getElementById('offline-container');
+    offline.style.display = 'flex';
+    document.getElementById('loading-overlay').style.display = 'none';
+
+    const textarea = document.getElementById('offline-textarea');
+    const lineNums = document.getElementById('offline-line-numbers');
+
+    function updateLineNumbers() {
+      const lines = textarea.value.split('\n').length;
+      let nums = [];
+      for (let i = 1; i <= lines; i++) nums.push(i);
+      lineNums.innerHTML = nums.join('<br>');
+    }
+
+    textarea.addEventListener('input', function () {
+      updateLineNumbers();
+      if (!isDirty) {
+        isDirty = true;
+        postToHost({ type: 'contentChanged', fileName: currentFile, isDirty: true });
+      }
+    });
+
+    textarea.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        postToHost({ type: 'saveRequested', fileName: currentFile, content: textarea.value });
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 2;
+        updateLineNumbers();
+      }
+    });
+
+    textarea.addEventListener('scroll', function () {
+      lineNums.scrollTop = textarea.scrollTop;
+    });
+
+    postToHost({ type: 'editorReady', mode: 'offline' });
+  }
+
+  // Fallback timer: if Monaco CDN doesn't load within 4 seconds, activate offline editor
+  const loadTimeout = setTimeout(function () {
+    if (!isMonacoLoaded && !editor) {
+      activateOfflineEditor();
+    }
+  }, 4000);
+
+  window.openFile = function (fileName, content, language) {
+    currentFile = fileName;
+    isDirty = false;
+    const lang = language || getLanguageFromFilename(fileName);
+
+    if (editor) {
+      const oldModel = editor.getModel();
+      const newModel = monaco.editor.createModel(content, lang);
+      editor.setModel(newModel);
+      if (oldModel) oldModel.dispose();
+      editor.focus();
+    } else {
+      const textarea = document.getElementById('offline-textarea');
+      if (textarea) {
+        textarea.value = content;
+        const lineNums = document.getElementById('offline-line-numbers');
+        const lines = content.split('\n').length;
+        let nums = [];
+        for (let i = 1; i <= lines; i++) nums.push(i);
+        lineNums.innerHTML = nums.join('<br>');
+      }
+    }
+  };
+
+  window.getContent = function () {
+    if (editor) {
+      return editor.getValue();
+    }
+    const textarea = document.getElementById('offline-textarea');
+    return textarea ? textarea.value : '';
+  };
+
+  window.markSaved = function () {
+    isDirty = false;
+    postToHost({ type: 'contentSaved', fileName: currentFile });
+  };
+
+  window.setTheme = function (themeMode) {
+    const isLight = themeMode === 'light';
+    currentTheme = isLight ? 'vs' : 'vs-dark';
+    document.body.className = isLight ? 'theme-light' : 'theme-dark';
+    if (editor && window.monaco) {
+      monaco.editor.setTheme(currentTheme);
+    }
+  };
+
+  function getLanguageFromFilename(fn) {
+    if (!fn) return 'dart';
+    const lower = fn.toLowerCase();
+    if (lower.endsWith('.dart')) return 'dart';
+    if (lower.endsWith('.json')) return 'json';
+    if (lower.endsWith('.yaml') || lower.endsWith('.yml')) return 'yaml';
+    if (lower.endsWith('.md')) return 'markdown';
+    if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'html';
+    if (lower.endsWith('.xml')) return 'xml';
+    if (lower.endsWith('.js')) return 'javascript';
+    if (lower.endsWith('.css')) return 'css';
+    return 'plaintext';
+  }
+
+  // Initialize
+  try {
+    initMonaco();
+  } catch(e) {
+    activateOfflineEditor();
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<ContentDialog
+    x:Class="Snapcode.Views.PageConfigurationDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Page Configuration"
+    PrimaryButtonText="Save &amp; Apply"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary">
+
+    <Grid Width="560" Height="490">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Segmented Tab Bar -->
+        <Border Grid.Row="0" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="8" Padding="4" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="*,*,*,*">
+                <ToggleButton x:Name="TabGeneral" Content="General" IsChecked="True" Click="Tab_Click" Tag="General" HorizontalAlignment="Stretch" Margin="2" />
+                <ToggleButton x:Name="TabAppBar" Grid.Column="1" Content="AppBar" Click="Tab_Click" Tag="AppBar" HorizontalAlignment="Stretch" Margin="2" />
+                <ToggleButton x:Name="TabOrientation" Grid.Column="2" Content="Orientation" Click="Tab_Click" Tag="Orientation" HorizontalAlignment="Stretch" Margin="2" />
+                <ToggleButton x:Name="TabScaffold" Grid.Column="3" Content="Scaffold &amp; FAB" Click="Tab_Click" Tag="Scaffold" HorizontalAlignment="Stretch" Margin="2" />
+            </Grid>
+        </Border>
+
+        <!-- PANEL 1: GENERAL -->
+        <ScrollViewer Grid.Row="1" x:Name="PanelGeneral" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="16" Padding="4">
+                <TextBox x:Name="TxtPageName" Header="Page Identifier (Name)" PlaceholderText="e.g. main, profile, settings" IsReadOnly="True" />
+                
+                <TextBox x:Name="TxtPageTitle" Header="Page Display Title" PlaceholderText="e.g. Home Dashboard" />
+
+                <TextBox x:Name="TxtRoutePath" Header="Route Path (Named Navigation)" PlaceholderText="e.g. /home, /settings" />
+
+                <ComboBox x:Name="ComboPageType" Header="Page Archetype" HorizontalAlignment="Stretch">
+                    <ComboBoxItem Content="Standard Page (Scaffold)" Tag="Page" IsSelected="True" />
+                    <ComboBoxItem Content="Dialog Fragment (Modal Popup)" Tag="DialogFragment" />
+                    <ComboBoxItem Content="Custom View (Reusable Widget)" Tag="CustomView" />
+                </ComboBox>
+
+                <Border Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="6" Padding="12" Margin="0,8,0,0">
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE946;" FontSize="14" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Page Routing &amp; Storage Architecture" FontWeight="SemiBold" FontSize="13" />
+                        </StackPanel>
+                        <TextBlock Text="Metadata is saved in .snapcode/pages/{name}_meta.json and compiled cleanly into lib/{name}.dart with user code preservation." FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- PANEL 2: APPBAR -->
+        <ScrollViewer Grid.Row="1" x:Name="PanelAppBar" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="16" Padding="4">
+                <ToggleSwitch x:Name="ToggleShowAppBar" Header="Enable Top AppBar" IsOn="True" OnContent="Visible" OffContent="Hidden" Toggled="ToggleShowAppBar_Toggled" />
+
+                <StackPanel x:Name="AppBarDetailsPanel" Spacing="14">
+                    <TextBox x:Name="TxtAppBarTitle" Header="AppBar Title" PlaceholderText="Defaults to Page Title if empty" />
+
+                    <ToggleSwitch x:Name="ToggleCenterTitle" Header="Center Title" OnContent="Centered" OffContent="Left Aligned" />
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="AppBar Background Color (Hex)" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox x:Name="TxtAppBarBgColor" Text="#2196F3" PlaceholderText="#RRGGBB" />
+                        <!-- Preset Color Chips -->
+                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                            <Button Content="Blue" Background="#2196F3" Foreground="White" Click="AppBarColorChip_Click" Tag="#2196F3" Padding="8,2" FontSize="11" CornerRadius="4" />
+                            <Button Content="Indigo" Background="#3F51B5" Foreground="White" Click="AppBarColorChip_Click" Tag="#3F51B5" Padding="8,2" FontSize="11" CornerRadius="4" />
+                            <Button Content="Teal" Background="#009688" Foreground="White" Click="AppBarColorChip_Click" Tag="#009688" Padding="8,2" FontSize="11" CornerRadius="4" />
+                            <Button Content="Purple" Background="#673AB7" Foreground="White" Click="AppBarColorChip_Click" Tag="#673AB7" Padding="8,2" FontSize="11" CornerRadius="4" />
+                            <Button Content="Dark" Background="#212121" Foreground="White" Click="AppBarColorChip_Click" Tag="#212121" Padding="8,2" FontSize="11" CornerRadius="4" />
+                            <Button Content="White" Background="#FFFFFF" Foreground="Black" Click="AppBarColorChip_Click" Tag="#FFFFFF" Padding="8,2" FontSize="11" CornerRadius="4" BorderThickness="1" BorderBrush="#CCCCCC" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="AppBar Text / Foreground Color (Hex)" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox x:Name="TxtAppBarFgColor" Text="#FFFFFF" PlaceholderText="#FFFFFF or #000000" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Elevation / Shadow Depth" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Slider x:Name="SliderElevation" Minimum="0" Maximum="16" Value="4" StepFrequency="1" TickFrequency="2" TickPlacement="Outside" />
+                    </StackPanel>
+
+                    <ComboBox x:Name="ComboLeadingIcon" Header="Leading Navigation Icon" HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="Back Arrow (Icons.arrow_back)" Tag="back" IsSelected="True" />
+                        <ComboBoxItem Content="Menu Hamburger (Icons.menu)" Tag="menu" />
+                        <ComboBoxItem Content="None (Automatic / Standard)" Tag="none" />
+                    </ComboBox>
+
+                    <ToggleSwitch x:Name="ToggleAppBarActions" Header="Sample Action Buttons" OnContent="Include Search &amp; More" OffContent="None" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- PANEL 3: ORIENTATION & DISPLAY -->
+        <ScrollViewer Grid.Row="1" x:Name="PanelOrientation" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="16" Padding="4">
+                <ComboBox x:Name="ComboOrientation" Header="Allowed Device Orientation" HorizontalAlignment="Stretch">
+                    <ComboBoxItem Content="📱 Portrait Only (Locks to Portrait)" Tag="Portrait" IsSelected="True" />
+                    <ComboBoxItem Content="🔄 Landscape Only (Locks to Landscape)" Tag="Landscape" />
+                    <ComboBoxItem Content="🌐 Auto-Rotate (Supports Both)" Tag="Both" />
+                </ComboBox>
+
+                <Border Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="6" Padding="12">
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE7AD;" FontSize="14" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="SystemChrome Orientation Locking" FontWeight="SemiBold" FontSize="13" />
+                        </StackPanel>
+                        <TextBlock Text="Locks orientation via Flutter Services in initState() and restores default behavior when the page is disposed." FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <ToggleSwitch x:Name="ToggleSafeArea" Header="Wrap in SafeArea" IsOn="True" OnContent="Enabled (Avoids Notches)" OffContent="Disabled (Full Bleed)" />
+
+                <ToggleSwitch x:Name="ToggleResizeToAvoidBottomInset" Header="Resize for Keyboard (Avoid Bottom Inset)" IsOn="True" OnContent="Auto-resizes when virtual keyboard appears" OffContent="Static viewport height" />
+
+                <ToggleSwitch x:Name="ToggleHideStatusBar" Header="Status Bar Visibility" IsOn="False" OnContent="Hidden (Fullscreen Immersive)" OffContent="Visible" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- PANEL 4: SCAFFOLD & FAB -->
+        <ScrollViewer Grid.Row="1" x:Name="PanelScaffold" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="16" Padding="4">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Scaffold Background Color (Hex)" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="TxtScaffoldBgColor" Text="#FFFFFF" PlaceholderText="#FFFFFF" />
+                    <!-- Preset Color Chips -->
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <Button Content="White" Background="#FFFFFF" Foreground="Black" Click="ScaffoldColorChip_Click" Tag="#FFFFFF" Padding="8,2" FontSize="11" CornerRadius="4" BorderThickness="1" BorderBrush="#CCCCCC" />
+                        <Button Content="Light Gray" Background="#F5F5F5" Foreground="Black" Click="ScaffoldColorChip_Click" Tag="#F5F5F5" Padding="8,2" FontSize="11" CornerRadius="4" BorderThickness="1" BorderBrush="#CCCCCC" />
+                        <Button Content="Dark Slate" Background="#121212" Foreground="White" Click="ScaffoldColorChip_Click" Tag="#121212" Padding="8,2" FontSize="11" CornerRadius="4" />
+                        <Button Content="Navy" Background="#0D1B2A" Foreground="White" Click="ScaffoldColorChip_Click" Tag="#0D1B2A" Padding="8,2" FontSize="11" CornerRadius="4" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Floating Action Button -->
+                <ToggleSwitch x:Name="ToggleHasFAB" Header="Floating Action Button (FAB)" IsOn="False" OnContent="Enabled" OffContent="Disabled" Toggled="ToggleHasFAB_Toggled" />
+
+                <StackPanel x:Name="FabDetailsPanel" Spacing="12" Visibility="Collapsed" Margin="12,0,0,0">
+                    <ComboBox x:Name="ComboFabIcon" Header="FAB Icon" HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="add (+)" Tag="add" IsSelected="True" />
+                        <ComboBoxItem Content="edit (✏️)" Tag="edit" />
+                        <ComboBoxItem Content="check (✓)" Tag="check" />
+                        <ComboBoxItem Content="star (⭐)" Tag="star" />
+                        <ComboBoxItem Content="camera (📷)" Tag="camera" />
+                        <ComboBoxItem Content="share (🔗)" Tag="share" />
+                    </ComboBox>
+
+                    <TextBox x:Name="TxtFabColor" Header="FAB Background Color" Text="#2196F3" />
+                    <TextBox x:Name="TxtFabTooltip" Header="Accessibility Tooltip" Text="Action" />
+                </StackPanel>
+
+                <ToggleSwitch x:Name="ToggleHasDrawer" Header="Side Navigation Drawer" IsOn="False" OnContent="Include Drawer" OffContent="None" />
+
+                <ToggleSwitch x:Name="ToggleHasBottomBar" Header="Bottom Navigation Bar Placeholder" IsOn="False" OnContent="Include Bottom Bar" OffContent="None" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</ContentDialog>
