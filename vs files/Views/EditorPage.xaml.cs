@@ -728,7 +728,9 @@ namespace Snapcode.Views
                             }
 
                             string targetEventDart = Path.Combine(pagesDir, $"{baseName}.event.dart");
-                            if (!File.Exists(targetEventDart))
+                            bool needsCompile = !File.Exists(targetEventDart) || 
+                                                File.GetLastWriteTimeUtc(jsonFile) > File.GetLastWriteTimeUtc(targetEventDart);
+                            if (needsCompile)
                             {
                                 string jsonContent = await File.ReadAllTextAsync(jsonFile);
                                 if (!string.IsNullOrWhiteSpace(jsonContent) && jsonContent != "{}")
@@ -754,6 +756,28 @@ namespace Snapcode.Views
                                             await ProjectService.SavePageEventCodeAsync(_projectPath, baseName, dartCode);
                                         }
                                     }
+                                }
+                            }
+                        }
+
+                        // Clean up any orphaned contextual .event.dart files that have no matching .json file
+                        var eventDartFiles = Directory.GetFiles(pagesDir, $"{pageToSave}_*.event.dart");
+                        foreach (var dartFile in eventDartFiles)
+                        {
+                            string fName = Path.GetFileName(dartFile);
+                            // Strip .event.dart
+                            string baseName = fName.Substring(0, fName.Length - ".event.dart".Length);
+                            string matchingJson = Path.Combine(pagesDir, $"{baseName}.json");
+                            if (!File.Exists(matchingJson))
+                            {
+                                try
+                                {
+                                    File.Delete(dartFile);
+                                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Cleaned up orphaned event file without json: {dartFile}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Could not delete orphaned event file: {ex.Message}");
                                 }
                             }
                         }

@@ -267,34 +267,37 @@ namespace Snapcode.Services
                     string prefix = $"{pageName}_";
                     string exactName = $"{pageName}.event.dart";
 
-                    foreach (var file in Directory.GetFiles(pagesDir, "*.event.dart"))
+                    var matchingFiles = Directory.GetFiles(pagesDir, "*.event.dart")
+                        .Select(f => new FileInfo(f))
+                        .Where(fi => string.Equals(fi.Name, exactName, StringComparison.OrdinalIgnoreCase) ||
+                                     fi.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        .OrderBy(fi => fi.LastWriteTimeUtc)
+                        .ToList();
+
+                    foreach (var fi in matchingFiles)
                     {
-                        string fileName = Path.GetFileName(file);
-                        if (string.Equals(fileName, exactName, StringComparison.OrdinalIgnoreCase) ||
-                            fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        try
                         {
-                            try
+                            string code = await File.ReadAllTextAsync(fi.FullName);
+                            if (!string.IsNullOrWhiteSpace(code))
                             {
-                                string code = await File.ReadAllTextAsync(file);
-                                if (!string.IsNullOrWhiteSpace(code))
-                                {
-                                    eventCodes[fileName] = code;
-                                }
+                                eventCodes[fi.Name] = code;
                             }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"[ProjectService] Failed to read event file {fileName}: {ex.Message}");
-                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[ProjectService] Failed to read event file {fi.Name}: {ex.Message}");
                         }
                     }
                 }
 
-                // If current workspace has active code, register/override its entry so it is always fresh
+                // If current workspace has active code, register/override its entry so it is always fresh and last in enumeration order
                 if (!string.IsNullOrWhiteSpace(currentActiveCode))
                 {
                     string currentKey = !string.IsNullOrWhiteSpace(currentContext)
                         ? $"{pageName}_{currentContext}.event.dart"
                         : $"{pageName}.event.dart";
+                    eventCodes.Remove(currentKey);
                     eventCodes[currentKey] = currentActiveCode;
                 }
 
