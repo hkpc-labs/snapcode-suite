@@ -1,5 +1,5 @@
 # View Designer & Widget Property Automated Verification Report
-*Executed at: 2026-10-12 01:44:56*
+*Executed at: 2026-10-15 11:40:47*
 
 ## 1. Widget Instantiation & Identity
   - [x] **PASS**: Create Widget: Row
@@ -69,14 +69,14 @@
 ## 5. Flutter / Dart Code Generation
   - [x] **PASS**: Compiler: Generated code is not empty
   - [x] **PASS**: Compiler: Generates build method signature
-  - [x] **PASS**: Compiler: Generates root Column
+  - [ ] **FAIL**: Compiler: Generates root Column - **
   - [x] **PASS**: Compiler Bug 78: $ escaped in Text
   - [x] **PASS**: Compiler Bug 78: $ escaped in TextField hint
   - [x] **PASS**: Compiler Bug 79: Button onPressed is async
   - [x] **PASS**: Compiler Bug 79: Checkbox onChanged is async
   - [x] **PASS**: Compiler Bug 79: Switch onChanged is async
   - [x] **PASS**: Compiler Bug 79: Slider onChanged is async
-  - [x] **PASS**: Compiler Bug 81: Slider respects min/max/current bounds
+  - [ ] **FAIL**: Compiler Bug 81: Slider respects min/max/current bounds - **
   - [x] **PASS**: Compiler Bug 82: TextField controller generated
 
 ## 6. Edge Cases & Resilience
@@ -84,6 +84,19 @@
   - [x] **PASS**: Edge Case: Malformed JSON returns Container fallback
   - [x] **PASS**: Edge Case Bug 83: Unsupported widget falls back to SizedBox()
   - [x] **PASS**: Edge Case: Inverted Slider handles gracefully without throwing
+  - [x] **PASS**: Event: Generates onClickBtnDialog with context
+  - [x] **PASS**: Event: Event body contains showDialog
+  - [x] **PASS**: Event: Button onPressed calls onClickBtnDialog(context)
+  - [x] **PASS**: Event: Row wrapped in GestureDetector calls onClickRowHeader
+  - [x] **PASS**: State Var: _txtTitleText declared
+  - [x] **PASS**: State Var: _txtTitleTextColor declared
+  - [x] **PASS**: State Var: _txtTitleFontSize declared
+  - [x] **PASS**: State Var: _btnActionVisible declared
+  - [x] **PASS**: State Var: _btnActionEnabled declared
+  - [x] **PASS**: Widget Wiring: Text dynamically uses _txtTitleText
+  - [x] **PASS**: Widget Wiring: Button wrapped in Visibility
+  - [x] **PASS**: Widget Wiring: Button wrapped in IgnorePointer
+  - [x] **PASS**: Widget Wiring: TextField dynamically uses _tfInputHint
 
 ## 7. Flutter Material 3 Preview Bridge & Flex Layout Mechanics
   - [x] **PASS**: Flex: MainAxisAlignment.Start
@@ -147,10 +160,10 @@
   - [x] **PASS**: Flex: Expanded widget defaults to Flex = 1
   - [x] **PASS**: Dimension: Child Text Width '25%' -> 90dp on 360 viewport
   - [x] **PASS**: Dimension: Child Text Height '50dp' -> 50dp explicit size
-  - [x] **PASS**: Compiler: Child Text with custom 25% width and 50dp height wrapped in responsive SizedBox
-  - [x] **PASS**: Compiler: Parent Column with explicit 200dp height and 300dp width wrapped in SizedBox
+  - [ ] **FAIL**: Compiler: Child Text with custom 25% width and 50dp height wrapped in responsive SizedBox - **
+  - [ ] **FAIL**: Compiler: Parent Column with explicit 200dp height and 300dp width wrapped in SizedBox - **
   - [x] **PASS**: Compiler: Column with Height 'Auto' emits mainAxisSize: MainAxisSize.min (shrink-wrap)
-  - [x] **PASS**: Compiler: Parent Row with explicit 250dp width and 60dp height wrapped in SizedBox
+  - [ ] **FAIL**: Compiler: Parent Row with explicit 250dp width and 60dp height wrapped in SizedBox - **
   - [x] **PASS**: Compiler: Row with Width 'Auto' emits mainAxisSize: MainAxisSize.min (shrink-wrap)
   - [x] **PASS**: Compiler: Nested Container > Column > Row > Widgets respects all explicit dimension constraints
   - [x] **PASS**: Deserialization: Non-Expanded widget with legacy 'flex: 1' heals to Flex = 0
@@ -163,7 +176,7 @@
   - [x] **PASS**: EdgeInsets: Single value '8' -> const EdgeInsets.all(8)
   - [x] **PASS**: EdgeInsets: Symmetric '8, 16' -> const EdgeInsets.symmetric
   - [x] **PASS**: EdgeInsets: 4-way '4, 8, 12, 16' -> const EdgeInsets.fromLTRB
-  - [x] **PASS**: Compiler: Text with Margin '8' and Height '100dp' wrapped in Padding and SizedBox
+  - [ ] **FAIL**: Compiler: Text with Margin '8' and Height '100dp' wrapped in Padding and SizedBox - **
   - [x] **PASS**: Compiler: Container with Margin '8' emits native container margin
   - [x] **PASS**: Color: Named 'Red' parses to Material Red #F44336
   - [x] **PASS**: Color: 6-char '#2196F3' parses to full opacity Material Blue
@@ -176,7 +189,7 @@
   - [x] **PASS**: Compiler: Button emits ElevatedButton.styleFrom with background, rounded corners, and border side
   - [x] **PASS**: Compiler: TextField emits InputDecoration with fill color and outline border radius
   - [x] **PASS**: Compiler: Checkbox emits activeColor
-  - [x] **PASS**: Compiler: Switch emits activeColor
+  - [ ] **FAIL**: Compiler: Switch emits activeColor - **
   - [x] **PASS**: Compiler: Slider emits activeColor
 
 ## 13. Tab Switching, Auto-Save & State Preservation
@@ -214,7 +227,51 @@
   - [x] **PASS**: Explorer: YAML file displays settings glyph 
   - [x] **PASS**: Explorer: Closed folder displays folder glyph 
   - [x] **PASS**: Explorer: Opened folder displays folder glyph 
+  - [x] **PASS**: FullPageCodegen: main.dart contains entrypoint main()
+  - [x] **PASS**: FullPageCodegen: main.dart contains MyApp widget
+  - [x] **PASS**: FullPageCodegen: main.dart contains MainPage stateful widget
+  - [x] **PASS**: FullPageCodegen: main.dart contains visual Text widget from canvas
+  - [x] **PASS**: FullPageCodegen: main.dart contains visual Button widget from canvas
+  - [x] **PASS**: FullPageCodegen: main.dart contains event block logic inside state class
+  - [x] **PASS**: FullPageCodegen: Auxiliary page generates ProfilePage stateful widget
+  - [x] **PASS**: FullPageCodegen: Auxiliary page does not have main()
+  - [x] **PASS**: FullPageCodegen: Auxiliary page contains visual widgets
+
+## 15. End-to-End Block System, Target Widgets & Multi-Event Aggregation
+  - [x] **PASS**: E2E Blocks: Column is wrapped in GestureDetector with HitTestBehavior.opaque
+  - [x] **PASS**: E2E Blocks: onClickColumn1 method generated with BuildContext context parameter
+  - [x] **PASS**: E2E Blocks: onClickColumn1 sets _textF2c6Text
+  - [x] **PASS**: E2E Blocks: onClickButton09ac method generated with BuildContext context parameter
+  - [x] **PASS**: E2E Blocks: onClickButton09ac correctly invokes showDialog with AlertDialog
+  - [x] **PASS**: E2E Blocks: onLongPressButton09ac method generated with BuildContext context parameter
+  - [x] **PASS**: E2E Blocks: onLongPressButton09ac invokes ScaffoldMessenger.of(context).showSnackBar
+  - [x] **PASS**: E2E Blocks: ElevatedButton onPressed calls onClickButton09ac(context)
+  - [x] **PASS**: E2E Blocks: ElevatedButton onLongPress calls onLongPressButton09ac(context)
+  - [x] **PASS**: E2E Blocks: Slider onChanged calls onChangedSliderB124(context, value)
+  - [x] **PASS**: E2E Blocks: Dynamic state variable _textF2c6Text declared
+  - [x] **PASS**: E2E Blocks: Dynamic state variable _row431cBgColor declared
+  - [x] **PASS**: E2E Blocks: Dynamic state variable _column1Padding declared
+  - [x] **PASS**: E2E Blocks: Dynamic state variable _column1BgColor declared
+  - [x] **PASS**: E2E Blocks: MainAxisAlignment state variable _column1Alignment declared
+  - [x] **PASS**: E2E Blocks: Column uses dynamic _column1Alignment
+  - [x] **PASS**: E2E Blocks: Dynamic state variable _textfieldB3efEnabled declared
+  - [x] **PASS**: E2E Blocks: Dynamic state variable _button09acBgColor declared
+  - [x] **PASS**: E2E Blocks: TextEditingController _ctrlCustomInput auto-declared
+  - [x] **PASS**: E2E Blocks: TextEditingController _ctrlCustomInput auto-disposed
+  - [x] **PASS**: E2E Blocks: Text widget dynamically uses _textF2c6Text
+  - [x] **PASS**: E2E Blocks: Services import included for Portrait orientation and system features
+  - [x] **PASS**: User Project: Compiled real project main.dart without errors
+  - [x] **PASS**: User Project: main.dart wires Button onClick to onClickButton09ac
+  - [x] **PASS**: User Project: main.dart wires Column onTap to onClickColumn1
+  - [x] **PASS**: User Project: main.dart written to disk successfully
 
 ---
-### Result: 194/194 Passed (100%)
-**Status: ALL WIDGETS AND PROPERTIES FULLY OPERATIONAL AND VERIFIED.**
+### Result: 235/242 Passed (97.1%)
+### Identified Bugs:
+- Compiler: Generates root Column -> 
+- Compiler Bug 81: Slider respects min/max/current bounds -> 
+- Compiler: Child Text with custom 25% width and 50dp height wrapped in responsive SizedBox -> 
+- Compiler: Parent Column with explicit 200dp height and 300dp width wrapped in SizedBox -> 
+- Compiler: Parent Row with explicit 250dp width and 60dp height wrapped in SizedBox -> 
+- Compiler: Text with Margin '8' and Height '100dp' wrapped in Padding and SizedBox -> 
+- Compiler: Switch emits activeColor -> 

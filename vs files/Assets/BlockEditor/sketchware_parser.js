@@ -202,6 +202,6 @@ function parseSketchwareBlocks(paletteJson, blockJson) {
         
         return toolboxCategories;
     } catch (e) {
-        alert("Sketchware Parser Error: " + e.message + "\n" + e.stack);
+        console.error("Sketchware Parser Error:", e);
     }
 }

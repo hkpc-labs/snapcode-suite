@@ -39,7 +39,14 @@ namespace Snapcode
             if (cmdArgs.Any(a => a.IndexOf("run-tests", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 string reportPath = @"c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\view_designer_test_report.md";
-                Snapcode.Services.ViewDesignerTestService.RunAllTests(reportPath);
+                try
+                {
+                    Snapcode.Services.ViewDesignerTestService.RunAllTests(reportPath);
+                }
+                catch (Exception ex)
+                {
+                    try { File.WriteAllText(@"c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\test_crash.log", ex.ToString()); } catch { }
+                }
                 Environment.Exit(0);
                 return;
             }

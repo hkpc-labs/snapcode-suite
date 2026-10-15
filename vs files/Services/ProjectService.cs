@@ -237,6 +237,85 @@ namespace Snapcode.Services
             }
         }
 
+        public static async Task SavePageEventCodeAsync(string projectRoot, string workspaceFile, string dartCode)
+        {
+            try
+            {
+                string pagesDir = GetPagesDirectory(projectRoot);
+                string fileName = workspaceFile.EndsWith(".event.dart", StringComparison.OrdinalIgnoreCase)
+                    ? Path.GetFileName(workspaceFile)
+                    : $"{Path.GetFileNameWithoutExtension(workspaceFile)}.event.dart";
+                string filePath = Path.Combine(pagesDir, fileName);
+                await File.WriteAllTextAsync(filePath, dartCode ?? string.Empty);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ProjectService] Failed to save page event code: {ex.Message}");
+                throw;
+            }
+        }
+
+        public static async Task<string> LoadAllPageEventCodeAsync(string projectRoot, string pageName, string? currentActiveCode = null, string? currentContext = null)
+        {
+            try
+            {
+                var eventCodes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                string pagesDir = GetPagesDirectory(projectRoot);
+
+                if (Directory.Exists(pagesDir))
+                {
+                    string prefix = $"{pageName}_";
+                    string exactName = $"{pageName}.event.dart";
+
+                    foreach (var file in Directory.GetFiles(pagesDir, "*.event.dart"))
+                    {
+                        string fileName = Path.GetFileName(file);
+                        if (string.Equals(fileName, exactName, StringComparison.OrdinalIgnoreCase) ||
+                            fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        {
+                            try
+                            {
+                                string code = await File.ReadAllTextAsync(file);
+                                if (!string.IsNullOrWhiteSpace(code))
+                                {
+                                    eventCodes[fileName] = code;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ProjectService] Failed to read event file {fileName}: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+
+                // If current workspace has active code, register/override its entry so it is always fresh
+                if (!string.IsNullOrWhiteSpace(currentActiveCode))
+                {
+                    string currentKey = !string.IsNullOrWhiteSpace(currentContext)
+                        ? $"{pageName}_{currentContext}.event.dart"
+                        : $"{pageName}.event.dart";
+                    eventCodes[currentKey] = currentActiveCode;
+                }
+
+                var parts = new List<string>();
+                foreach (var kvp in eventCodes)
+                {
+                    if (!string.IsNullOrWhiteSpace(kvp.Value))
+                    {
+                        parts.Add(kvp.Value.Trim());
+                    }
+                }
+
+                return string.Join("\n\n", parts);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ProjectService] Failed to load all page event code: {ex.Message}");
+                return currentActiveCode ?? string.Empty;
+            }
+        }
+
         public static List<string> GetProjectPages(string projectRoot)
         {
             var pages = new List<string> { "main" };

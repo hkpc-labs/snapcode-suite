@@ -148,14 +148,56 @@ namespace Snapcode.Views
 
         private async void NativeDesigner_WidgetTreeFlatJsonChanged(object sender, string jsonList)
         {
-            if (_isWebViewReady && BlocklyWebView != null && BlocklyWebView.CoreWebView2 != null)
+            await PushWidgetListToBlocklyAsync(jsonList);
+        }
+
+        private async Task PushWidgetListToBlocklyAsync(string? explicitJson = null)
+        {
+            if (!_isWebViewReady || BlocklyWebView?.CoreWebView2 == null) return;
+            try
             {
-                try 
+                if (!string.IsNullOrEmpty(explicitJson))
                 {
-                    string safeJson = JsonSerializer.Serialize(jsonList);
+                    string safeExplicit = JsonSerializer.Serialize(explicitJson);
+                    await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.updateWidgetIds({safeExplicit})");
+                    return;
+                }
+
+                List<object> simpleList = new List<object>();
+                if (NativeDesigner != null && NativeDesigner.AllWidgetsFlat != null && NativeDesigner.AllWidgetsFlat.Count > 0)
+                {
+                    simpleList = NativeDesigner.AllWidgetsFlat.Select(w => new { id = w.Id, type = w.Type } as object).ToList();
+                }
+                else if (!string.IsNullOrEmpty(_projectPath) && !string.IsNullOrEmpty(_currentPageName))
+                {
+                    string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
+                    if (!string.IsNullOrWhiteSpace(uiJson) && uiJson != "[]" && uiJson != "{}")
+                    {
+                        using var doc = JsonDocument.Parse(uiJson);
+                        var flat = new List<object>();
+                        SnapCode.Services.FlutterCompilerService.TraverseWidgetTree(doc.RootElement, el =>
+                        {
+                            string id = el.TryGetProperty("id", out var p) ? p.GetString() ?? "" : "";
+                            string type = el.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
+                            if (!string.IsNullOrEmpty(id))
+                            {
+                                flat.Add(new { id = id, type = type });
+                            }
+                        });
+                        simpleList = flat;
+                    }
+                }
+
+                if (simpleList.Count > 0)
+                {
+                    string json = JsonSerializer.Serialize(simpleList);
+                    string safeJson = JsonSerializer.Serialize(json);
                     await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.updateWidgetIds({safeJson})");
                 }
-                catch { }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditorPage] PushWidgetListToBlocklyAsync error: {ex.Message}");
             }
         }
 
@@ -363,6 +405,20 @@ namespace Snapcode.Views
                 // Set up message handler for JS → C# communication
                 BlocklyWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
 
+                // Navigation completed handler for error catching
+                BlocklyWebView.CoreWebView2.NavigationCompleted += (s, navArgs) =>
+                {
+                    if (!navArgs.IsSuccess)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[BlockEditor] Navigation failed: {navArgs.WebErrorStatus}");
+                        DispatcherQueue.TryEnqueue(() =>
+                        {
+                            EditorLoadingPanel.Visibility = Visibility.Collapsed;
+                            BlocklyWebView.Visibility = Visibility.Visible;
+                        });
+                    }
+                };
+
                 // Determine the theme
                 string themeMode = "dark";
                 try
@@ -386,16 +442,25 @@ namespace Snapcode.Views
                     MonacoEditor.SetTheme(themeMode);
                 }
 
-                // Load the Blockly HTML
-                string htmlPath = Path.Combine(AppContext.BaseDirectory, "Assets", "BlockEditor", "index.html");
-                if (File.Exists(htmlPath))
+                // Load the Blockly HTML via Virtual Host Name Mapping (ensures secure, offline HTTPS context for scripts and media)
+                string blockEditorDir = Path.Combine(AppContext.BaseDirectory, "Assets", "BlockEditor");
+                if (Directory.Exists(blockEditorDir))
                 {
-                    // Read and modify HTML to set the correct initial theme
-                    string html = await File.ReadAllTextAsync(htmlPath);
-                    html = html.Replace("initWorkspace('dark')", $"initWorkspace('{themeMode}')");
-                    html = html.Replace("class=\"dark\"", $"class=\"{themeMode}\"");
+                    try
+                    {
+                        BlocklyWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                            "blockeditor.snapcode",
+                            blockEditorDir,
+                            Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind.Allow);
 
-                    BlocklyWebView.CoreWebView2.NavigateToString(html);
+                        BlocklyWebView.CoreWebView2.Navigate($"https://blockeditor.snapcode/index.html?theme={themeMode}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[BlockEditor] Virtual host mapping failed: {ex.Message}. Falling back to file navigation.");
+                        string indexPath = Path.Combine(blockEditorDir, "index.html");
+                        BlocklyWebView.CoreWebView2.Navigate(new Uri(indexPath).AbsoluteUri);
+                    }
                 }
                 else
                 {
@@ -403,6 +468,21 @@ namespace Snapcode.Views
                     EditorLoadingPanel.Visibility = Visibility.Collapsed;
                     BlocklyWebView.Visibility = Visibility.Visible;
                 }
+
+                // Safety timeout guard: If WebView2 or Blockly doesn't send "ready" within 4 seconds,
+                // collapse loading panel and show editor so the UI never spins indefinitely.
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(4000);
+                    if (!_isWebViewReady)
+                    {
+                        DispatcherQueue.TryEnqueue(() =>
+                        {
+                            EditorLoadingPanel.Visibility = Visibility.Collapsed;
+                            BlocklyWebView.Visibility = Visibility.Visible;
+                        });
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -431,11 +511,24 @@ namespace Snapcode.Views
                             EditorLoadingPanel.Visibility = Visibility.Collapsed;
                             BlocklyWebView.Visibility = Visibility.Visible;
 
+                            // Push latest widget IDs to Blockly immediately
+                            await PushWidgetListToBlocklyAsync();
+
                             // Load saved workspace if it exists
                             await LoadSavedWorkspaceAsync();
                             
                             // Load custom blocks from Sketchware JSON
                             await LoadSketchwareBlocksAsync();
+                        });
+                        break;
+
+                    case "error":
+                        string errMsg = root.TryGetProperty("message", out var m) ? m.GetString() ?? "" : "";
+                        System.Diagnostics.Debug.WriteLine($"[BlockEditor JS Error] {errMsg}");
+                        DispatcherQueue.TryEnqueue(() =>
+                        {
+                            EditorLoadingPanel.Visibility = Visibility.Collapsed;
+                            BlocklyWebView.Visibility = Visibility.Visible;
                         });
                         break;
 
@@ -568,6 +661,7 @@ namespace Snapcode.Views
             await _saveLock.WaitAsync();
             try
             {
+                string currentActiveCode = null;
                 if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null)
                 {
                     try
@@ -581,11 +675,93 @@ namespace Snapcode.Views
 
                         string workspaceFile = contextToSave != null ? $"{pageToSave}_{contextToSave}" : pageToSave;
                         await ProjectService.SavePageWorkspaceAsync(_projectPath, workspaceFile, workspaceJson);
+
+                        // Query window.getGeneratedCode() from WebView2 to get the freshest Dart code
+                        string rawCode = await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.getGeneratedCode()");
+                        if (!string.IsNullOrEmpty(rawCode) && rawCode != "null")
+                        {
+                            if (rawCode.StartsWith("\"") && rawCode.EndsWith("\""))
+                            {
+                                try
+                                {
+                                    currentActiveCode = JsonSerializer.Deserialize<string>(rawCode) ?? string.Empty;
+                                }
+                                catch
+                                {
+                                    currentActiveCode = rawCode;
+                                }
+                            }
+                            else
+                            {
+                                currentActiveCode = rawCode;
+                            }
+                            _lastGeneratedCode = currentActiveCode;
+                        }
+
+                        // Save current workspace event code via ProjectService.SavePageEventCodeAsync
+                        if (currentActiveCode != null)
+                        {
+                            await ProjectService.SavePageEventCodeAsync(_projectPath, workspaceFile, currentActiveCode);
+                        }
                     }
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to save Blockly workspace: {ex.Message}");
                     }
+                }
+
+                // Also scan .snapcode/pages/ for any ${pageToSave}_*.json event files that don't have .event.dart yet,
+                // compile them via window.generateCodeForWorkspaceJson, and save them.
+                try
+                {
+                    string pagesDir = ProjectService.GetPagesDirectory(_projectPath);
+                    if (Directory.Exists(pagesDir))
+                    {
+                        var eventJsonFiles = Directory.GetFiles(pagesDir, $"{pageToSave}_*.json");
+                        foreach (var jsonFile in eventJsonFiles)
+                        {
+                            string baseName = Path.GetFileNameWithoutExtension(jsonFile);
+                            if (baseName.EndsWith("_ui", StringComparison.OrdinalIgnoreCase) ||
+                                baseName.EndsWith("_meta", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            string targetEventDart = Path.Combine(pagesDir, $"{baseName}.event.dart");
+                            if (!File.Exists(targetEventDart))
+                            {
+                                string jsonContent = await File.ReadAllTextAsync(jsonFile);
+                                if (!string.IsNullOrWhiteSpace(jsonContent) && jsonContent != "{}")
+                                {
+                                    if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null)
+                                    {
+                                        string safeArg = JsonSerializer.Serialize(jsonContent);
+                                        string compiledCode = await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.generateCodeForWorkspaceJson({safeArg})");
+                                        if (!string.IsNullOrEmpty(compiledCode) && compiledCode != "null")
+                                        {
+                                            string dartCode = compiledCode;
+                                            if (compiledCode.StartsWith("\"") && compiledCode.EndsWith("\""))
+                                            {
+                                                try
+                                                {
+                                                    dartCode = JsonSerializer.Deserialize<string>(compiledCode) ?? string.Empty;
+                                                }
+                                                catch
+                                                {
+                                                    dartCode = compiledCode;
+                                                }
+                                            }
+                                            await ProjectService.SavePageEventCodeAsync(_projectPath, baseName, dartCode);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed compiling pending event files: {ex.Message}");
                 }
 
                 string savedUiJson = null;
@@ -638,10 +814,17 @@ namespace Snapcode.Views
                 {
                     System.Diagnostics.Debug.WriteLine($"[EditorPage] Generating complete Flutter page for '{pageToSave}' with UI JSON: {savedUiJson}");
                     var pageMeta = await ProjectService.LoadPageMetadataAsync(_projectPath, pageToSave);
+                    string combinedEventCode = await ProjectService.LoadAllPageEventCodeAsync(
+                        _projectPath,
+                        pageToSave,
+                        currentActiveCode ?? _lastGeneratedCode ?? string.Empty,
+                        contextToSave
+                    );
+
                     string completeDartSource = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart(
                         pageToSave,
                         !string.IsNullOrEmpty(savedUiJson) ? savedUiJson : "[]",
-                        _lastGeneratedCode,
+                        combinedEventCode,
                         pageMeta
                     );
 
@@ -860,11 +1043,13 @@ namespace Snapcode.Views
 
         private async void BtnHotReload_Click(object sender, RoutedEventArgs e)
         {
+            await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
             await FlutterExecutionService.Instance.HotReloadAsync();
         }
 
         private async void BtnHotRestart_Click(object sender, RoutedEventArgs e)
         {
+            await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
             await FlutterExecutionService.Instance.HotRestartAsync();
         }
 
@@ -1098,6 +1283,11 @@ namespace Snapcode.Views
                 else if (tag == "event" && _isProgrammaticTabChange)
                 {
                     PopulateEventList();
+                }
+
+                if (tag == "event")
+                {
+                    await PushWidgetListToBlocklyAsync();
                 }
                 
                 if (tag == "code")
@@ -1389,6 +1579,12 @@ namespace Snapcode.Views
             }
             
             _currentEventContext = newContext;
+            
+            if (EditorLoadingPanel != null && EditorLoadingPanel.Visibility == Visibility.Visible)
+            {
+                EditorLoadingPanel.Visibility = Visibility.Collapsed;
+                BlocklyWebView.Visibility = Visibility.Visible;
+            }
             
             if (_isWebViewReady && BlocklyWebView != null && BlocklyWebView.CoreWebView2 != null)
             {

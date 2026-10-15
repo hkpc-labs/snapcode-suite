@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -12,7 +13,10 @@ namespace SnapCode.Services
 {
     public class FlutterCompilerService
     {
-        public static (string declarations, string disposals, string controllerMapEntries) ExtractStateDeclarations(string uiJson)
+        public static (string declarations, string disposals, string controllerMapEntries) ExtractStateDeclarations(string uiJson) => ExtractStateDeclarations(uiJson, null);
+        public static (string declarations, string disposals, string controllerMapEntries) GenerateStateDeclarations(string uiJson, string? eventCode = null) => ExtractStateDeclarations(uiJson, eventCode);
+
+        public static (string declarations, string disposals, string controllerMapEntries) ExtractStateDeclarations(string uiJson, string? eventCode)
         {
             if (string.IsNullOrWhiteSpace(uiJson) || uiJson == "{}" || uiJson == "null" || uiJson == "[]")
             {
@@ -73,6 +77,171 @@ namespace SnapCode.Services
                     }
                 });
 
+                // Auto-declare dynamic property variables found in event code
+                if (!string.IsNullOrWhiteSpace(eventCode))
+                {
+                    var seenVars = new HashSet<string>(StringComparer.Ordinal);
+                    var visMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Visible\b");
+                    foreach (Match m in visMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Visible";
+                        if (seenVars.Add(varName)) declarations.Add($"bool {varName} = true;");
+                    }
+
+                    var enMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Enabled\b");
+                    foreach (Match m in enMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Enabled";
+                        if (seenVars.Add(varName)) declarations.Add($"bool {varName} = true;");
+                    }
+
+                    var bgMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)BgColor\b");
+                    foreach (Match m in bgMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}BgColor";
+                        if (seenVars.Add(varName)) declarations.Add($"Color? {varName};");
+                    }
+
+                    var tcMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)TextColor\b");
+                    foreach (Match m in tcMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}TextColor";
+                        if (seenVars.Add(varName)) declarations.Add($"Color? {varName};");
+                    }
+
+                    var fsMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)FontSize\b");
+                    foreach (Match m in fsMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}FontSize";
+                        if (seenVars.Add(varName)) declarations.Add($"double? {varName};");
+                    }
+
+                    var boldMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Bold\b");
+                    foreach (Match m in boldMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Bold";
+                        if (seenVars.Add(varName)) declarations.Add($"bool? {varName};");
+                    }
+
+                    var textMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Text\b");
+                    foreach (Match m in textMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Text";
+                        if (seenVars.Add(varName)) declarations.Add($"String? {varName};");
+                    }
+
+                    var hintMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Hint\b");
+                    foreach (Match m in hintMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Hint";
+                        if (seenVars.Add(varName)) declarations.Add($"String? {varName};");
+                    }
+
+                    var assetMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Asset\b");
+                    foreach (Match m in assetMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Asset";
+                        if (seenVars.Add(varName)) declarations.Add($"String? {varName};");
+                    }
+
+                    var fitMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Fit\b");
+                    foreach (Match m in fitMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Fit";
+                        if (seenVars.Add(varName)) declarations.Add($"BoxFit? {varName};");
+                    }
+
+                    var wMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Width\b");
+                    foreach (Match m in wMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Width";
+                        if (seenVars.Add(varName)) declarations.Add($"double? {varName};");
+                    }
+
+                    var hMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Height\b");
+                    foreach (Match m in hMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Height";
+                        if (seenVars.Add(varName)) declarations.Add($"double? {varName};");
+                    }
+
+                    var padMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Padding\b");
+                    foreach (Match m in padMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Padding";
+                        if (seenVars.Add(varName)) declarations.Add($"double? {varName};");
+                    }
+
+                    var radMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Radius\b");
+                    foreach (Match m in radMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Radius";
+                        if (seenVars.Add(varName)) declarations.Add($"double? {varName};");
+                    }
+
+                    var elMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Elevation\b");
+                    foreach (Match m in elMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Elevation";
+                        if (seenVars.Add(varName)) declarations.Add($"double? {varName};");
+                    }
+
+                    var opMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Opacity\b");
+                    foreach (Match m in opMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Opacity";
+                        if (seenVars.Add(varName)) declarations.Add($"double? {varName};");
+                    }
+
+                    var chkMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Checked\b");
+                    foreach (Match m in chkMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Checked";
+                        if (seenVars.Add(varName)) declarations.Add($"bool? {varName};");
+                    }
+
+                    var valMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Value\b");
+                    foreach (Match m in valMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Value";
+                        if (seenVars.Add(varName)) declarations.Add($"double? {varName};");
+                    }
+
+                    var alignMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Alignment\b");
+                    foreach (Match m in alignMatches)
+                    {
+                        string varName = $"_{m.Groups[1].Value}Alignment";
+                        if (seenVars.Add(varName))
+                        {
+                            if (eventCode.Contains($"{varName} = MainAxisAlignment.") || eventCode.Contains("MainAxisAlignment."))
+                            {
+                                declarations.Add($"MainAxisAlignment? {varName};");
+                            }
+                            else
+                            {
+                                declarations.Add($"Alignment? {varName};");
+                            }
+                        }
+                    }
+
+                    var ctrlMatches = Regex.Matches(eventCode, @"_ctrl([a-zA-Z0-9_]+?)\b");
+                    foreach (Match m in ctrlMatches)
+                    {
+                        string ctrlVar = $"_ctrl{m.Groups[1].Value}";
+                        if (seenVars.Add(ctrlVar))
+                        {
+                            declarations.Add($"final TextEditingController {ctrlVar} = TextEditingController();");
+                            disposals.Add($"{ctrlVar}.dispose();");
+                        }
+                    }
+
+                    _activeDynamicVars = seenVars;
+                }
+                else
+                {
+                    _activeDynamicVars = new HashSet<string>(StringComparer.Ordinal);
+                }
+
                 return (
                     string.Join("\n", declarations),
                     string.Join("\n", disposals),
@@ -112,9 +281,12 @@ namespace SnapCode.Services
                 if (start > end) return;
 
                 string cleanEvt = eventType;
-                if (cleanEvt.Contains('('))
+                string paramDecl = "";
+                if (cleanEvt.Contains('(') && cleanEvt.EndsWith(')'))
                 {
-                    cleanEvt = cleanEvt.Substring(0, cleanEvt.IndexOf('(')).Trim();
+                    int openParen = cleanEvt.IndexOf('(');
+                    paramDecl = cleanEvt.Substring(openParen + 1, cleanEvt.Length - openParen - 2).Trim();
+                    cleanEvt = cleanEvt.Substring(0, openParen).Trim();
                 }
                 if (cleanEvt.StartsWith("on", StringComparison.OrdinalIgnoreCase) && cleanEvt.Length > 2)
                 {
@@ -146,7 +318,12 @@ namespace SnapCode.Services
                 }
 
                 string asyncModifier = isAsync ? " async" : "";
-                sb.AppendLine($"  void {methodName}(BuildContext context){asyncModifier} {{");
+                string paramList = "BuildContext context";
+                if (!string.IsNullOrWhiteSpace(paramDecl))
+                {
+                    paramList += $", {paramDecl}";
+                }
+                sb.AppendLine($"  void {methodName}({paramList}){asyncModifier} {{");
                 for (int i = start; i <= end; i++)
                 {
                     string line = body[i];
@@ -205,12 +382,82 @@ namespace SnapCode.Services
             return sb.ToString().TrimEnd();
         }
 
-        public static string CompileRootWidget(string uiJson)
+        public static Dictionary<string, Dictionary<string, (string methodName, string paramDecl)>> ParseEventBindings(string rawEventCode)
         {
-            if (string.IsNullOrWhiteSpace(uiJson) || uiJson == "{}" || uiJson == "null" || uiJson == "[]")
+            var result = new Dictionary<string, Dictionary<string, (string methodName, string paramDecl)>>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(rawEventCode)) return result;
+
+            var lines = rawEventCode.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            foreach (var rawLine in lines)
             {
-                return "Container()";
+                var match = Regex.Match(rawLine, @"^//\s*EVENT_BINDING:\s*(.+?)\s*->\s*(.+?)\s*$", RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    string rawEventType = match.Groups[1].Value.Trim();
+                    string target = match.Groups[2].Value.Trim();
+
+                    string cleanEvt = rawEventType;
+                    string paramDecl = "";
+                    if (cleanEvt.Contains('(') && cleanEvt.EndsWith(')'))
+                    {
+                        int openParen = cleanEvt.IndexOf('(');
+                        paramDecl = cleanEvt.Substring(openParen + 1, cleanEvt.Length - openParen - 2).Trim();
+                        cleanEvt = cleanEvt.Substring(0, openParen).Trim();
+                    }
+                    if (cleanEvt.StartsWith("on", StringComparison.OrdinalIgnoreCase) && cleanEvt.Length > 2)
+                    {
+                        cleanEvt = cleanEvt.Substring(2);
+                    }
+                    cleanEvt = ToPascalCase(cleanEvt);
+                    if (string.IsNullOrWhiteSpace(cleanEvt)) cleanEvt = "Event";
+
+                    string cleanTgt = ToPascalCase(target);
+                    if (string.IsNullOrWhiteSpace(cleanTgt)) cleanTgt = "None";
+
+                    string methodName = $"on{cleanEvt}{cleanTgt}";
+                    string eventKey = cleanEvt.ToLowerInvariant(); // e.g. "click", "longpress", "changed", "submitted"
+
+                    var variants = new[]
+                    {
+                        target,
+                        target.Replace(" ", "_").Replace("-", "_"),
+                        target.Replace("_", " ").Replace("-", " "),
+                        ToCamelCase(target),
+                        ToPascalCase(target)
+                    };
+
+                    foreach (var variant in variants)
+                    {
+                        if (string.IsNullOrWhiteSpace(variant)) continue;
+                        if (!result.TryGetValue(variant, out var targetMap))
+                        {
+                            targetMap = new Dictionary<string, (string methodName, string paramDecl)>(StringComparer.OrdinalIgnoreCase);
+                            result[variant] = targetMap;
+                        }
+                        targetMap[eventKey] = (methodName, paramDecl);
+                    }
+                }
             }
+            return result;
+        }
+
+        [ThreadStatic]
+        private static Dictionary<string, Dictionary<string, (string methodName, string paramDecl)>>? _activeEventBindings;
+
+        [ThreadStatic]
+        private static HashSet<string>? _activeDynamicVars;
+
+        public static string CompileRootWidget(string uiJson) => CompileRootWidget(uiJson, null);
+
+        public static string CompileRootWidget(string uiJson, Dictionary<string, Dictionary<string, (string methodName, string paramDecl)>>? eventBindings)
+        {
+            _activeEventBindings = eventBindings;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(uiJson) || uiJson == "{}" || uiJson == "null" || uiJson == "[]")
+                {
+                    return "Container()";
+                }
 
             using JsonDocument doc = JsonDocument.Parse(uiJson);
             if (doc.RootElement.ValueKind == JsonValueKind.Array)
@@ -234,6 +481,11 @@ namespace SnapCode.Services
             else
             {
                 return CompileRootElement(doc.RootElement);
+            }
+            }
+            finally
+            {
+                _activeEventBindings = null;
             }
         }
 
@@ -326,10 +578,12 @@ Widget build(BuildContext context) {{
 
         public static string GenerateCompletePageDart(string pageName, string uiJson, string? eventCode = null, PageMetadata? metadata = null)
         {
+            var (declarations, disposals, _) = ExtractStateDeclarations(uiJson, eventCode);
+            var eventBindings = ParseEventBindings(eventCode ?? "");
             string rootWidget = "Container()";
             try
             {
-                rootWidget = CompileRootWidget(uiJson);
+                rootWidget = CompileRootWidget(uiJson, eventBindings);
             }
             catch (Exception ex)
             {
@@ -344,8 +598,6 @@ Widget build(BuildContext context) {{
             string className = string.Equals(pageName, "main", StringComparison.OrdinalIgnoreCase) 
                 ? "MainPage" 
                 : $"{ToPascalCase(pageName)}Page";
-
-            var (declarations, disposals, _) = ExtractStateDeclarations(uiJson);
 
             string autoGeneratedDeclarations = "";
             if (!string.IsNullOrWhiteSpace(declarations))
@@ -389,11 +641,35 @@ Widget build(BuildContext context) {{
                 orientationDispose = "    SystemChrome.setPreferredOrientations(DeviceOrientation.values);\n";
             }
 
-            string imports = "import 'package:flutter/material.dart';";
-            if (needsServicesImport)
+            var importLines = new List<string> { "import 'package:flutter/material.dart';" };
+            if (needsServicesImport || (!string.IsNullOrWhiteSpace(eventCode) && (eventCode.Contains("HapticFeedback") || eventCode.Contains("Clipboard") || eventCode.Contains("SystemSound") || eventCode.Contains("SystemChrome"))))
             {
-                imports += "\nimport 'package:flutter/services.dart';";
+                importLines.Add("import 'package:flutter/services.dart';");
             }
+            if (!string.IsNullOrWhiteSpace(eventCode))
+            {
+                if (eventCode.Contains("Timer") || eventCode.Contains("Future.delayed") || eventCode.Contains("Completer"))
+                {
+                    importLines.Add("import 'dart:async';");
+                }
+                if (eventCode.Contains("jsonDecode") || eventCode.Contains("jsonEncode") || eventCode.Contains("json."))
+                {
+                    importLines.Add("import 'dart:convert';");
+                }
+                if (eventCode.Contains("SharedPreferences"))
+                {
+                    importLines.Add("import 'package:shared_preferences/shared_preferences.dart';");
+                }
+                if (eventCode.Contains("http.") || eventCode.Contains("http.get") || eventCode.Contains("http.post"))
+                {
+                    importLines.Add("import 'package:http/http.dart' as http;");
+                }
+                if (eventCode.Contains("Directory") || eventCode.Contains("File(") || eventCode.Contains("Platform."))
+                {
+                    importLines.Add("import 'dart:io';");
+                }
+            }
+            string imports = string.Join("\n", importLines);
 
             // Build Scaffold
             bool showAppBar = metadata?.ShowAppBar ?? true;
@@ -597,7 +873,7 @@ class _{className}State extends State<{className}> {{
             return result;
         }
 
-        private static void TraverseWidgetTree(JsonElement element, Action<JsonElement> visitor)
+        public static void TraverseWidgetTree(JsonElement element, Action<JsonElement> visitor)
         {
             if (element.ValueKind == JsonValueKind.Array)
             {
@@ -684,34 +960,85 @@ class _{className}State extends State<{className}> {{
                 widgetCode = WrapWithContainerIfNeeded(node, widgetCode, includePadding: includePadding, includeDecoration: includeDecoration);
             }
 
+            string widgetId = node.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
+            if (type != "Button" && type != "Checkbox" && type != "Switch" && type != "Slider" && type != "Image" && !string.IsNullOrEmpty(widgetId) && _activeEventBindings != null && _activeEventBindings.TryGetValue(widgetId, out var genericEvents))
+            {
+                var gestures = new List<string>();
+                if (genericEvents.TryGetValue("click", out var clickBind))
+                {
+                    gestures.Add($"onTap: () => {clickBind.methodName}(context)");
+                }
+                if (genericEvents.TryGetValue("longpress", out var lpBind))
+                {
+                    gestures.Add($"onLongPress: () => {lpBind.methodName}(context)");
+                }
+                if (gestures.Count > 0)
+                {
+                    widgetCode = $"GestureDetector(behavior: HitTestBehavior.opaque, {string.Join(", ", gestures)}, child: {widgetCode})";
+                }
+            }
+
+            if (!string.IsNullOrEmpty(widgetId) && _activeDynamicVars != null)
+            {
+                string camelId = ToCamelCase(widgetId);
+
+                // Opacity wrapper
+                if (_activeDynamicVars.Contains($"_{camelId}Opacity"))
+                {
+                    widgetCode = $"Opacity(opacity: _{camelId}Opacity ?? 1.0, child: {widgetCode})";
+                }
+
+                // Enabled wrapper
+                if (_activeDynamicVars.Contains($"_{camelId}Enabled"))
+                {
+                    widgetCode = $"IgnorePointer(ignoring: !(_{camelId}Enabled), child: Opacity(opacity: (_{camelId}Enabled) ? 1.0 : 0.6, child: {widgetCode}))";
+                }
+
+                // Visibility wrapper
+                if (_activeDynamicVars.Contains($"_{camelId}Visible") && !widgetCode.StartsWith("Visibility("))
+                {
+                    widgetCode = $"Visibility(visible: _{camelId}Visible, child: {widgetCode})";
+                }
+            }
+
             return widgetCode;
         }
 
         private static string WrapWithContainerIfNeeded(JsonElement node, string innerWidget, bool includePadding = true, bool includeDecoration = true)
         {
             var containerProps = new List<string>();
+            string widgetId = node.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
+            string camelId = ToCamelCase(widgetId);
 
-            // Width (supports dp, px, %, Match Parent, etc.)
+            // Width (supports dp, px, %, Match Parent, dynamic etc.)
             string wStr = "";
             if (node.TryGetProperty("width", out var wProp) && !string.IsNullOrWhiteSpace(wProp.GetString()))
                 wStr = wProp.GetString()!;
             else if (node.TryGetProperty("Width", out wProp) && !string.IsNullOrWhiteSpace(wProp.GetString()))
                 wStr = wProp.GetString()!;
 
-            if (!string.IsNullOrWhiteSpace(wStr))
+            if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Width"))
+            {
+                containerProps.Add($"width: _{camelId}Width");
+            }
+            else if (!string.IsNullOrWhiteSpace(wStr))
             {
                 string wCode = AlignmentHelper.ToFlutterDimensionCode(wStr, "width");
                 if (!string.IsNullOrWhiteSpace(wCode)) containerProps.Add($"width: {wCode}");
             }
 
-            // Height (supports dp, px, %, Match Parent, etc.)
+            // Height (supports dp, px, %, Match Parent, dynamic etc.)
             string hStr = "";
             if (node.TryGetProperty("height", out var hProp) && !string.IsNullOrWhiteSpace(hProp.GetString()))
                 hStr = hProp.GetString()!;
             else if (node.TryGetProperty("Height", out hProp) && !string.IsNullOrWhiteSpace(hProp.GetString()))
                 hStr = hProp.GetString()!;
 
-            if (!string.IsNullOrWhiteSpace(hStr))
+            if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Height"))
+            {
+                containerProps.Add($"height: _{camelId}Height");
+            }
+            else if (!string.IsNullOrWhiteSpace(hStr))
             {
                 string hCode = AlignmentHelper.ToFlutterDimensionCode(hStr, "height");
                 if (!string.IsNullOrWhiteSpace(hCode)) containerProps.Add($"height: {hCode}");
@@ -728,7 +1055,14 @@ class _{className}State extends State<{className}> {{
             else if (node.TryGetProperty("Gravity", out gProp) && !string.IsNullOrWhiteSpace(gProp.GetString()))
                 alignStr = gProp.GetString()!;
 
-            if (!string.IsNullOrWhiteSpace(alignStr) && 
+            string nodeType = node.TryGetProperty("type", out var tProp) ? tProp.GetString() ?? "" : "";
+            bool isFlexLayout = nodeType.Equals("Row", StringComparison.OrdinalIgnoreCase) || nodeType.Equals("Column", StringComparison.OrdinalIgnoreCase);
+
+            if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Alignment") && !isFlexLayout)
+            {
+                containerProps.Add($"alignment: _{camelId}Alignment");
+            }
+            else if (!string.IsNullOrWhiteSpace(alignStr) && 
                 !alignStr.Equals("Default", StringComparison.OrdinalIgnoreCase) && 
                 !alignStr.Equals("Inherit", StringComparison.OrdinalIgnoreCase) &&
                 !alignStr.Equals("TopLeft", StringComparison.OrdinalIgnoreCase))
@@ -747,7 +1081,11 @@ class _{className}State extends State<{className}> {{
             else if (node.TryGetProperty("Padding", out pProp) && !string.IsNullOrWhiteSpace(pProp.GetString()))
                 padStr = pProp.GetString()!;
 
-            if (includePadding && !string.IsNullOrWhiteSpace(padStr))
+            if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Padding"))
+            {
+                containerProps.Add($"padding: EdgeInsets.all(_{camelId}Padding ?? 16.0)");
+            }
+            else if (includePadding && !string.IsNullOrWhiteSpace(padStr))
             {
                 string pVal = padStr.Trim();
                 if (!pVal.Equals("0", StringComparison.OrdinalIgnoreCase) && !pVal.Equals("0,0,0,0", StringComparison.OrdinalIgnoreCase))
@@ -802,7 +1140,44 @@ class _{className}State extends State<{className}> {{
                 bool hasShadow = (node.TryGetProperty("hasShadow", out var hsP) || node.TryGetProperty("HasShadow", out hsP)) && hsP.ValueKind == JsonValueKind.True;
 
                 string decorationCode = AlignmentHelper.ToFlutterBoxDecorationCode(bgCol, borderCol, borderW, cornerR, hasShadow);
-                if (!string.IsNullOrWhiteSpace(decorationCode))
+
+                if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Radius"))
+                {
+                    if (string.IsNullOrWhiteSpace(decorationCode))
+                    {
+                        decorationCode = $"BoxDecoration(borderRadius: BorderRadius.circular(_{camelId}Radius ?? 0.0))";
+                    }
+                    else
+                    {
+                        decorationCode = $"({decorationCode}).copyWith(borderRadius: BorderRadius.circular(_{camelId}Radius ?? 0.0))";
+                    }
+                }
+
+                if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Elevation"))
+                {
+                    string shadowExpr = "[BoxShadow(color: const Color(0x33000000), blurRadius: (_{camelId}Elevation ?? 4.0) * 2, offset: Offset(0, _{camelId}Elevation ?? 2.0))]";
+                    if (string.IsNullOrWhiteSpace(decorationCode))
+                    {
+                        decorationCode = $"BoxDecoration(boxShadow: {shadowExpr})";
+                    }
+                    else
+                    {
+                        decorationCode = $"({decorationCode}).copyWith(boxShadow: {shadowExpr})";
+                    }
+                }
+
+                if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}BgColor"))
+                {
+                    if (string.IsNullOrWhiteSpace(decorationCode))
+                    {
+                        containerProps.Add($"color: _{camelId}BgColor");
+                    }
+                    else
+                    {
+                        containerProps.Add($"decoration: ({decorationCode}).copyWith(color: _{camelId}BgColor)");
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(decorationCode))
                 {
                     containerProps.Add($"decoration: {decorationCode}");
                 }
@@ -810,6 +1185,11 @@ class _{className}State extends State<{className}> {{
 
             if (containerProps.Count > 0)
             {
+                bool onlyDimensions = containerProps.All(p => p.StartsWith("width:") || p.StartsWith("height:"));
+                if (onlyDimensions)
+                {
+                    return $"SizedBox({string.Join(", ", containerProps)}, child: {innerWidget})";
+                }
                 containerProps.Add($"child: {innerWidget}");
                 return $"Container({string.Join(", ", containerProps)})";
             }
@@ -849,7 +1229,20 @@ class _{className}State extends State<{className}> {{
                         mainAxis = gm.ToString();
                     }
 
-                    if (!string.IsNullOrWhiteSpace(mainAxis) && !mainAxis.Equals("Start", StringComparison.OrdinalIgnoreCase))
+                    string widgetId = node.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
+                    string camelId = ToCamelCase(widgetId);
+
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Alignment"))
+                    {
+                        string defaultMa = "MainAxisAlignment.start";
+                        if (!string.IsNullOrWhiteSpace(mainAxis))
+                        {
+                            string maCamel = char.ToLowerInvariant(mainAxis[0]) + mainAxis.Substring(1);
+                            defaultMa = $"MainAxisAlignment.{maCamel}";
+                        }
+                        props.Add($"mainAxisAlignment: _{camelId}Alignment ?? {defaultMa}");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(mainAxis) && !mainAxis.Equals("Start", StringComparison.OrdinalIgnoreCase))
                     {
                         string maCamel = char.ToLowerInvariant(mainAxis[0]) + mainAxis.Substring(1);
                         props.Add($"mainAxisAlignment: MainAxisAlignment.{maCamel}");
@@ -931,29 +1324,39 @@ class _{className}State extends State<{className}> {{
 
                 case "Container":
                 {
+                    string widgetId = node.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
+                    string camelId = ToCamelCase(widgetId);
                     var props = new List<string>();
 
-                    // Width (supports raw number, dp, px, pt, %, Match Parent)
+                    // Width (supports raw number, dp, px, pt, %, Match Parent, dynamic)
                     string wStr = "";
                     if (node.TryGetProperty("width", out var wProp) && !string.IsNullOrWhiteSpace(wProp.GetString()))
                         wStr = wProp.GetString()!;
                     else if (node.TryGetProperty("Width", out wProp) && !string.IsNullOrWhiteSpace(wProp.GetString()))
                         wStr = wProp.GetString()!;
 
-                    if (!string.IsNullOrWhiteSpace(wStr))
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Width"))
+                    {
+                        props.Add($"width: _{camelId}Width");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(wStr))
                     {
                         string wCode = AlignmentHelper.ToFlutterDimensionCode(wStr, "width");
                         if (!string.IsNullOrWhiteSpace(wCode)) props.Add($"width: {wCode}");
                     }
 
-                    // Height (supports raw number, dp, px, pt, %, Match Parent)
+                    // Height (supports raw number, dp, px, pt, %, Match Parent, dynamic)
                     string hStr = "";
                     if (node.TryGetProperty("height", out var hProp) && !string.IsNullOrWhiteSpace(hProp.GetString()))
                         hStr = hProp.GetString()!;
                     else if (node.TryGetProperty("Height", out hProp) && !string.IsNullOrWhiteSpace(hProp.GetString()))
                         hStr = hProp.GetString()!;
 
-                    if (!string.IsNullOrWhiteSpace(hStr))
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Height"))
+                    {
+                        props.Add($"height: _{camelId}Height");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(hStr))
                     {
                         string hCode = AlignmentHelper.ToFlutterDimensionCode(hStr, "height");
                         if (!string.IsNullOrWhiteSpace(hCode)) props.Add($"height: {hCode}");
@@ -970,7 +1373,11 @@ class _{className}State extends State<{className}> {{
                     else if (node.TryGetProperty("Gravity", out gProp) && !string.IsNullOrWhiteSpace(gProp.GetString()))
                         alignStr = gProp.GetString()!;
 
-                    if (!string.IsNullOrWhiteSpace(alignStr) && !alignStr.Equals("Default", StringComparison.OrdinalIgnoreCase) && !alignStr.Equals("TopLeft", StringComparison.OrdinalIgnoreCase))
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Alignment"))
+                    {
+                        props.Add($"alignment: _{camelId}Alignment");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(alignStr) && !alignStr.Equals("Default", StringComparison.OrdinalIgnoreCase) && !alignStr.Equals("TopLeft", StringComparison.OrdinalIgnoreCase))
                     {
                         string flAlign = AlignmentHelper.ToFlutterAlignmentCode(alignStr);
                         props.Add($"alignment: {flAlign}");
@@ -983,7 +1390,11 @@ class _{className}State extends State<{className}> {{
                     else if (node.TryGetProperty("Padding", out pProp) && !string.IsNullOrWhiteSpace(pProp.GetString()))
                         padStr = pProp.GetString()!;
 
-                    if (!string.IsNullOrWhiteSpace(padStr))
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Padding"))
+                    {
+                        props.Add($"padding: EdgeInsets.all(_{camelId}Padding ?? 16.0)");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(padStr))
                     {
                         string pVal = padStr.Trim();
                         if (!pVal.Equals("0", StringComparison.OrdinalIgnoreCase) && !pVal.Equals("0,0,0,0", StringComparison.OrdinalIgnoreCase))
@@ -1036,7 +1447,44 @@ class _{className}State extends State<{className}> {{
                     bool hasShadow = (node.TryGetProperty("hasShadow", out var hsP) || node.TryGetProperty("HasShadow", out hsP)) && hsP.ValueKind == JsonValueKind.True;
 
                     string decorationCode = AlignmentHelper.ToFlutterBoxDecorationCode(bgCol, borderCol, borderW, cornerR, hasShadow);
-                    if (!string.IsNullOrWhiteSpace(decorationCode))
+
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Radius"))
+                    {
+                        if (string.IsNullOrWhiteSpace(decorationCode))
+                        {
+                            decorationCode = $"BoxDecoration(borderRadius: BorderRadius.circular(_{camelId}Radius ?? 0.0))";
+                        }
+                        else
+                        {
+                            decorationCode = $"({decorationCode}).copyWith(borderRadius: BorderRadius.circular(_{camelId}Radius ?? 0.0))";
+                        }
+                    }
+
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Elevation"))
+                    {
+                        string shadowExpr = "[BoxShadow(color: const Color(0x33000000), blurRadius: (_{camelId}Elevation ?? 4.0) * 2, offset: Offset(0, _{camelId}Elevation ?? 2.0))]";
+                        if (string.IsNullOrWhiteSpace(decorationCode))
+                        {
+                            decorationCode = $"BoxDecoration(boxShadow: {shadowExpr})";
+                        }
+                        else
+                        {
+                            decorationCode = $"({decorationCode}).copyWith(boxShadow: {shadowExpr})";
+                        }
+                    }
+
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}BgColor"))
+                    {
+                        if (string.IsNullOrWhiteSpace(decorationCode))
+                        {
+                            props.Add($"color: _{camelId}BgColor");
+                        }
+                        else
+                        {
+                            props.Add($"decoration: ({decorationCode}).copyWith(color: _{camelId}BgColor)");
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(decorationCode))
                     {
                         props.Add($"decoration: {decorationCode}");
                     }
@@ -1047,7 +1495,12 @@ class _{className}State extends State<{className}> {{
                         props.Add($"child: {CompileWidget(childrenProp[0])}");
                     }
 
-                    return props.Count > 0 ? $"Container({string.Join(", ", props)})" : "Container()";
+                    string containerResult = props.Count > 0 ? $"Container({string.Join(", ", props)})" : "Container()";
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(widgetId) && _activeDynamicVars.Contains($"_{camelId}Visible"))
+                    {
+                        containerResult = $"Visibility(visible: _{camelId}Visible, child: {containerResult})";
+                    }
+                    return containerResult;
                 }
 
                 case "ScrollView":
@@ -1190,30 +1643,59 @@ class _{className}State extends State<{className}> {{
             {
                 case "Text":
                 {
+                    string textId = node.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
+                    string camelTextId = ToCamelCase(textId);
                     string textVal = node.TryGetProperty("text", out var tProp) ? tProp.GetString() ?? string.Empty : string.Empty;
                     textVal = textVal.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$");
                     
                     var styleProps = new List<string>();
-                    if (node.TryGetProperty("textColor", out var tcProp) && !string.IsNullOrWhiteSpace(tcProp.GetString()))
+                    string tc = node.TryGetProperty("textColor", out var tcProp) && !string.IsNullOrWhiteSpace(tcProp.GetString()) ? tcProp.GetString()! : "";
+                    string tcCode = AlignmentHelper.ToFlutterColorCode(tc);
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(textId) && _activeDynamicVars.Contains($"_{camelTextId}TextColor"))
                     {
-                        string cCode = AlignmentHelper.ToFlutterColorCode(tcProp.GetString());
-                        if (!string.IsNullOrWhiteSpace(cCode)) styleProps.Add($"color: {cCode}");
+                        styleProps.Add($"color: _{camelTextId}TextColor ?? {(!string.IsNullOrWhiteSpace(tcCode) ? tcCode : "const Color(0xFF000000)")}");
                     }
-                    if (node.TryGetProperty("textSize", out var tsProp) && double.TryParse(tsProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ts) && ts > 0)
+                    else if (!string.IsNullOrWhiteSpace(tcCode))
+                    {
+                        styleProps.Add($"color: {tcCode}");
+                    }
+
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(textId) && _activeDynamicVars.Contains($"_{camelTextId}FontSize"))
+                    {
+                        string defaultSize = "14.0";
+                        if (node.TryGetProperty("textSize", out var tsProp) && double.TryParse(tsProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ts) && ts > 0)
+                        {
+                            defaultSize = (ts % 1 == 0 ? ((int)ts).ToString() : ts.ToString(System.Globalization.CultureInfo.InvariantCulture)) + (ts % 1 == 0 ? ".0" : "");
+                        }
+                        styleProps.Add($"fontSize: _{camelTextId}FontSize ?? {defaultSize}");
+                    }
+                    else if (node.TryGetProperty("textSize", out var tsProp) && double.TryParse(tsProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ts) && ts > 0)
                     {
                         string tsStr = ts % 1 == 0 ? ((int)ts).ToString() : ts.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         styleProps.Add($"fontSize: {tsStr}");
                     }
-                    if (node.TryGetProperty("fontWeight", out var fwProp) && fwProp.GetString() == "Bold")
+
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(textId) && _activeDynamicVars.Contains($"_{camelTextId}Bold"))
+                    {
+                        styleProps.Add($"fontWeight: (_{camelTextId}Bold ?? false) ? FontWeight.bold : FontWeight.normal");
+                    }
+                    else if (node.TryGetProperty("fontWeight", out var fwProp) && fwProp.GetString() == "Bold")
                     {
                         styleProps.Add("fontWeight: FontWeight.bold");
                     }
+
                     if (node.TryGetProperty("fontFamily", out var ffProp) && !string.IsNullOrWhiteSpace(ffProp.GetString()))
                     {
                         styleProps.Add($"fontFamily: \"{ffProp.GetString()}\"");
                     }
 
-                    var textArgs = new List<string> { $"\"{textVal}\"" };
+                    string textArg = $"\"{textVal}\"";
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(textId) && _activeDynamicVars.Contains($"_{camelTextId}Text"))
+                    {
+                        textArg = $"_{camelTextId}Text ?? \"{textVal}\"";
+                    }
+
+                    var textArgs = new List<string> { textArg };
                     if (styleProps.Count > 0)
                     {
                         textArgs.Add($"style: TextStyle({string.Join(", ", styleProps)})");
@@ -1234,6 +1716,8 @@ class _{className}State extends State<{className}> {{
 
                 case "Button":
                 {
+                    string btnId = node.TryGetProperty("id", out var btnIdProp) ? btnIdProp.GetString() ?? "" : "";
+                    string camelBtnId = ToCamelCase(btnId);
                     string text = node.TryGetProperty("text", out var textProp) ? textProp.GetString() ?? string.Empty : string.Empty;
                     if (string.IsNullOrEmpty(text) && node.TryGetProperty("name", out var nProp))
                     {
@@ -1243,20 +1727,30 @@ class _{className}State extends State<{className}> {{
                     text = text.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$");
                     
                     var styleProps = new List<string>();
-                    if (node.TryGetProperty("backgroundColor", out var bgProp) && !string.IsNullOrWhiteSpace(bgProp.GetString()))
+                    string bgCol = node.TryGetProperty("backgroundColor", out var bgProp) && !string.IsNullOrWhiteSpace(bgProp.GetString()) ? bgProp.GetString()! : "";
+                    string bgCode = AlignmentHelper.ToFlutterColorCode(bgCol);
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(btnId) && _activeDynamicVars.Contains($"_{camelBtnId}BgColor"))
                     {
-                        string cCode = AlignmentHelper.ToFlutterColorCode(bgProp.GetString());
-                        if (!string.IsNullOrWhiteSpace(cCode)) styleProps.Add($"backgroundColor: {cCode}");
+                        styleProps.Add($"backgroundColor: _{camelBtnId}BgColor ?? {(!string.IsNullOrWhiteSpace(bgCode) ? bgCode : "const Color(0xFF2196F3)")}");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(bgCode))
+                    {
+                        styleProps.Add($"backgroundColor: {bgCode}");
                     }
                     else
                     {
                         styleProps.Add("backgroundColor: const Color(0xFF2196F3)");
                     }
 
-                    if (node.TryGetProperty("textColor", out var tcProp) && !string.IsNullOrWhiteSpace(tcProp.GetString()))
+                    string tcCol = node.TryGetProperty("textColor", out var tcProp) && !string.IsNullOrWhiteSpace(tcProp.GetString()) ? tcProp.GetString()! : "";
+                    string tcCode = AlignmentHelper.ToFlutterColorCode(tcCol);
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(btnId) && _activeDynamicVars.Contains($"_{camelBtnId}TextColor"))
                     {
-                        string cCode = AlignmentHelper.ToFlutterColorCode(tcProp.GetString());
-                        if (!string.IsNullOrWhiteSpace(cCode)) styleProps.Add($"foregroundColor: {cCode}");
+                        styleProps.Add($"foregroundColor: _{camelBtnId}TextColor ?? {(!string.IsNullOrWhiteSpace(tcCode) ? tcCode : "Colors.white")}");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(tcCode))
+                    {
+                        styleProps.Add($"foregroundColor: {tcCode}");
                     }
                     else
                     {
@@ -1319,9 +1813,31 @@ class _{className}State extends State<{className}> {{
                         btnTextStyles.Add("fontWeight: FontWeight.bold");
                     }
 
+                    string clickCall = "";
+                    string longPressArg = "";
+                    if (!string.IsNullOrEmpty(btnId) && _activeEventBindings != null && _activeEventBindings.TryGetValue(btnId, out var btnEvents))
+                    {
+                        if (btnEvents.TryGetValue("click", out var cb))
+                        {
+                            clickCall = $"\n                {cb.methodName}(context);";
+                        }
+                        if (btnEvents.TryGetValue("longpress", out var lpb))
+                        {
+                            longPressArg = $", onLongPress: () async {{\n                {lpb.methodName}(context);\n              }}";
+                        }
+                    }
+
                     string btnTextStyle = btnTextStyles.Count > 0 ? $", style: TextStyle({string.Join(", ", btnTextStyles)})" : "";
                     string styleParam = styleProps.Count > 0 ? $"style: ElevatedButton.styleFrom({string.Join(", ", styleProps)}), " : "";
-                    string btnWidget = $"ElevatedButton({styleParam}onPressed: () async {{{eventBlock}}}, child: Text(\"{text}\"{btnTextStyle}))";
+                    string onPressedContent = "";
+                    if (!string.IsNullOrWhiteSpace(clickCall)) onPressedContent += clickCall + "\n              ";
+                    if (!string.IsNullOrWhiteSpace(eventBlock)) onPressedContent += eventBlock;
+                    string btnTextArg = $"\"{text}\"";
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(btnId) && _activeDynamicVars.Contains($"_{camelBtnId}Text"))
+                    {
+                        btnTextArg = $"_{camelBtnId}Text ?? \"{text}\"";
+                    }
+                    string btnWidget = $"ElevatedButton({styleParam}onPressed: () async {{{onPressedContent}}}, child: Text({btnTextArg}{btnTextStyle}){longPressArg})";
 
                     return btnWidget;
                 }
@@ -1329,6 +1845,7 @@ class _{className}State extends State<{className}> {{
                 case "TextField":
                 {
                     string tfId = node.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
+                    string camelTfId = ToCamelCase(tfId);
                     string hint = node.TryGetProperty("hintText", out var hintProp) ? hintProp.GetString() ?? "" : "";
                     if (string.IsNullOrEmpty(hint) && node.TryGetProperty("text", out var nameProp))
                     {
@@ -1337,7 +1854,14 @@ class _{className}State extends State<{className}> {{
                     hint = hint.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$");
                     
                     var decorProps = new List<string>();
-                    if (!string.IsNullOrEmpty(hint)) decorProps.Add($"hintText: \"{hint}\"");
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(tfId) && _activeDynamicVars.Contains($"_{camelTfId}Hint"))
+                    {
+                        decorProps.Add($"hintText: _{camelTfId}Hint ?? \"{hint}\"");
+                    }
+                    else if (!string.IsNullOrEmpty(hint))
+                    {
+                        decorProps.Add($"hintText: \"{hint}\"");
+                    }
 
                     string bgCol = node.TryGetProperty("backgroundColor", out var bgP) ? bgP.GetString() ?? "" : "";
                     string bgCode = AlignmentHelper.ToFlutterColorCode(bgCol);
@@ -1418,11 +1942,25 @@ class _{className}State extends State<{className}> {{
                         tfProps.Add($"decoration: InputDecoration({string.Join(", ", decorProps)})");
                     }
 
+                    if (!string.IsNullOrEmpty(tfId) && _activeEventBindings != null && _activeEventBindings.TryGetValue(tfId, out var tfEvents))
+                    {
+                        if (tfEvents.TryGetValue("changed", out var chB) || tfEvents.TryGetValue("textchanged", out chB))
+                        {
+                            tfProps.Add($"onChanged: (String value) async {{\n                {chB.methodName}(context, value);\n              }}");
+                        }
+                        if (tfEvents.TryGetValue("submitted", out var subB) || tfEvents.TryGetValue("textsubmitted", out subB))
+                        {
+                            tfProps.Add($"onSubmitted: (String value) async {{\n                {subB.methodName}(context, value);\n              }}");
+                        }
+                    }
+
                     return $"TextField({string.Join(", ", tfProps)})";
                 }
 
                 case "Image":
                 {
+                    string imgId = node.TryGetProperty("id", out var imgIdProp) ? imgIdProp.GetString() ?? "" : "";
+                    string camelImgId = ToCamelCase(imgId);
                     string asset = "";
                     if (node.TryGetProperty("assetPath", out var apProp) && !string.IsNullOrWhiteSpace(apProp.GetString()))
                         asset = apProp.GetString()!;
@@ -1455,7 +1993,17 @@ class _{className}State extends State<{className}> {{
 
                     string fileName = Path.GetFileName(asset.Trim().Replace('\\', '/'));
                     string flutterAssetPath = $"assets/{fileName}";
-                    string imgWidget = $"Image.asset(\"{flutterAssetPath}\", fit: {flutterFit})";
+                    string assetArg = $"\"{flutterAssetPath}\"";
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(imgId) && _activeDynamicVars.Contains($"_{camelImgId}Asset"))
+                    {
+                        assetArg = $"_{camelImgId}Asset ?? \"{flutterAssetPath}\"";
+                    }
+                    string fitArg = flutterFit;
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(imgId) && _activeDynamicVars.Contains($"_{camelImgId}Fit"))
+                    {
+                        fitArg = $"_{camelImgId}Fit ?? {flutterFit}";
+                    }
+                    string imgWidget = $"Image.asset({assetArg}, fit: {fitArg})";
 
                     if (node.TryGetProperty("cornerRadius", out var crProp) && double.TryParse(crProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double cr) && cr > 0)
                     {
@@ -1463,15 +2011,32 @@ class _{className}State extends State<{className}> {{
                         imgWidget = $"ClipRRect(borderRadius: BorderRadius.circular({crStr}), child: {imgWidget})";
                     }
 
+                    if (!string.IsNullOrEmpty(imgId) && _activeEventBindings != null && _activeEventBindings.TryGetValue(imgId, out var imgEvents))
+                    {
+                        if (imgEvents.TryGetValue("click", out var imgCb) || imgEvents.TryGetValue("tap", out imgCb))
+                        {
+                            imgWidget = $"GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => {imgCb.methodName}(context), child: {imgWidget})";
+                        }
+                    }
+
                     return imgWidget;
                 }
 
                 case "Checkbox":
                 {
-                    string cbVar = node.TryGetProperty("id", out var cbIdProp) && !string.IsNullOrWhiteSpace(cbIdProp.GetString())
-                        ? ToCamelCase(cbIdProp.GetString()!)
+                    string cbId = node.TryGetProperty("id", out var cbIdProp) && !string.IsNullOrWhiteSpace(cbIdProp.GetString())
+                        ? cbIdProp.GetString()!
+                        : "";
+                    string camelCbId = ToCamelCase(cbId);
+                    string cbVar = !string.IsNullOrEmpty(cbId)
+                        ? camelCbId
                         : "checkboxValue";
-                    var cbProps = new List<string> { $"value: {cbVar}" };
+                    string valueExpr = cbVar;
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(cbId) && _activeDynamicVars.Contains($"_{camelCbId}Checked"))
+                    {
+                        valueExpr = $"_{camelCbId}Checked ?? {cbVar}";
+                    }
+                    var cbProps = new List<string> { $"value: {valueExpr}" };
                     
                     string acCode = "";
                     if (node.TryGetProperty("activeColor", out var acP) && !string.IsNullOrWhiteSpace(acP.GetString()))
@@ -1484,7 +2049,16 @@ class _{className}State extends State<{className}> {{
                     }
                     if (!string.IsNullOrWhiteSpace(acCode)) cbProps.Add($"activeColor: {acCode}");
 
-                    cbProps.Add($"onChanged: (bool? value) {{\n                setState(() {{ {cbVar} = value ?? false; }});{(string.IsNullOrWhiteSpace(eventBlock) ? "" : eventBlock)}\n              }}");
+                    string cbCall = "";
+                    if (!string.IsNullOrEmpty(cbId) && _activeEventBindings != null && _activeEventBindings.TryGetValue(cbId, out var cbEvents))
+                    {
+                        if (cbEvents.TryGetValue("changed", out var chb) || cbEvents.TryGetValue("checkboxchanged", out chb))
+                        {
+                            cbCall = $"\n                {chb.methodName}(context, value);";
+                        }
+                    }
+
+                    cbProps.Add($"onChanged: (bool? value) async {{\n                setState(() {{ {cbVar} = value ?? false; }});{cbCall}{(string.IsNullOrWhiteSpace(eventBlock) ? "" : eventBlock)}\n              }}");
                     string cbWidget = $"Checkbox({string.Join(", ", cbProps)})";
 
                     string label = "";
@@ -1516,10 +2090,19 @@ class _{className}State extends State<{className}> {{
 
                 case "Switch":
                 {
-                    string swVar = node.TryGetProperty("id", out var swIdProp) && !string.IsNullOrWhiteSpace(swIdProp.GetString())
-                        ? ToCamelCase(swIdProp.GetString()!)
+                    string swId = node.TryGetProperty("id", out var swIdProp) && !string.IsNullOrWhiteSpace(swIdProp.GetString())
+                        ? swIdProp.GetString()!
+                        : "";
+                    string camelSwId = ToCamelCase(swId);
+                    string swVar = !string.IsNullOrEmpty(swId)
+                        ? camelSwId
                         : "switchValue";
-                    var swProps = new List<string> { $"value: {swVar}" };
+                    string valueExpr = swVar;
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(swId) && _activeDynamicVars.Contains($"_{camelSwId}Checked"))
+                    {
+                        valueExpr = $"_{camelSwId}Checked ?? {swVar}";
+                    }
+                    var swProps = new List<string> { $"value: {valueExpr}" };
                     
                     string acCode = "";
                     if (node.TryGetProperty("activeColor", out var acP) && !string.IsNullOrWhiteSpace(acP.GetString()))
@@ -1530,24 +2113,42 @@ class _{className}State extends State<{className}> {{
                     {
                         acCode = AlignmentHelper.ToFlutterColorCode("#2196F3");
                     }
-                    if (!string.IsNullOrWhiteSpace(acCode)) swProps.Add($"activeColor: {acCode}");
+                    if (!string.IsNullOrWhiteSpace(acCode)) swProps.Add($"activeThumbColor: {acCode}");
 
-                    swProps.Add($"onChanged: (bool value) {{\n                setState(() {{ {swVar} = value; }});{(string.IsNullOrWhiteSpace(eventBlock) ? "" : eventBlock)}\n              }}");
+                    string swCall = "";
+                    if (!string.IsNullOrEmpty(swId) && _activeEventBindings != null && _activeEventBindings.TryGetValue(swId, out var swEvents))
+                    {
+                        if (swEvents.TryGetValue("changed", out var swb) || swEvents.TryGetValue("switchchanged", out swb))
+                        {
+                            swCall = $"\n                {swb.methodName}(context, value);";
+                        }
+                    }
+
+                    swProps.Add($"onChanged: (bool value) async {{\n                setState(() {{ {swVar} = value; }});{swCall}{(string.IsNullOrWhiteSpace(eventBlock) ? "" : eventBlock)}\n              }}");
                     return $"Switch({string.Join(", ", swProps)})";
                 }
 
                 case "Slider":
                 {
-                    string slVar = node.TryGetProperty("id", out var slIdProp) && !string.IsNullOrWhiteSpace(slIdProp.GetString())
-                        ? $"{ToCamelCase(slIdProp.GetString()!)}Value"
+                    string slId = node.TryGetProperty("id", out var slIdProp) && !string.IsNullOrWhiteSpace(slIdProp.GetString())
+                        ? slIdProp.GetString()!
+                        : "";
+                    string camelSlId = ToCamelCase(slId);
+                    string slVar = !string.IsNullOrEmpty(slId)
+                        ? $"{camelSlId}Value"
                         : "sliderValue";
 
                     double minVal = node.TryGetProperty("minValue", out var minP) && minP.TryGetDouble(out var dMin) ? dMin : 0.0;
                     double maxVal = node.TryGetProperty("maxValue", out var maxP) && maxP.TryGetDouble(out var dMax) ? dMax : 100.0;
                     
+                    string valueExpr = slVar;
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(slId) && _activeDynamicVars.Contains($"_{camelSlId}Value"))
+                    {
+                        valueExpr = $"_{camelSlId}Value ?? {slVar}";
+                    }
                     var slProps = new List<string>
                     {
-                        $"value: {slVar}",
+                        $"value: {valueExpr}",
                         $"min: {minVal.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
                         $"max: {maxVal.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
                     };
@@ -1556,7 +2157,17 @@ class _{className}State extends State<{className}> {{
                         string acCode = AlignmentHelper.ToFlutterColorCode(acP.GetString());
                         if (!string.IsNullOrWhiteSpace(acCode)) slProps.Add($"activeColor: {acCode}");
                     }
-                    slProps.Add($"onChanged: (double value) {{\n                setState(() {{ {slVar} = value; }});{(string.IsNullOrWhiteSpace(eventBlock) ? "" : eventBlock)}\n              }}");
+
+                    string slCall = "";
+                    if (!string.IsNullOrEmpty(slId) && _activeEventBindings != null && _activeEventBindings.TryGetValue(slId, out var slEvents))
+                    {
+                        if (slEvents.TryGetValue("changed", out var slb) || slEvents.TryGetValue("sliderchanged", out slb))
+                        {
+                            slCall = $"\n                {slb.methodName}(context, value);";
+                        }
+                    }
+
+                    slProps.Add($"onChanged: (double value) async {{\n                setState(() {{ {slVar} = value; }});{slCall}{(string.IsNullOrWhiteSpace(eventBlock) ? "" : eventBlock)}\n              }}");
                     return $"Slider({string.Join(", ", slProps)})";
                 }
 

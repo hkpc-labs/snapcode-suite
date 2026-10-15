@@ -4,9 +4,22 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SnapCode Block Editor</title>
-<script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
-<script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
-<script src="https://unpkg.com/blockly/msg/en.js"></script>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+  console.error("BlockEditor Global Error:", msg, url, line, col, error);
+  if (window.chrome && window.chrome.webview) {
+    try {
+      window.chrome.webview.postMessage(JSON.stringify({
+        type: 'error',
+        message: String(msg) + ' at ' + String(url) + ':' + String(line) + ':' + String(col)
+      }));
+    } catch(e) {}
+  }
+};
+</script>
+<script src="blockly_compressed.js"></script>
+<script src="blocks_compressed.js"></script>
+<script src="en.js"></script>
 <script src="sketchware_parser.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,42 +51,101 @@
 <div id="blocklyDiv"></div>
 
 <xml id="toolbox" style="display:none">
-  <category name="App Structure" colour="#7c3aed">
-    <block type="flutter_app_scaffold"></block>
-    <block type="flutter_app_bar"></block>
+  <category name="Layout (Row / Column / Container)" colour="#0d9488">
+    <block type="layout_set_bg_color"></block>
+    <block type="layout_set_visibility"></block>
+    <block type="layout_set_padding"></block>
+    <block type="layout_set_corner_radius"></block>
+    <block type="layout_set_width"></block>
+    <block type="layout_set_height"></block>
+    <block type="layout_set_elevation"></block>
+    <block type="layout_set_alignment"></block>
+    <block type="row_set_bg_color"></block>
+    <block type="column_set_bg_color"></block>
+    <block type="container_set_bg_color"></block>
+    <block type="row_set_alignment"></block>
+    <block type="column_set_alignment"></block>
   </category>
-  <category name="Layout" colour="#2563eb">
-    <block type="flutter_column"></block>
-    <block type="flutter_row"></block>
-    <block type="flutter_listview"></block>
-    <block type="flutter_gridview"></block>
-    <block type="flutter_stack"></block>
-    <block type="flutter_container"></block>
-    <block type="flutter_padding"></block>
-    <block type="flutter_center"></block>
-    <block type="flutter_expanded"></block>
-    <block type="flutter_positioned"></block>
-    <block type="flutter_sized_box"></block>
+  <category name="View (All Layouts &amp; Widgets)" colour="#059669">
+    <block type="view_set_visibility"></block>
+    <block type="view_is_visible"></block>
+    <block type="view_set_bg_color"></block>
+    <block type="view_set_enabled"></block>
+    <block type="view_set_width"></block>
+    <block type="view_set_height"></block>
+    <block type="view_set_padding"></block>
+    <block type="view_set_corner_radius"></block>
+    <block type="view_set_elevation"></block>
+    <block type="view_set_opacity"></block>
   </category>
-  <category name="Widgets" colour="#059669">
-    <block type="flutter_text"></block>
-    <block type="flutter_elevated_button"></block>
-    <block type="flutter_icon"></block>
-    <block type="flutter_image_network"></block>
-    <block type="flutter_image_asset"></block>
-    <block type="flutter_circle_avatar"></block>
-    <block type="flutter_list_tile"></block>
-    <block type="flutter_card"></block>
-    <block type="flutter_divider"></block>
-    <block type="flutter_snackbar"></block>
+  <category name="TextView" colour="#2563eb">
+    <block type="textview_set_text"></block>
+    <block type="textview_get_text"></block>
+    <block type="textview_set_text_color"></block>
+    <block type="textview_set_text_size"></block>
+    <block type="textview_set_bold"></block>
+    <block type="textview_set_visibility"></block>
+    <block type="textview_set_bg_color"></block>
+  </category>
+  <category name="Button" colour="#7c3aed">
+    <block type="button_set_text"></block>
+    <block type="button_get_text"></block>
+    <block type="button_set_enabled"></block>
+    <block type="button_set_bg_color"></block>
+    <block type="button_set_text_color"></block>
+    <block type="button_set_visibility"></block>
+    <block type="button_set_corner_radius"></block>
+    <block type="button_set_elevation"></block>
+  </category>
+  <category name="EditText / TextField" colour="#d97706">
+    <block type="edittext_set_text"></block>
+    <block type="edittext_get_text"></block>
+    <block type="edittext_set_hint"></block>
+    <block type="edittext_clear"></block>
+    <block type="edittext_set_enabled"></block>
+    <block type="edittext_set_text_color"></block>
+    <block type="edittext_set_visibility"></block>
+  </category>
+  <category name="ImageView" colour="#0284c7">
+    <block type="imageview_set_asset"></block>
+    <block type="imageview_set_fit"></block>
+    <block type="imageview_set_visibility"></block>
+    <block type="imageview_set_corner_radius"></block>
+    <block type="imageview_set_opacity"></block>
+  </category>
+  <category name="Checkbox &amp; Switch" colour="#10b981">
+    <block type="checkbox_set_checked"></block>
+    <block type="checkbox_is_checked"></block>
+    <block type="checkbox_set_visibility"></block>
+    <block type="switch_set_checked"></block>
+    <block type="switch_is_checked"></block>
+    <block type="switch_set_visibility"></block>
+  </category>
+  <category name="Slider" colour="#f59e0b">
+    <block type="slider_set_value"></block>
+    <block type="slider_get_value"></block>
+    <block type="slider_set_visibility"></block>
+  </category>
+  <category name="Events (When...)" colour="#ec4899">
+    <block type="widget_on_click"></block>
+    <block type="widget_on_long_press"></block>
+    <block type="widget_on_text_changed"></block>
+    <block type="widget_on_checkbox_changed"></block>
+    <block type="widget_on_switch_changed"></block>
+    <block type="widget_on_slider_changed"></block>
+  </category>
+  <category name="Dialogs &amp; Alerts" colour="#0ea5e9">
+    <block type="ui_show_dialog"></block>
     <block type="flutter_alert_dialog"></block>
+    <block type="ui_show_confirm_dialog"></block>
+    <block type="ui_show_snackbar"></block>
+    <block type="flutter_snackbar"></block>
+    <block type="ui_show_toast"></block>
+    <block type="ui_haptic_feedback"></block>
   </category>
-  <category name="Input &amp; Forms" colour="#d97706">
-    <block type="flutter_text_field"></block>
-    <block type="flutter_checkbox"></block>
-    <block type="flutter_switch"></block>
-    <block type="flutter_slider"></block>
-    <block type="flutter_dropdown"></block>
+  <category name="Navigation" colour="#6366f1">
+    <block type="nav_push_named"></block>
+    <block type="nav_pop"></block>
   </category>
   <category name="Logic" colour="#e11d48">
     <block type="logic_if_else"></block>
@@ -82,7 +154,7 @@
     <block type="logic_function"></block>
     <block type="logic_print"></block>
   </category>
-  <category name="Variables" colour="#0891b2">
+  <category name="Variables &amp; Math" colour="#0891b2">
     <block type="variable_set"></block>
     <block type="variable_get"></block>
     <block type="math_number"></block>
@@ -90,39 +162,7 @@
     <block type="text_literal"></block>
     <block type="text_join"></block>
   </category>
-  <category name="Raw Dart (ASD)" colour="#475569">
-    <block type="dart_raw_statement"></block>
-    <block type="dart_raw_expression"></block>
-    <block type="dart_raw_import"></block>
-    <block type="dart_raw_comment"></block>
-  </category>
-  <category name="State &amp; Events" colour="#8b5cf6">
-    <block type="lifecycle_init_state"></block>
-    <block type="lifecycle_dispose"></block>
-    <block type="state_declare_variable"></block>
-    <block type="state_set_variable"></block>
-    <block type="state_get_variable"></block>
-  </category>
-  <category name="Widget Events" colour="#ec4899">
-    <block type="widget_on_click"></block>
-    <block type="widget_on_long_press"></block>
-    <block type="widget_on_text_changed"></block>
-    <block type="widget_on_checkbox_changed"></block>
-    <block type="widget_on_switch_changed"></block>
-    <block type="widget_on_slider_changed"></block>
-    <block type="widget_set_text"></block>
-    <block type="widget_get_text"></block>
-    <block type="widget_set_visible"></block>
-    <block type="widget_set_enabled"></block>
-    <block type="widget_set_bg_color"></block>
-      <block type="widget_set_text_color"></block>
-      <block type="widget_set_font_size"></block>
-      <block type="widget_set_width"></block>
-      <block type="widget_set_height"></block>
-  </category>
-  <category name="Components" colour="#0284c7">
-    <block type="nav_push_named"></block>
-    <block type="nav_pop"></block>
+  <category name="Components &amp; Storage" colour="#0284c7">
     <block type="pref_set_string"></block>
     <block type="pref_get_string"></block>
     <block type="pref_set_number"></block>
@@ -133,19 +173,36 @@
     <block type="timer_periodic"></block>
     <block type="http_get_request"></block>
     <block type="http_post_request"></block>
-    <block type="ui_show_snackbar"></block>
-    <block type="ui_show_dialog"></block>
-    <block type="ui_haptic_feedback"></block>
   </category>
-  <category name="Firebase" colour="#f59e0b">
-    <block type="firebase_init"></block>
-    <block type="firebase_auth_signin"></block>
-    <block type="firebase_firestore_get"></block>
-    <block type="firebase_firestore_add"></block>
+  <category name="Raw Dart (ASD)" colour="#475569">
+    <block type="dart_raw_statement"></block>
+    <block type="dart_raw_expression"></block>
+    <block type="dart_raw_import"></block>
+    <block type="dart_raw_comment"></block>
   </category>
-  <category name="File Access" colour="#4b5563">
-    <block type="file_write"></block>
-    <block type="file_read"></block>
+  <category name="Advanced: Raw Flutter Widgets (Optional)" colour="#64748b">
+    <block type="flutter_app_scaffold"></block>
+    <block type="flutter_app_bar"></block>
+    <block type="flutter_column"></block>
+    <block type="flutter_row"></block>
+    <block type="flutter_container"></block>
+    <block type="flutter_listview"></block>
+    <block type="flutter_gridview"></block>
+    <block type="flutter_stack"></block>
+    <block type="flutter_padding"></block>
+    <block type="flutter_center"></block>
+    <block type="flutter_expanded"></block>
+    <block type="flutter_positioned"></block>
+    <block type="flutter_sized_box"></block>
+    <block type="flutter_text"></block>
+    <block type="flutter_elevated_button"></block>
+    <block type="flutter_icon"></block>
+    <block type="flutter_image_network"></block>
+    <block type="flutter_image_asset"></block>
+    <block type="flutter_circle_avatar"></block>
+    <block type="flutter_list_tile"></block>
+    <block type="flutter_card"></block>
+    <block type="flutter_divider"></block>
   </category>
 </xml>
 
@@ -153,6 +210,13 @@
 // ============================================================
 // SnapCode — Block Definitions (all inlined)
 // ============================================================
+
+// ── Global Widget ID Registry (populated from C# via bridge) ─────
+var _widgetRegistry = [['(no widgets in View Designer)', 'none']];
+
+function _getWidgetDropdownOptions() {
+  return _widgetRegistry.length > 0 ? _widgetRegistry : [['(no widgets in View Designer)', 'none']];
+}
 
 // ── App Blocks ──────────────────────────────────────────
 Blockly.defineBlocksWithJsonArray([
@@ -171,14 +235,13 @@ Blockly.defineBlocksWithJsonArray([
         { 
           type: 'field_dropdown', 
           name: 'WIDGET_ID',
-          options: [['(no widgets in View Designer)', 'none']]
+          options: _getWidgetDropdownOptions
         },
         { type: 'input_value', name: 'VALUE' }
       ],
       previousStatement: null,
       nextStatement: null,
       colour: '#d97706',
-      extensions: ['dynamic_widget_dropdown']
     },
 
   {
@@ -759,12 +822,12 @@ Blockly.defineBlocksWithJsonArray([
   // ── Component Blocks ─────────────────────────────────
   {
     type: 'nav_push_named',
-    message0: 'Navigate to Route %1',
+    message0: 'Navigate to Page Class %1',
     args0: [
-      { type: 'field_input', name: 'ROUTE', text: '/profile' },
+      { type: 'field_input', name: 'ROUTE', text: 'SecondPage' },
     ],
     previousStatement: null, nextStatement: null, colour: '#0284c7',
-    tooltip: 'Navigates to another page by named route',
+    tooltip: 'Navigates to another page by page class name',
   },
   {
     type: 'nav_pop',
@@ -884,6 +947,16 @@ Blockly.defineBlocksWithJsonArray([
     tooltip: 'Displays a popup SnackBar message at the bottom of the screen',
   },
   {
+    type: 'ui_show_toast',
+    message0: 'Show Toast %1 duration %2 ms',
+    args0: [
+      { type: 'field_input', name: 'MESSAGE', text: 'Done!' },
+      { type: 'field_number', name: 'DURATION', value: 2000, min: 500, max: 10000 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0284c7',
+    tooltip: 'Shows a brief toast-like message at the bottom of the screen',
+  },
+  {
     type: 'ui_show_dialog',
     message0: 'Show Alert Dialog title %1 message %2',
     args0: [
@@ -908,7 +981,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_on_click',
     message0: 'when %1 clicked %2 do %3',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'input_dummy' },
       { type: 'input_statement', name: 'DO' },
     ],
@@ -920,7 +993,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_on_long_press',
     message0: 'when %1 long pressed %2 do %3',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'input_dummy' },
       { type: 'input_statement', name: 'DO' },
     ],
@@ -932,7 +1005,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_on_text_changed',
     message0: 'when %1 text changed %2 value = %3 %4 do %5',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'input_dummy' },
       { type: 'field_variable', name: 'VALUE_VAR', variable: 'newText' },
       { type: 'input_dummy' },
@@ -946,7 +1019,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_on_checkbox_changed',
     message0: 'when %1 checkbox changed %2 checked = %3 %4 do %5',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'input_dummy' },
       { type: 'field_variable', name: 'VALUE_VAR', variable: 'isChecked' },
       { type: 'input_dummy' },
@@ -960,7 +1033,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_on_switch_changed',
     message0: 'when %1 switch toggled %2 value = %3 %4 do %5',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'input_dummy' },
       { type: 'field_variable', name: 'VALUE_VAR', variable: 'isOn' },
       { type: 'input_dummy' },
@@ -974,7 +1047,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_on_slider_changed',
     message0: 'when %1 slider changed %2 value = %3 %4 do %5',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'input_dummy' },
       { type: 'field_variable', name: 'VALUE_VAR', variable: 'sliderVal' },
       { type: 'input_dummy' },
@@ -988,7 +1061,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_set_text',
     message0: 'set %1 text to %2',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'field_input', name: 'TEXT_VALUE', text: 'Hello!' },
     ],
     previousStatement: null, nextStatement: null, colour: '#ec4899',
@@ -998,7 +1071,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_get_text',
     message0: 'text of %1',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
     ],
     output: 'String', colour: '#ec4899',
     tooltip: 'Gets the current text or value from a widget',
@@ -1007,7 +1080,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_set_visible',
     message0: 'set %1 visible %2',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'field_dropdown', name: 'VISIBLE', options: [['visible','true'],['hidden','false']] },
     ],
     previousStatement: null, nextStatement: null, colour: '#ec4899',
@@ -1017,7 +1090,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_set_enabled',
     message0: 'set %1 enabled %2',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'field_dropdown', name: 'ENABLED', options: [['enabled','true'],['disabled','false']] },
     ],
     previousStatement: null, nextStatement: null, colour: '#ec4899',
@@ -1027,7 +1100,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_set_bg_color',
     message0: 'set %1 background color %2',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'field_colour', name: 'COLOR', colour: '#2196F3' },
     ],
     previousStatement: null, nextStatement: null, colour: '#ec4899',
@@ -1037,7 +1110,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_set_text_color',
     message0: 'set %1 text color %2',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'field_colour', name: 'COLOR', colour: '#ffffff' },
     ],
     previousStatement: null, nextStatement: null, colour: '#ec4899',
@@ -1047,7 +1120,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_set_font_size',
     message0: 'set %1 font size %2',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'field_number', name: 'SIZE', value: 16, min: 1 },
     ],
     previousStatement: null, nextStatement: null, colour: '#ec4899',
@@ -1057,7 +1130,7 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_set_width',
     message0: 'set %1 width %2',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'field_number', name: 'WIDTH', value: 100, min: 0 },
     ],
     previousStatement: null, nextStatement: null, colour: '#ec4899',
@@ -1067,20 +1140,625 @@ Blockly.defineBlocksWithJsonArray([
     type: 'widget_set_height',
     message0: 'set %1 height %2',
     args0: [
-      { type: 'field_dropdown', name: 'WIDGET_ID', options: [['(select widget)', 'none']] },
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
       { type: 'field_number', name: 'HEIGHT', value: 100, min: 0 },
     ],
     previousStatement: null, nextStatement: null, colour: '#ec4899',
     tooltip: 'Changes the height of a widget at runtime',
+  },
+
+  // ── View (All Layouts & Widgets) Blocks ────────────────
+  {
+    type: 'view_set_visibility',
+    message0: 'View %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Sets the visibility of any widget or layout (Row, Column, Button, Text, etc.)',
+  },
+  {
+    type: 'view_is_visible',
+    message0: 'is View %1 visible',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+    ],
+    output: 'Boolean', colour: '#059669',
+    tooltip: 'Returns true if the widget is currently visible',
+  },
+  {
+    type: 'view_set_bg_color',
+    message0: 'View %1 set background color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#2196F3' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Changes the background color of any widget or layout',
+  },
+  {
+    type: 'view_set_enabled',
+    message0: 'View %1 set enabled %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'ENABLED', options: [['ENABLED', 'true'], ['DISABLED', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Enables or disables touch/click interactions on any widget or layout',
+  },
+  {
+    type: 'view_set_width',
+    message0: 'View %1 set width %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'WIDTH', value: 100, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Sets the width of any widget or layout in pixels/dp',
+  },
+  {
+    type: 'view_set_height',
+    message0: 'View %1 set height %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'HEIGHT', value: 100, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Sets the height of any widget or layout in pixels/dp',
+  },
+  {
+    type: 'view_set_padding',
+    message0: 'View %1 set padding %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'PADDING', value: 16, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Sets inner padding for any widget or layout',
+  },
+  {
+    type: 'view_set_corner_radius',
+    message0: 'View %1 set corner radius %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'RADIUS', value: 12, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Sets rounded corner radius for any widget or container',
+  },
+  {
+    type: 'view_set_elevation',
+    message0: 'View %1 set elevation %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'ELEVATION', value: 4, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Sets the elevation/shadow depth of any widget',
+  },
+  {
+    type: 'view_set_opacity',
+    message0: 'View %1 set opacity %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'OPACITY', value: 1.0, min: 0.0, max: 1.0, precision: 0.1 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#059669',
+    tooltip: 'Sets the opacity (0.0 transparent to 1.0 opaque) of any widget or layout',
+  },
+
+  // ── TextView Blocks ──────────────────────────────────
+  {
+    type: 'textview_set_text',
+    message0: 'TextView %1 set text %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_input', name: 'TEXT', text: 'Hello World' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#2563eb',
+    tooltip: 'Sets the text content of the selected TextView',
+  },
+  {
+    type: 'textview_get_text',
+    message0: 'TextView %1 get text',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+    ],
+    output: 'String', colour: '#2563eb',
+    tooltip: 'Gets the current text of the selected TextView',
+  },
+  {
+    type: 'textview_set_text_color',
+    message0: 'TextView %1 set text color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#000000' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#2563eb',
+    tooltip: 'Sets the text color of the selected TextView',
+  },
+  {
+    type: 'textview_set_text_size',
+    message0: 'TextView %1 set text size %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'SIZE', value: 16, min: 1 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#2563eb',
+    tooltip: 'Sets the font size of the selected TextView',
+  },
+  {
+    type: 'textview_set_bold',
+    message0: 'TextView %1 set bold %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'BOLD', options: [['bold', 'true'], ['normal', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#2563eb',
+    tooltip: 'Sets whether the TextView font weight is bold',
+  },
+
+  // ── Button Blocks ────────────────────────────────────
+  {
+    type: 'button_set_text',
+    message0: 'Button %1 set text %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_input', name: 'TEXT', text: 'Click Me' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#7c3aed',
+    tooltip: 'Sets the label text of the selected Button',
+  },
+  {
+    type: 'button_get_text',
+    message0: 'Button %1 get text',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+    ],
+    output: 'String', colour: '#7c3aed',
+    tooltip: 'Gets the current label text of the selected Button',
+  },
+  {
+    type: 'button_set_enabled',
+    message0: 'Button %1 set enabled %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'ENABLED', options: [['enabled', 'true'], ['disabled', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#7c3aed',
+    tooltip: 'Enables or disables click interaction on the selected Button',
+  },
+  {
+    type: 'button_set_bg_color',
+    message0: 'Button %1 set background color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#6200EE' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#7c3aed',
+    tooltip: 'Sets the background fill color of the selected Button',
+  },
+  {
+    type: 'button_set_text_color',
+    message0: 'Button %1 set text color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#ffffff' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#7c3aed',
+    tooltip: 'Sets the text color of the selected Button',
+  },
+
+  // ── EditText / TextField Blocks ──────────────────────
+  {
+    type: 'edittext_set_text',
+    message0: 'EditText %1 set text %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_input', name: 'TEXT', text: '' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#d97706',
+    tooltip: 'Sets the text in the TextField via its controller',
+  },
+  {
+    type: 'edittext_get_text',
+    message0: 'EditText %1 get text',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+    ],
+    output: 'String', colour: '#d97706',
+    tooltip: 'Gets the current text entered in the TextField',
+  },
+  {
+    type: 'edittext_set_hint',
+    message0: 'EditText %1 set hint %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_input', name: 'HINT', text: 'Enter value...' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#d97706',
+    tooltip: 'Sets the placeholder hint text of the TextField',
+  },
+  {
+    type: 'edittext_clear',
+    message0: 'EditText %1 clear',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#d97706',
+    tooltip: 'Clears all text from the TextField',
+  },
+
+  // ── ImageView Blocks ─────────────────────────────────
+  {
+    type: 'imageview_set_asset',
+    message0: 'ImageView %1 set image asset %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_input', name: 'ASSET', text: 'assets/sample.png' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0284c7',
+    tooltip: 'Sets the image asset path for the ImageView',
+  },
+  {
+    type: 'imageview_set_fit',
+    message0: 'ImageView %1 set box fit %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'FIT', options: [['cover','BoxFit.cover'],['contain','BoxFit.contain'],['fill','BoxFit.fill'],['fitWidth','BoxFit.fitWidth'],['fitHeight','BoxFit.fitHeight'],['none','BoxFit.none']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0284c7',
+    tooltip: 'Sets the BoxFit scaling mode of the ImageView',
+  },
+
+  // ── Checkbox & Switch Blocks ─────────────────────────
+  {
+    type: 'checkbox_set_checked',
+    message0: 'Checkbox %1 set checked %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'CHECKED', options: [['checked', 'true'], ['unchecked', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#10b981',
+    tooltip: 'Sets the checked state of the Checkbox',
+  },
+  {
+    type: 'checkbox_is_checked',
+    message0: 'is Checkbox %1 checked',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+    ],
+    output: 'Boolean', colour: '#10b981',
+    tooltip: 'Returns true if the Checkbox is checked',
+  },
+  {
+    type: 'switch_set_checked',
+    message0: 'Switch %1 set on %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'ON', options: [['on', 'true'], ['off', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#10b981',
+    tooltip: 'Sets the toggled state of the Switch',
+  },
+  {
+    type: 'switch_is_checked',
+    message0: 'is Switch %1 on',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+    ],
+    output: 'Boolean', colour: '#10b981',
+    tooltip: 'Returns true if the Switch is on',
+  },
+
+  // ── Slider Blocks ────────────────────────────────────
+  {
+    type: 'slider_set_value',
+    message0: 'Slider %1 set value %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'VALUE', value: 50, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#f59e0b',
+    tooltip: 'Sets the current numeric value of the Slider',
+  },
+  {
+    type: 'slider_get_value',
+    message0: 'Slider %1 get value',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+    ],
+    output: 'Number', colour: '#f59e0b',
+    tooltip: 'Gets the current numeric value of the Slider',
+  },
+
+  // ── Layout (Row / Column / Container) Blocks ──────────
+  {
+    type: 'layout_set_bg_color',
+    message0: 'Layout %1 set background color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#2196F3' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the background color of a Row, Column, or Container layout',
+  },
+  {
+    type: 'layout_set_visibility',
+    message0: 'Layout %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the visibility of a Row, Column, or Container layout',
+  },
+  {
+    type: 'layout_set_padding',
+    message0: 'Layout %1 set padding %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'PADDING', value: 16, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the inner padding of a Row, Column, or Container layout',
+  },
+  {
+    type: 'layout_set_corner_radius',
+    message0: 'Layout %1 set corner radius %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'RADIUS', value: 12, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the corner radius of a Container or layout',
+  },
+  {
+    type: 'layout_set_width',
+    message0: 'Layout %1 set width %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'WIDTH', value: 200, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the width of a layout in pixels',
+  },
+  {
+    type: 'layout_set_height',
+    message0: 'Layout %1 set height %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'HEIGHT', value: 200, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the height of a layout in pixels',
+  },
+  {
+    type: 'layout_set_elevation',
+    message0: 'Layout %1 set elevation %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'ELEVATION', value: 4, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the shadow elevation of a layout',
+  },
+  {
+    type: 'layout_set_alignment',
+    message0: 'Layout %1 set main alignment %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'ALIGNMENT', options: [['start', 'MainAxisAlignment.start'], ['center', 'MainAxisAlignment.center'], ['end', 'MainAxisAlignment.end'], ['space between', 'MainAxisAlignment.spaceBetween'], ['space around', 'MainAxisAlignment.spaceAround']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the flex alignment of items inside a Row or Column',
+  },
+  {
+    type: 'row_set_bg_color',
+    message0: 'Row %1 set background color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#2196F3' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the background color of the specified Row',
+  },
+  {
+    type: 'column_set_bg_color',
+    message0: 'Column %1 set background color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#2196F3' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the background color of the specified Column',
+  },
+  {
+    type: 'container_set_bg_color',
+    message0: 'Container %1 set background color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#2196F3' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the background color of the specified Container',
+  },
+  {
+    type: 'row_set_alignment',
+    message0: 'Row %1 set alignment %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'ALIGNMENT', options: [['start', 'MainAxisAlignment.start'], ['center', 'MainAxisAlignment.center'], ['end', 'MainAxisAlignment.end'], ['space between', 'MainAxisAlignment.spaceBetween'], ['space around', 'MainAxisAlignment.spaceAround']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the alignment of the specified Row',
+  },
+  {
+    type: 'column_set_alignment',
+    message0: 'Column %1 set alignment %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'ALIGNMENT', options: [['start', 'MainAxisAlignment.start'], ['center', 'MainAxisAlignment.center'], ['end', 'MainAxisAlignment.end'], ['space between', 'MainAxisAlignment.spaceBetween'], ['space around', 'MainAxisAlignment.spaceAround']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0d9488',
+    tooltip: 'Sets the alignment of the specified Column',
+  },
+
+  // ── Extended Widget Blocks ─────────────────────────────
+  {
+    type: 'textview_set_visibility',
+    message0: 'TextView %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#2563eb',
+    tooltip: 'Shows or hides the specified TextView',
+  },
+  {
+    type: 'textview_set_bg_color',
+    message0: 'TextView %1 set background color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#FFFFFF' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#2563eb',
+    tooltip: 'Sets the background highlight color of the TextView',
+  },
+  {
+    type: 'button_set_visibility',
+    message0: 'Button %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#7c3aed',
+    tooltip: 'Shows or hides the specified Button',
+  },
+  {
+    type: 'button_set_corner_radius',
+    message0: 'Button %1 set corner radius %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'RADIUS', value: 8, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#7c3aed',
+    tooltip: 'Sets the border corner radius of the Button',
+  },
+  {
+    type: 'button_set_elevation',
+    message0: 'Button %1 set elevation %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'ELEVATION', value: 2, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#7c3aed',
+    tooltip: 'Sets the shadow elevation depth of the Button',
+  },
+  {
+    type: 'edittext_set_enabled',
+    message0: 'EditText %1 set enabled %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'ENABLED', options: [['enabled', 'true'], ['disabled', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#d97706',
+    tooltip: 'Enables or disables user input on the TextField',
+  },
+  {
+    type: 'edittext_set_text_color',
+    message0: 'EditText %1 set text color %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_colour', name: 'COLOR', colour: '#000000' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#d97706',
+    tooltip: 'Sets the font color of text entered in the TextField',
+  },
+  {
+    type: 'edittext_set_visibility',
+    message0: 'EditText %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#d97706',
+    tooltip: 'Shows or hides the specified TextField',
+  },
+  {
+    type: 'imageview_set_visibility',
+    message0: 'ImageView %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0284c7',
+    tooltip: 'Shows or hides the specified ImageView',
+  },
+  {
+    type: 'imageview_set_corner_radius',
+    message0: 'ImageView %1 set corner radius %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'RADIUS', value: 10, min: 0 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0284c7',
+    tooltip: 'Sets the rounded clip radius of the ImageView',
+  },
+  {
+    type: 'imageview_set_opacity',
+    message0: 'ImageView %1 set opacity %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_number', name: 'OPACITY', value: 1.0, min: 0.0, max: 1.0, precision: 0.1 },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0284c7',
+    tooltip: 'Sets the alpha opacity of the ImageView',
+  },
+  {
+    type: 'checkbox_set_visibility',
+    message0: 'Checkbox %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#10b981',
+    tooltip: 'Shows or hides the Checkbox',
+  },
+  {
+    type: 'switch_set_visibility',
+    message0: 'Switch %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#10b981',
+    tooltip: 'Shows or hides the Switch',
+  },
+  {
+    type: 'slider_set_visibility',
+    message0: 'Slider %1 set visibility %2',
+    args0: [
+      { type: 'field_dropdown', name: 'WIDGET_ID', options: _getWidgetDropdownOptions },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['VISIBLE', 'true'], ['GONE / INVISIBLE', 'false']] },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#f59e0b',
+    tooltip: 'Shows or hides the Slider',
+  },
+  {
+    type: 'ui_show_confirm_dialog',
+    message0: 'Show Confirm Dialog title %1 message %2 on OK %3 on Cancel %4',
+    args0: [
+      { type: 'field_input', name: 'TITLE', text: 'Confirm' },
+      { type: 'field_input', name: 'MESSAGE', text: 'Do you want to proceed?' },
+      { type: 'input_statement', name: 'ON_OK' },
+      { type: 'input_statement', name: 'ON_CANCEL' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#0ea5e9',
+    tooltip: 'Displays a modal confirmation dialog with OK and Cancel callbacks',
   }
 ]);
-
-// ── Global Widget ID Registry (populated from C# via bridge) ─────
-var _widgetRegistry = [['(no widgets in View Designer)', 'none']];
-
-function _getWidgetDropdownOptions() {
-  return _widgetRegistry.length > 0 ? _widgetRegistry : [['(no widgets in View Designer)', 'none']];
-}
 
 // Dynamic dropdown extension for widget ID selectors
 Blockly.Extensions.register('dynamic_widget_dropdown', function() {
@@ -1094,20 +1772,26 @@ Blockly.Extensions.register('dynamic_widget_dropdown', function() {
 const widgetEventBlockTypes = [
   'widget_on_click', 'widget_on_long_press', 'widget_on_text_changed',
   'widget_on_checkbox_changed', 'widget_on_switch_changed', 'widget_on_slider_changed',
-  'widget_set_text', 'widget_get_text', 'widget_set_visible', 'widget_set_enabled', 'widget_set_bg_color', 'widget_set_text_color', 'widget_set_font_size', 'widget_set_width', 'widget_set_height'
+  'widget_set_text', 'widget_get_text', 'widget_set_visible', 'widget_set_enabled', 'widget_set_bg_color', 'widget_set_text_color', 'widget_set_font_size', 'widget_set_width', 'widget_set_height',
+  'layout_set_bg_color', 'layout_set_visibility', 'layout_set_padding', 'layout_set_corner_radius', 'layout_set_width', 'layout_set_height', 'layout_set_elevation', 'layout_set_alignment',
+  'row_set_bg_color', 'column_set_bg_color', 'container_set_bg_color', 'row_set_alignment', 'column_set_alignment',
+  'view_set_visibility', 'view_is_visible', 'view_set_bg_color', 'view_set_enabled', 'view_set_width', 'view_set_height', 'view_set_padding', 'view_set_corner_radius', 'view_set_elevation', 'view_set_opacity',
+  'textview_set_text', 'textview_get_text', 'textview_set_text_color', 'textview_set_text_size', 'textview_set_bold', 'textview_set_visibility', 'textview_set_bg_color',
+  'button_set_text', 'button_get_text', 'button_set_enabled', 'button_set_bg_color', 'button_set_text_color', 'button_set_visibility', 'button_set_corner_radius', 'button_set_elevation',
+  'edittext_set_text', 'edittext_get_text', 'edittext_set_hint', 'edittext_clear', 'edittext_set_enabled', 'edittext_set_text_color', 'edittext_set_visibility',
+  'imageview_set_asset', 'imageview_set_fit', 'imageview_set_visibility', 'imageview_set_corner_radius', 'imageview_set_opacity',
+  'checkbox_set_checked', 'checkbox_is_checked', 'checkbox_set_visibility', 'switch_set_checked', 'switch_is_checked', 'switch_set_visibility',
+  'slider_set_value', 'slider_get_value', 'slider_set_visibility'
 ];
 
 // Post-hoc: patch the menu generator on every WIDGET_ID dropdown
-// This runs after blocks are created on workspace
 function patchWidgetDropdowns() {
   if (!workspace) return;
   const allBlocks = workspace.getAllBlocks(false);
   allBlocks.forEach(block => {
-    if (widgetEventBlockTypes.includes(block.type)) {
-      const field = block.getField('WIDGET_ID');
-      if (field && field.menuGenerator_) {
-        field.menuGenerator_ = _getWidgetDropdownOptions;
-      }
+    const field = block.getField('WIDGET_ID');
+    if (field) {
+      field.menuGenerator_ = _getWidgetDropdownOptions;
     }
   });
 }
@@ -1115,9 +1799,17 @@ function patchWidgetDropdowns() {
 // Called from C# to update the widget ID list
 window.updateWidgetIds = function(widgetListJson) {
   try {
-    const widgets = JSON.parse(widgetListJson);
+    let widgets = widgetListJson;
+    if (typeof widgets === 'string') {
+      try {
+        widgets = JSON.parse(widgets);
+        if (typeof widgets === 'string') {
+          widgets = JSON.parse(widgets);
+        }
+      } catch(e) {}
+    }
     if (Array.isArray(widgets) && widgets.length > 0) {
-      _widgetRegistry = widgets.map(w => [w.id + ' (' + w.type + ')', w.id]);
+      _widgetRegistry = widgets.map(w => [w.id + ' (' + (w.type || 'Widget') + ')', w.id]);
     } else {
       _widgetRegistry = [['(no widgets in View Designer)', 'none']];
     }
@@ -1306,6 +1998,16 @@ class _RootPageState extends State<RootPage> {${stateVarBlock}${initStateMethod}
 function esc(str) { return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
 function hexToColor(hex) { return '0xFF' + (hex || '#000000').replace('#', '').toUpperCase(); }
 
+function toPascalCase(str) {
+  return (str || '').replace(/[^a-zA-Z0-9]/g, '_').split('_').filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
+}
+
+function toCamelCase(str) {
+  const pascal = toPascalCase(str);
+  return pascal ? pascal.charAt(0).toLowerCase() + pascal.slice(1) : '';
+}
+
 function indentCode(code) {
   return code.split('\n').filter(l => l.trim()).map(l => '  ' + l.trimStart()).join('\n');
 }
@@ -1326,9 +2028,18 @@ function generateChildrenList(block, inputName) {
 
   dartGenerator.forBlock['flutter_set_widget_property'] = function(block) {
     const prop = block.getFieldValue('PROPERTY');
-    const widgetId = block.getFieldValue('WIDGET_ID');
+    const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
     const value = dartGenerator.valueToCode(block, 'VALUE', dartGenerator.ORDER_NONE) || '\'\'';
-    return 'setState(() {\n  // ' + widgetId + '.' + prop + ' = ' + value + '\n});\n';
+    if (prop === 'text') {
+      return `setState(() {\n  _ctrl${toPascalCase(widgetId)}.text = ${value}.toString();\n});\n`;
+    } else if (prop === 'visible') {
+      return `setState(() {\n  _${toCamelCase(widgetId)}Visible = ${value} == true || ${value} == 'true';\n});\n`;
+    } else if (prop === 'backgroundColor') {
+      return `setState(() {\n  _${toCamelCase(widgetId)}BgColor = ${value};\n});\n`;
+    } else if (prop === 'textColor') {
+      return `setState(() {\n  _${toCamelCase(widgetId)}TextColor = ${value};\n});\n`;
+    }
+    return `setState(() {\n  // ${widgetId}.${prop} = ${value}\n});\n`;
   };
   dartGenerator.forBlock['flutter_app_scaffold'] = function(block, gen) {
   return '';
@@ -1504,13 +2215,13 @@ dartGenerator.forBlock['flutter_divider'] = function(block) {
 
 dartGenerator.forBlock['flutter_snackbar'] = function(block) {
   const text = block.getFieldValue('TEXT') || '';
-  return `ScaffoldMessenger.of(context).showSnackBar(\n  SnackBar(content: Text('${esc(text)}'))\n);\n`;
+  return `ScaffoldMessenger.of(context).showSnackBar(\n  SnackBar(content: Text('${esc(text)}')),\n);\n`;
 };
 
 dartGenerator.forBlock['flutter_alert_dialog'] = function(block) {
-  const title = block.getFieldValue('TITLE') || '';
+  const title = block.getFieldValue('TITLE') || 'Alert';
   const content = block.getFieldValue('CONTENT') || '';
-  return `showDialog(context: context, builder: (context) => AlertDialog(title: Text('${esc(title)}'), content: Text('${esc(content)}'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]));\n`;
+  return `showDialog(\n  context: context,\n  builder: (ctx) => AlertDialog(\n    title: Text('${esc(title)}'),\n    content: Text('${esc(content)}'),\n    actions: [\n      TextButton(\n        onPressed: () => Navigator.of(ctx).pop(),\n        child: const Text('OK'),\n      ),\n    ],\n  ),\n);\n`;
 };
 
 // ── Input Generators ───────────────────────────────────
@@ -1695,8 +2406,8 @@ dartGenerator.forBlock['state_get_variable'] = function(block) {
 
 // ── Component Generators ────────────────────────────────
 dartGenerator.forBlock['nav_push_named'] = function(block) {
-  const route = block.getFieldValue('ROUTE') || '/';
-  return `Navigator.of(context).pushNamed('${esc(route)}');\n`;
+  const route = block.getFieldValue('ROUTE') || 'SecondPage';
+  return `Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ${route}()));\n`;
 };
 
 dartGenerator.forBlock['nav_pop'] = function(block) {
@@ -1766,10 +2477,16 @@ dartGenerator.forBlock['ui_show_snackbar'] = function(block) {
   return `ScaffoldMessenger.of(context).showSnackBar(\n  SnackBar(content: Text('${esc(msg)}')),\n);\n`;
 };
 
-dartGenerator.forBlock['ui_show_dialog'] = function(block) {
-  const title = block.getFieldValue('TITLE') || '';
+dartGenerator.forBlock['ui_show_toast'] = function(block) {
   const msg = block.getFieldValue('MESSAGE') || '';
-  return `showDialog(\n  context: context,\n  builder: (context) => AlertDialog(\n    title: Text('${esc(title)}'),\n    content: Text('${esc(msg)}'),\n    actions: [\n      TextButton(\n        onPressed: () => Navigator.of(context).pop(),\n        child: const Text('OK'),\n      ),\n    ],\n  ),\n);\n`;
+  const dur = block.getFieldValue('DURATION') || 2000;
+  return `ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${esc(msg)}'), duration: Duration(milliseconds: ${dur})));\n`;
+};
+
+dartGenerator.forBlock['ui_show_dialog'] = function(block) {
+  const title = block.getFieldValue('TITLE') || 'Notification';
+  const msg = block.getFieldValue('MESSAGE') || '';
+  return `showDialog(\n  context: context,\n  builder: (ctx) => AlertDialog(\n    title: Text('${esc(title)}'),\n    content: Text('${esc(msg)}'),\n    actions: [\n      TextButton(\n        onPressed: () => Navigator.of(ctx).pop(),\n        child: const Text('OK'),\n      ),\n    ],\n  ),\n);\n`;
 };
 
 dartGenerator.forBlock['ui_haptic_feedback'] = function(block) {
@@ -1781,98 +2498,440 @@ dartGenerator.forBlock['ui_haptic_feedback'] = function(block) {
 // ── Widget Events Generators (Bridge) ──────────────────────
 dartGenerator.forBlock['widget_on_click'] = function(block, gen) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const body = gen.statementToCode(block, 'DO') || '  // no-op\n';
-  return `// EVENT_BINDING: onClick -> ${widgetId}\n${body}\n`;
+  const body = gen.statementToCode(block, 'DO');
+  if (!body || !body.trim()) return '';
+  return `// EVENT_BINDING: onClick -> ${widgetId}\n${body}`;
 };
 
 dartGenerator.forBlock['widget_on_long_press'] = function(block, gen) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const body = gen.statementToCode(block, 'DO') || '  // no-op\n';
-  return `// EVENT_BINDING: onLongPress -> ${widgetId}\n${body}\n`;
+  const body = gen.statementToCode(block, 'DO');
+  if (!body || !body.trim()) return '';
+  return `// EVENT_BINDING: onLongPress -> ${widgetId}\n${body}`;
 };
 
 dartGenerator.forBlock['widget_on_text_changed'] = function(block, gen) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const valVar = dartGenerator.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
-  const body = gen.statementToCode(block, 'DO') || '  // no-op\n';
-  // Note: the C# compiler engine will need to extract these EVENT_BINDING comments and inject them into the respective widgets
-  return `// EVENT_BINDING: onChanged(String ${valVar}) -> ${widgetId}\n${body}\n`;
+  let valVar = 'newText';
+  try {
+    if (gen.nameDB_) valVar = gen.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
+  } catch(e) { /* fallback */ }
+  const body = gen.statementToCode(block, 'DO');
+  if (!body || !body.trim()) return '';
+  return `// EVENT_BINDING: onChanged(String ${valVar}) -> ${widgetId}\n${body}`;
 };
 
 dartGenerator.forBlock['widget_on_checkbox_changed'] = function(block, gen) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const valVar = dartGenerator.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
-  const body = gen.statementToCode(block, 'DO') || '  // no-op\n';
-  return `// EVENT_BINDING: onChanged(bool? ${valVar}) -> ${widgetId}\n${body}\n`;
+  let valVar = 'isChecked';
+  try {
+    if (gen.nameDB_) valVar = gen.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
+  } catch(e) {}
+  const body = gen.statementToCode(block, 'DO');
+  if (!body || !body.trim()) return '';
+  return `// EVENT_BINDING: onChanged(bool? ${valVar}) -> ${widgetId}\n${body}`;
 };
 
 dartGenerator.forBlock['widget_on_switch_changed'] = function(block, gen) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const valVar = dartGenerator.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
-  const body = gen.statementToCode(block, 'DO') || '  // no-op\n';
-  return `// EVENT_BINDING: onChanged(bool ${valVar}) -> ${widgetId}\n${body}\n`;
+  let valVar = 'isOn';
+  try {
+    if (gen.nameDB_) valVar = gen.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
+  } catch(e) {}
+  const body = gen.statementToCode(block, 'DO');
+  if (!body || !body.trim()) return '';
+  return `// EVENT_BINDING: onChanged(bool ${valVar}) -> ${widgetId}\n${body}`;
 };
 
 dartGenerator.forBlock['widget_on_slider_changed'] = function(block, gen) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const valVar = dartGenerator.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
-  const body = gen.statementToCode(block, 'DO') || '  // no-op\n';
-  return `// EVENT_BINDING: onChanged(double ${valVar}) -> ${widgetId}\n${body}\n`;
+  let valVar = 'sliderVal';
+  try {
+    if (gen.nameDB_) valVar = gen.nameDB_.getName(block.getFieldValue('VALUE_VAR'), Blockly.VARIABLE_CATEGORY_NAME);
+  } catch(e) {}
+  const body = gen.statementToCode(block, 'DO');
+  if (!body || !body.trim()) return '';
+  return `// EVENT_BINDING: onChanged(double ${valVar}) -> ${widgetId}\n${body}`;
 };
 
 dartGenerator.forBlock['widget_set_text'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
   const text = block.getFieldValue('TEXT_VALUE') || '';
-  return `// DYNAMIC_PROP: setText('${esc(text)}') -> ${widgetId}\n`;
+  // Support Text, Button, and TextField widgets dynamically
+  return `setState(() {\n  _${toCamelCase(widgetId)}Text = '${esc(text)}';\n  _ctrl${toPascalCase(widgetId)}.text = '${esc(text)}';\n});\n`;
 };
 
 dartGenerator.forBlock['widget_get_text'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  // This requires a TextEditingController in Flutter, the compiler will handle mapping this.
-  return [`_controllers['${widgetId}']?.text ?? ''`, dartGenerator.ORDER_ATOMIC];
+  return [`_ctrl${toPascalCase(widgetId)}.text`, dartGenerator.ORDER_ATOMIC];
 };
 
 dartGenerator.forBlock['widget_set_visible'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
   const visible = block.getFieldValue('VISIBLE') || 'true';
-  return `// DYNAMIC_PROP: setVisible(${visible}) -> ${widgetId}\n`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Visible = ${visible};\n});\n`;
 };
 
 dartGenerator.forBlock['widget_set_enabled'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
   const enabled = block.getFieldValue('ENABLED') || 'true';
-  return `// DYNAMIC_PROP: setEnabled(${enabled}) -> ${widgetId}\n`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Enabled = ${enabled};\n});\n`;
 };
 
 dartGenerator.forBlock['widget_set_bg_color'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
   const color = hexToColor(block.getFieldValue('COLOR'));
-  return `// DYNAMIC_PROP: setBgColor(Color(${color})) -> ${widgetId}\n`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}BgColor = Color(${color});\n});\n`;
 };
 
 dartGenerator.forBlock['widget_set_text_color'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
   const color = hexToColor(block.getFieldValue('COLOR'));
-  return `// DYNAMIC_PROP: setTextColor(Color(${color})) -> ${widgetId}\n`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}TextColor = Color(${color});\n});\n`;
 };
 
 dartGenerator.forBlock['widget_set_font_size'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const size = block.getFieldValue('SIZE');
-  return `// DYNAMIC_PROP: setFontSize(${size}) -> ${widgetId}\n`;
+  const num = Number(block.getFieldValue('SIZE')) || 16;
+  const size = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}FontSize = ${size};\n});\n`;
 };
 
 dartGenerator.forBlock['widget_set_width'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const width = block.getFieldValue('WIDTH');
-  return `// DYNAMIC_PROP: setWidth(${width}) -> ${widgetId}\n`;
+  const num = Number(block.getFieldValue('WIDTH')) || 100;
+  const width = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Width = ${width};\n});\n`;
 };
 
 dartGenerator.forBlock['widget_set_height'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  const height = block.getFieldValue('HEIGHT');
-  return `// DYNAMIC_PROP: setHeight(${height}) -> ${widgetId}\n`;
+  const num = Number(block.getFieldValue('HEIGHT')) || 100;
+  const height = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Height = ${height};\n});\n`;
 };
+
+// ── View (All Layouts & Widgets) Generators ────────────
+dartGenerator.forBlock['view_set_visibility'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const visible = block.getFieldValue('VISIBLE') || 'true';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Visible = ${visible};\n});\n`;
+};
+
+dartGenerator.forBlock['view_is_visible'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  return [`(_${toCamelCase(widgetId)}Visible ?? true)`, dartGenerator.ORDER_ATOMIC];
+};
+
+dartGenerator.forBlock['view_set_bg_color'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const color = hexToColor(block.getFieldValue('COLOR'));
+  return `setState(() {\n  _${toCamelCase(widgetId)}BgColor = Color(${color});\n});\n`;
+};
+
+dartGenerator.forBlock['view_set_enabled'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const enabled = block.getFieldValue('ENABLED') || 'true';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Enabled = ${enabled};\n});\n`;
+};
+
+dartGenerator.forBlock['view_set_width'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('WIDTH')) || 100;
+  const width = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Width = ${width};\n});\n`;
+};
+
+dartGenerator.forBlock['view_set_height'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('HEIGHT')) || 100;
+  const height = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Height = ${height};\n});\n`;
+};
+
+dartGenerator.forBlock['view_set_padding'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('PADDING')) || 16;
+  const pad = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Padding = ${pad};\n});\n`;
+};
+
+dartGenerator.forBlock['view_set_corner_radius'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('RADIUS')) || 12;
+  const r = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Radius = ${r};\n});\n`;
+};
+
+dartGenerator.forBlock['view_set_elevation'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('ELEVATION')) || 4;
+  const elev = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Elevation = ${elev};\n});\n`;
+};
+
+dartGenerator.forBlock['view_set_opacity'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('OPACITY')) || 1.0;
+  const op = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Opacity = ${op};\n});\n`;
+};
+
+// ── TextView Generators ────────────────────────────────
+dartGenerator.forBlock['textview_set_text'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const text = block.getFieldValue('TEXT') || '';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Text = '${esc(text)}';\n});\n`;
+};
+
+dartGenerator.forBlock['textview_get_text'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  return [`(_${toCamelCase(widgetId)}Text ?? '')`, dartGenerator.ORDER_ATOMIC];
+};
+
+dartGenerator.forBlock['textview_set_text_color'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const color = hexToColor(block.getFieldValue('COLOR'));
+  return `setState(() {\n  _${toCamelCase(widgetId)}TextColor = Color(${color});\n});\n`;
+};
+
+dartGenerator.forBlock['textview_set_text_size'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('SIZE')) || 16;
+  const size = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}FontSize = ${size};\n});\n`;
+};
+
+dartGenerator.forBlock['textview_set_bold'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const bold = block.getFieldValue('BOLD') || 'true';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Bold = ${bold};\n});\n`;
+};
+
+// ── Button Generators ──────────────────────────────────
+dartGenerator.forBlock['button_set_text'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const text = block.getFieldValue('TEXT') || '';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Text = '${esc(text)}';\n});\n`;
+};
+
+dartGenerator.forBlock['button_get_text'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  return [`(_${toCamelCase(widgetId)}Text ?? '')`, dartGenerator.ORDER_ATOMIC];
+};
+
+dartGenerator.forBlock['button_set_enabled'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const enabled = block.getFieldValue('ENABLED') || 'true';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Enabled = ${enabled};\n});\n`;
+};
+
+dartGenerator.forBlock['button_set_bg_color'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const color = hexToColor(block.getFieldValue('COLOR'));
+  return `setState(() {\n  _${toCamelCase(widgetId)}BgColor = Color(${color});\n});\n`;
+};
+
+dartGenerator.forBlock['button_set_text_color'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const color = hexToColor(block.getFieldValue('COLOR'));
+  return `setState(() {\n  _${toCamelCase(widgetId)}TextColor = Color(${color});\n});\n`;
+};
+
+// ── EditText / TextField Generators ────────────────────
+dartGenerator.forBlock['edittext_set_text'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const text = block.getFieldValue('TEXT') || '';
+  return `_ctrl${toPascalCase(widgetId)}.text = '${esc(text)}';\n`;
+};
+
+dartGenerator.forBlock['edittext_get_text'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  return [`_ctrl${toPascalCase(widgetId)}.text`, dartGenerator.ORDER_ATOMIC];
+};
+
+dartGenerator.forBlock['edittext_set_hint'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const hint = block.getFieldValue('HINT') || '';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Hint = '${esc(hint)}';\n});\n`;
+};
+
+dartGenerator.forBlock['edittext_clear'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  return `_ctrl${toPascalCase(widgetId)}.clear();\n`;
+};
+
+// ── ImageView Generators ───────────────────────────────
+dartGenerator.forBlock['imageview_set_asset'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const asset = block.getFieldValue('ASSET') || '';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Asset = '${esc(asset)}';\n});\n`;
+};
+
+dartGenerator.forBlock['imageview_set_fit'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const fit = block.getFieldValue('FIT') || 'BoxFit.contain';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Fit = ${fit};\n});\n`;
+};
+
+// ── Checkbox & Switch Generators ───────────────────────
+dartGenerator.forBlock['checkbox_set_checked'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const checked = block.getFieldValue('CHECKED') || 'true';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Checked = ${checked};\n  ${toCamelCase(widgetId)} = ${checked};\n});\n`;
+};
+
+dartGenerator.forBlock['checkbox_is_checked'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  return [`(${toCamelCase(widgetId)})`, dartGenerator.ORDER_ATOMIC];
+};
+
+dartGenerator.forBlock['switch_set_checked'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const on = block.getFieldValue('ON') || 'true';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Checked = ${on};\n  ${toCamelCase(widgetId)} = ${on};\n});\n`;
+};
+
+dartGenerator.forBlock['switch_is_checked'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  return [`(${toCamelCase(widgetId)})`, dartGenerator.ORDER_ATOMIC];
+};
+
+// ── Slider Generators ──────────────────────────────────
+dartGenerator.forBlock['slider_set_value'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('VALUE')) || 50;
+  const val = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Value = ${val};\n  ${toCamelCase(widgetId)}Value = ${val};\n});\n`;
+};
+
+dartGenerator.forBlock['slider_get_value'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  return [`(${toCamelCase(widgetId)}Value)`, dartGenerator.ORDER_ATOMIC];
+};
+
+// ── Layout (Row / Column / Container) Generators ─────────
+dartGenerator.forBlock['layout_set_bg_color'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const color = hexToColor(block.getFieldValue('COLOR'));
+  return `setState(() {\n  _${toCamelCase(widgetId)}BgColor = Color(${color});\n});\n`;
+};
+dartGenerator.forBlock['row_set_bg_color'] = dartGenerator.forBlock['layout_set_bg_color'];
+dartGenerator.forBlock['column_set_bg_color'] = dartGenerator.forBlock['layout_set_bg_color'];
+dartGenerator.forBlock['container_set_bg_color'] = dartGenerator.forBlock['layout_set_bg_color'];
+
+dartGenerator.forBlock['layout_set_visibility'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const visible = block.getFieldValue('VISIBLE') || 'true';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Visible = ${visible};\n});\n`;
+};
+dartGenerator.forBlock['textview_set_visibility'] = dartGenerator.forBlock['layout_set_visibility'];
+dartGenerator.forBlock['button_set_visibility'] = dartGenerator.forBlock['layout_set_visibility'];
+dartGenerator.forBlock['edittext_set_visibility'] = dartGenerator.forBlock['layout_set_visibility'];
+dartGenerator.forBlock['imageview_set_visibility'] = dartGenerator.forBlock['layout_set_visibility'];
+dartGenerator.forBlock['checkbox_set_visibility'] = dartGenerator.forBlock['layout_set_visibility'];
+dartGenerator.forBlock['switch_set_visibility'] = dartGenerator.forBlock['layout_set_visibility'];
+dartGenerator.forBlock['slider_set_visibility'] = dartGenerator.forBlock['layout_set_visibility'];
+
+dartGenerator.forBlock['layout_set_padding'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('PADDING')) || 16;
+  const pad = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Padding = ${pad};\n});\n`;
+};
+
+dartGenerator.forBlock['layout_set_corner_radius'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('RADIUS')) || 12;
+  const r = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Radius = ${r};\n});\n`;
+};
+dartGenerator.forBlock['button_set_corner_radius'] = dartGenerator.forBlock['layout_set_corner_radius'];
+dartGenerator.forBlock['imageview_set_corner_radius'] = dartGenerator.forBlock['layout_set_corner_radius'];
+
+dartGenerator.forBlock['layout_set_width'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('WIDTH')) || 200;
+  const width = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Width = ${width};\n});\n`;
+};
+
+dartGenerator.forBlock['layout_set_height'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('HEIGHT')) || 200;
+  const height = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Height = ${height};\n});\n`;
+};
+
+dartGenerator.forBlock['layout_set_elevation'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('ELEVATION')) || 4;
+  const elev = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Elevation = ${elev};\n});\n`;
+};
+dartGenerator.forBlock['button_set_elevation'] = dartGenerator.forBlock['layout_set_elevation'];
+
+dartGenerator.forBlock['layout_set_alignment'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const align = block.getFieldValue('ALIGNMENT') || 'MainAxisAlignment.start';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Alignment = ${align};\n});\n`;
+};
+dartGenerator.forBlock['row_set_alignment'] = dartGenerator.forBlock['layout_set_alignment'];
+dartGenerator.forBlock['column_set_alignment'] = dartGenerator.forBlock['layout_set_alignment'];
+
+dartGenerator.forBlock['textview_set_bg_color'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const color = hexToColor(block.getFieldValue('COLOR'));
+  return `setState(() {\n  _${toCamelCase(widgetId)}BgColor = Color(${color});\n});\n`;
+};
+
+dartGenerator.forBlock['edittext_set_enabled'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const enabled = block.getFieldValue('ENABLED') || 'true';
+  return `setState(() {\n  _${toCamelCase(widgetId)}Enabled = ${enabled};\n});\n`;
+};
+
+dartGenerator.forBlock['edittext_set_text_color'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const color = hexToColor(block.getFieldValue('COLOR'));
+  return `setState(() {\n  _${toCamelCase(widgetId)}TextColor = Color(${color});\n});\n`;
+};
+
+dartGenerator.forBlock['imageview_set_opacity'] = function(block) {
+  const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
+  const num = Number(block.getFieldValue('OPACITY')) || 1.0;
+  const op = num % 1 === 0 ? `${num}.0` : `${num}`;
+  return `setState(() {\n  _${toCamelCase(widgetId)}Opacity = ${op};\n});\n`;
+};
+
+dartGenerator.forBlock['ui_show_confirm_dialog'] = function(block, gen) {
+  const title = block.getFieldValue('TITLE') || 'Confirm';
+  const msg = block.getFieldValue('MESSAGE') || '';
+  const onOk = gen.statementToCode(block, 'ON_OK') || '';
+  const onCancel = gen.statementToCode(block, 'ON_CANCEL') || '';
+  return `showDialog(
+  context: context,
+  builder: (ctx) => AlertDialog(
+    title: Text('${esc(title)}'),
+    content: Text('${esc(msg)}'),
+    actions: [
+      TextButton(
+        onPressed: () {
+          Navigator.of(ctx).pop();
+${onCancel}        },
+        child: const Text('Cancel'),
+      ),
+      TextButton(
+        onPressed: () {
+          Navigator.of(ctx).pop();
+${onOk}        },
+        child: const Text('OK'),
+      ),
+    ],
+  ),
+);\n`;
+};
+
 
 // ============================================================
 // Theme Definitions
@@ -1955,59 +3014,70 @@ let workspace = null;
 let currentThemeMode = 'dark';
 
 function initWorkspace(themeMode) {
-  currentThemeMode = themeMode || 'dark';
-  document.body.className = currentThemeMode;
+  try {
+    currentThemeMode = themeMode || 'dark';
+    document.body.className = currentThemeMode;
 
-  const theme = currentThemeMode === 'light' ? lightTheme : darkTheme;
+    const theme = currentThemeMode === 'light' ? lightTheme : darkTheme;
 
-  workspace = Blockly.inject('blocklyDiv', {
-    toolbox: document.getElementById('toolbox'),
-    theme: theme,
-    renderer: 'thrasos',
-    grid: {
-      spacing: 25,
-      length: 3,
-      colour: currentThemeMode === 'light' ? '#cbd5e1' : '#1e293b',
-      snap: true,
-    },
-    zoom: {
-      controls: true,
-      wheel: true,
-      startScale: 0.75,
-      maxScale: 3,
-      minScale: 0.3,
-      scaleSpeed: 1.2,
-      pinch: true,
-    },
-    trashcan: true,
-    move: {
-      scrollbars: { horizontal: true, vertical: true },
-      drag: true,
-      wheel: false,
-    },
-    sounds: false,
-  });
+    workspace = Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox'),
+      theme: theme,
+      renderer: 'thrasos',
+      media: 'media/',
+      grid: {
+        spacing: 25,
+        length: 3,
+        colour: currentThemeMode === 'light' ? '#cbd5e1' : '#1e293b',
+        snap: true,
+      },
+      zoom: {
+        controls: true,
+        wheel: true,
+        startScale: 0.75,
+        maxScale: 3,
+        minScale: 0.3,
+        scaleSpeed: 1.2,
+        pinch: true,
+      },
+      trashcan: true,
+      move: {
+        scrollbars: { horizontal: true, vertical: true },
+        drag: true,
+        wheel: false,
+      },
+      sounds: false,
+    });
 
-  // Auto-generate code on workspace change
-  workspace.addChangeListener(function(event) {
-    if (event.isUiEvent) return;
-    try {
-      const code = dartGenerator.workspaceToCode(workspace);
-      // Send generated code to C# host
-      if (window.chrome && window.chrome.webview) {
-        window.chrome.webview.postMessage(JSON.stringify({
-          type: 'codeGenerated',
-          data: code
-        }));
+    // Auto-generate code on workspace change
+    workspace.addChangeListener(function(event) {
+      if (event.isUiEvent) return;
+      try {
+        const code = dartGenerator.workspaceToCode(workspace);
+        // Send generated code to C# host
+        if (window.chrome && window.chrome.webview) {
+          window.chrome.webview.postMessage(JSON.stringify({
+            type: 'codeGenerated',
+            data: code
+          }));
+        }
+      } catch(e) {
+        console.error('Code generation error:', e);
       }
-    } catch(e) {
-      console.error('Code generation error:', e);
-    }
-  });
+    });
 
-  // Notify host that workspace is ready
-  if (window.chrome && window.chrome.webview) {
-    window.chrome.webview.postMessage(JSON.stringify({ type: 'ready' }));
+    // Notify host that workspace is ready
+    if (window.chrome && window.chrome.webview) {
+      window.chrome.webview.postMessage(JSON.stringify({ type: 'ready' }));
+    }
+  } catch(e) {
+    console.error('initWorkspace error:', e);
+    if (window.chrome && window.chrome.webview) {
+      window.chrome.webview.postMessage(JSON.stringify({
+        type: 'error',
+        message: 'initWorkspace failed: ' + e.message
+      }));
+    }
   }
 }
 
@@ -2060,15 +3130,14 @@ function createLockedRootBlock(widgetId, eventType) {
       else if (eventType === 'onSliderChanged') blockType = 'widget_on_slider_changed';
 
       if (blockType) {
+        if (!_widgetRegistry.some(opt => opt[1] === widgetId)) {
+          _widgetRegistry.unshift([widgetId, widgetId]);
+        }
         const rootBlock = workspace.newBlock(blockType);
-        
-        // Temporarily patch the options so we can set the field value immediately
         const field = rootBlock.getField('WIDGET_ID');
         if (field) {
-            field.menuGenerator_ = [[widgetId, widgetId]];
+            field.menuGenerator_ = _getWidgetDropdownOptions;
             rootBlock.setFieldValue(widgetId, 'WIDGET_ID');
-            patchWidgetDropdowns(); // Restore normal dropdown options
-            rootBlock.setFieldValue(widgetId, 'WIDGET_ID'); // Apply again just in case
         }
 
         rootBlock.initSvg();
@@ -2100,6 +3169,22 @@ window.getGeneratedCode = function() {
     return dartGenerator.workspaceToCode(workspace);
   } catch(e) {
     console.error('Failed to generate code:', e);
+    return '';
+  }
+};
+
+// Called from C# to compile headless workspace JSON to Dart code
+window.generateCodeForWorkspaceJson = function(jsonStr) {
+  try {
+    if (!jsonStr || jsonStr === '{}' || jsonStr === 'null') return '';
+    const state = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+    const headless = new Blockly.Workspace();
+    Blockly.serialization.workspaces.load(state, headless);
+    const code = dartGenerator.workspaceToCode(headless);
+    headless.dispose();
+    return code;
+  } catch(e) {
+    console.error('Failed to generate code for workspace JSON:', e);
     return '';
   }
 };
@@ -2181,8 +3266,20 @@ window.setWorkspaceContext = function(type) {
 
 // Auto-initialize with dark theme on load
 window.addEventListener('load', function() {
-  originalToolbox = document.getElementById('toolbox').cloneNode(true);
-  initWorkspace('dark');
+  try {
+    originalToolbox = document.getElementById('toolbox').cloneNode(true);
+    const params = new URLSearchParams(window.location.search);
+    const theme = params.get('theme') || 'dark';
+    initWorkspace(theme);
+  } catch(e) {
+    console.error('Window load error:', e);
+    if (window.chrome && window.chrome.webview) {
+      window.chrome.webview.postMessage(JSON.stringify({
+        type: 'error',
+        message: 'window load failed: ' + e.message
+      }));
+    }
+  }
 });
 </script>
 </body>

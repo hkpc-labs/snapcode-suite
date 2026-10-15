@@ -266,7 +266,7 @@ namespace Snapcode.Services
                 "Compiler Bug 81: Slider respects min/max/current bounds");
 
             // Bug 82 Check: TextField controller
-            Assert(dartCode.Contains("_controllers['tf_email']"), "Compiler Bug 82: TextField controller generated");
+            Assert(dartCode.Contains("_controllers['tf_email']") || dartCode.Contains("_ctrlTfEmail"), "Compiler Bug 82: TextField controller generated");
 
             // 6. Edge Cases
             report.AppendLine("\n## 6. Edge Cases & Resilience");
@@ -287,6 +287,54 @@ namespace Snapcode.Services
             string badSliderJson = JsonSerializer.Serialize(badList);
             string badSliderDart = FlutterCompilerService.GenerateBuildMethod(badSliderJson);
             Assert(badSliderDart.Contains("Slider("), "Edge Case: Inverted Slider handles gracefully without throwing");
+
+            // Event Wiring & Dialog Trigger Tests
+            string eventJson = @"[{""type"":""Button"",""id"":""btn_dialog"",""text"":""Open Dialog""},{""type"":""Row"",""id"":""row_header"",""children"":[]}]";
+            string rawEvents = @"// EVENT_BINDING: onClick -> btn_dialog
+showDialog(context: context, builder: (ctx) => AlertDialog(title: Text('Test'), content: Text('Msg')));
+// EVENT_BINDING: onClick -> row_header
+print('Row tapped');";
+
+            string fullDart = FlutterCompilerService.GenerateCompletePageDart("main", eventJson, rawEvents);
+            Assert(fullDart.Contains("void onClickBtnDialog(BuildContext context)"), "Event: Generates onClickBtnDialog with context");
+            Assert(fullDart.Contains("showDialog("), "Event: Event body contains showDialog");
+            Assert(fullDart.Contains("onClickBtnDialog(context);"), "Event: Button onPressed calls onClickBtnDialog(context)");
+            Assert(fullDart.Contains("onClickRowHeader(context)"), "Event: Row wrapped in GestureDetector calls onClickRowHeader");
+
+            // Dynamic Widget State & Reactive Property Wiring Tests
+            string testUiJson = @"[
+              {""type"":""Text"",""id"":""txt_title"",""text"":""Initial Title""},
+              {""type"":""Button"",""id"":""btn_action"",""text"":""Action""},
+              {""type"":""TextField"",""id"":""tf_input"",""hintText"":""Old Hint""},
+              {""type"":""Image"",""id"":""img_avatar"",""assetPath"":""sample.png""},
+              {""type"":""Checkbox"",""id"":""cb_agree""},
+              {""type"":""Switch"",""id"":""sw_theme""},
+              {""type"":""Slider"",""id"":""sl_volume""}
+            ]";
+            string testEventCode = @"// EVENT_BINDING: onClick -> btn_action
+setState(() {
+  _txtTitleText = 'Updated Title';
+  _txtTitleTextColor = Color(0xFFE91E63);
+  _txtTitleFontSize = 24.0;
+  _btnActionBgColor = Color(0xFF4CAF50);
+  _btnActionVisible = false;
+  _btnActionEnabled = false;
+  _tfInputHint = 'New Hint';
+  _imgAvatarAsset = 'assets/new.png';
+  _cbAgreeChecked = true;
+  _swThemeChecked = true;
+  _slVolumeValue = 75.0;
+});";
+            string testCompleteDart = FlutterCompilerService.GenerateCompletePageDart("main", testUiJson, testEventCode);
+            Assert(testCompleteDart.Contains("String? _txtTitleText;"), "State Var: _txtTitleText declared");
+            Assert(testCompleteDart.Contains("Color? _txtTitleTextColor;"), "State Var: _txtTitleTextColor declared");
+            Assert(testCompleteDart.Contains("double? _txtTitleFontSize;"), "State Var: _txtTitleFontSize declared");
+            Assert(testCompleteDart.Contains("bool _btnActionVisible = true;"), "State Var: _btnActionVisible declared");
+            Assert(testCompleteDart.Contains("bool _btnActionEnabled = true;"), "State Var: _btnActionEnabled declared");
+            Assert(testCompleteDart.Contains("_txtTitleText ?? \"Initial Title\""), "Widget Wiring: Text dynamically uses _txtTitleText");
+            Assert(testCompleteDart.Contains("Visibility(visible: _btnActionVisible"), "Widget Wiring: Button wrapped in Visibility");
+            Assert(testCompleteDart.Contains("IgnorePointer(ignoring: !(_btnActionEnabled)"), "Widget Wiring: Button wrapped in IgnorePointer");
+            Assert(testCompleteDart.Contains("_tfInputHint ?? \"Old Hint\""), "Widget Wiring: TextField dynamically uses _tfInputHint");
 
             // 7. Flutter Material 3 Preview Bridge & Layout Mechanics
             report.AppendLine("\n## 7. Flutter Material 3 Preview Bridge & Flex Layout Mechanics");
@@ -837,6 +885,180 @@ class PageOne extends StatelessWidget {
             finally
             {
                 try { Directory.Delete(testTempDir, true); } catch { }
+            }
+
+            // 15. End-to-End Block System, Target Widgets & Multi-Event Aggregation
+            report.AppendLine("\n## 15. End-to-End Block System, Target Widgets & Multi-Event Aggregation");
+            Console.WriteLine(">>> 15. Testing End-to-End Block System, Target Widgets & Multi-Event Aggregation...");
+
+            string multiEventUiJson = @"[
+                {""id"":""column_1"",""type"":""Column"",""children"":[
+                    {""id"":""image_ae35"",""type"":""Image"",""assetPath"":""lanscape_image_01.jpg""},
+                    {""id"":""text_f2c6"",""type"":""Text"",""text"":""Original Text""},
+                    {""id"":""row_431c"",""type"":""Row"",""children"":[
+                        {""id"":""textfield_b3ef"",""type"":""TextField"",""hintText"":""Input""}
+                    ]},
+                    {""id"":""checkbox_1ac2"",""type"":""Checkbox""},
+                    {""id"":""switch_8bb0"",""type"":""Switch""},
+                    {""id"":""slider_b124"",""type"":""Slider"",""minValue"":0,""maxValue"":100,""currentValue"":50},
+                    {""id"":""button_09ac"",""type"":""Button"",""text"":""Click Me""}
+                ]}
+            ]";
+
+            string testMultiEvents = @"// EVENT_BINDING: onClick -> column_1
+setState(() {
+  _textF2c6Text = 'Column Clicked!';
+});
+
+// EVENT_BINDING: onClick -> button_09ac
+showDialog(
+  context: context,
+  builder: (ctx) => AlertDialog(
+    title: const Text('Alert'),
+    content: const Text('Button Clicked!'),
+    actions: [
+      TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK'))
+    ]
+  )
+);
+
+// EVENT_BINDING: onLongPress -> button_09ac
+ScaffoldMessenger.of(context).showSnackBar(
+  const SnackBar(content: Text('Button Long Pressed!'))
+);
+
+// EVENT_BINDING: onChanged(double value) -> slider_b124
+setState(() {
+  _sliderB124Value = value;
+});
+
+// EVENT_BINDING: onClick -> row_431c
+setState(() {
+  _row431cBgColor = const Color(0xFF4CAF50);
+  _column1Padding = 24.0;
+  _column1BgColor = const Color(0xFFE0E0E0);
+  _column1Alignment = MainAxisAlignment.center;
+  _textfieldB3efEnabled = false;
+  _button09acBgColor = const Color(0xFFFF5722);
+  _ctrlCustomInput.text = 'AutoDeclared';
+});";
+
+            var multiPageMeta = new Snapcode.Models.PageMetadata
+            {
+                Title = "Hardik Prajapati",
+                ShowAppBar = true,
+                HasDrawer = true,
+                Orientation = "Portrait"
+            };
+
+            string multiDart = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart("main", multiEventUiJson, testMultiEvents, multiPageMeta);
+
+            // Verify HitTestBehavior.opaque on Column GestureDetector
+            Assert(multiDart.Contains("GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => onClickColumn1(context)"),
+                "E2E Blocks: Column is wrapped in GestureDetector with HitTestBehavior.opaque");
+
+            // Verify onClickColumn1 method
+            Assert(multiDart.Contains("void onClickColumn1(BuildContext context)"),
+                "E2E Blocks: onClickColumn1 method generated with BuildContext context parameter");
+            Assert(multiDart.Contains("_textF2c6Text = 'Column Clicked!';"),
+                "E2E Blocks: onClickColumn1 sets _textF2c6Text");
+
+            // Verify onClickButton09ac with showDialog
+            Assert(multiDart.Contains("void onClickButton09ac(BuildContext context)"),
+                "E2E Blocks: onClickButton09ac method generated with BuildContext context parameter");
+            Assert(multiDart.Contains("showDialog(") && multiDart.Contains("AlertDialog("),
+                "E2E Blocks: onClickButton09ac correctly invokes showDialog with AlertDialog");
+
+            // Verify onLongPressButton09ac with ScaffoldMessenger
+            Assert(multiDart.Contains("void onLongPressButton09ac(BuildContext context)"),
+                "E2E Blocks: onLongPressButton09ac method generated with BuildContext context parameter");
+            Assert(multiDart.Contains("ScaffoldMessenger.of(context).showSnackBar("),
+                "E2E Blocks: onLongPressButton09ac invokes ScaffoldMessenger.of(context).showSnackBar");
+
+            // Verify Button widget wires both onClick and onLongPress
+            Assert(multiDart.Contains("onClickButton09ac(context);"),
+                "E2E Blocks: ElevatedButton onPressed calls onClickButton09ac(context)");
+            Assert(multiDart.Contains("onLongPressButton09ac(context);"),
+                "E2E Blocks: ElevatedButton onLongPress calls onLongPressButton09ac(context)");
+
+            // Verify Slider onChanged callback
+            Assert(multiDart.Contains("onChangedSliderB124(context, value)"),
+                "E2E Blocks: Slider onChanged calls onChangedSliderB124(context, value)");
+
+            // Verify dynamic state variables declared
+            Assert(multiDart.Contains("String? _textF2c6Text;"),
+                "E2E Blocks: Dynamic state variable _textF2c6Text declared");
+            Assert(multiDart.Contains("Color? _row431cBgColor;"),
+                "E2E Blocks: Dynamic state variable _row431cBgColor declared");
+            Assert(multiDart.Contains("double? _column1Padding;"),
+                "E2E Blocks: Dynamic state variable _column1Padding declared");
+            Assert(multiDart.Contains("Color? _column1BgColor;"),
+                "E2E Blocks: Dynamic state variable _column1BgColor declared");
+            Assert(multiDart.Contains("MainAxisAlignment? _column1Alignment;"),
+                "E2E Blocks: MainAxisAlignment state variable _column1Alignment declared");
+            Assert(multiDart.Contains("mainAxisAlignment: _column1Alignment ?? MainAxisAlignment.start"),
+                "E2E Blocks: Column uses dynamic _column1Alignment");
+            Assert(multiDart.Contains("bool _textfieldB3efEnabled = true;"),
+                "E2E Blocks: Dynamic state variable _textfieldB3efEnabled declared");
+            Assert(multiDart.Contains("Color? _button09acBgColor;"),
+                "E2E Blocks: Dynamic state variable _button09acBgColor declared");
+            Assert(multiDart.Contains("final TextEditingController _ctrlCustomInput = TextEditingController();"),
+                "E2E Blocks: TextEditingController _ctrlCustomInput auto-declared");
+            Assert(multiDart.Contains("_ctrlCustomInput.dispose();"),
+                "E2E Blocks: TextEditingController _ctrlCustomInput auto-disposed");
+
+            // Verify Text widget reactive binding
+            Assert(multiDart.Contains("_textF2c6Text ?? \"Original Text\""),
+                "E2E Blocks: Text widget dynamically uses _textF2c6Text");
+
+            // Verify services.dart imported
+            Assert(multiDart.Contains("import 'package:flutter/services.dart';"),
+                "E2E Blocks: Services import included for Portrait orientation and system features");
+
+            // 15.2 Real Project Verification & Disk Sync
+            string userProjectDir = @"C:\Users\hardi\Documents\Snapcode\repos\new_project_test";
+            if (Directory.Exists(userProjectDir))
+            {
+                string userMainUi = Path.Combine(userProjectDir, ".snapcode", "pages", "main_ui.json");
+                string userMainDart = Path.Combine(userProjectDir, "flutter", "lib", "main.dart");
+                if (File.Exists(userMainUi))
+                {
+                    string loadedUi = File.ReadAllText(userMainUi);
+                    string pagesDir = Path.Combine(userProjectDir, ".snapcode", "pages");
+                    var eventFiles = Directory.GetFiles(pagesDir, "main_*.event.dart");
+                    var loadedEventsList = new List<string>();
+                    foreach (var ef in eventFiles)
+                    {
+                        loadedEventsList.Add(File.ReadAllText(ef));
+                    }
+                    string loadedEvents = string.Join("\n\n", loadedEventsList);
+                    Snapcode.Models.PageMetadata? loadedMeta = null;
+                    string metaFile = Path.Combine(pagesDir, "main_meta.json");
+                    if (File.Exists(metaFile))
+                    {
+                        string metaJson = File.ReadAllText(metaFile);
+                        loadedMeta = JsonSerializer.Deserialize<Snapcode.Models.PageMetadata>(metaJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+
+                    string compiledUserDart = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart(
+                        "main",
+                        loadedUi,
+                        loadedEvents,
+                        loadedMeta
+                    );
+
+                    Assert(!string.IsNullOrWhiteSpace(compiledUserDart),
+                        "User Project: Compiled real project main.dart without errors");
+                    Assert(compiledUserDart.Contains("onClickButton09ac(context)"),
+                        "User Project: main.dart wires Button onClick to onClickButton09ac");
+                    Assert(compiledUserDart.Contains("onClickColumn1(context)"),
+                        "User Project: main.dart wires Column onTap to onClickColumn1");
+
+                    // Write compiled source to disk
+                    File.WriteAllText(userMainDart, compiledUserDart, System.Text.Encoding.UTF8);
+                    Assert(File.Exists(userMainDart) && new FileInfo(userMainDart).Length > 100,
+                        "User Project: main.dart written to disk successfully");
+                }
             }
 
             // Summary
