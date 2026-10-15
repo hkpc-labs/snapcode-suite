@@ -218,6 +218,200 @@ function _getWidgetDropdownOptions() {
   return _widgetRegistry.length > 0 ? _widgetRegistry : [['(no widgets in View Designer)', 'none']];
 }
 
+// ── Custom Field: FieldColour ────────────────────────────────
+class FieldColour extends Blockly.Field {
+  constructor(opt_value, opt_validator) {
+    super(opt_value || '#2196F3', opt_validator);
+    this.SERIALIZABLE = true;
+    this.size_ = new Blockly.utils.Size(32, 18);
+  }
+
+  static fromJson(options) {
+    const colour = options['colour'] || options['color'] || '#2196F3';
+    return new FieldColour(colour);
+  }
+
+  initView() {
+    super.initView();
+    if (this.borderRect_) {
+      this.borderRect_.setAttribute('rx', '4');
+      this.borderRect_.setAttribute('ry', '4');
+      this.borderRect_.setAttribute('width', '32');
+      this.borderRect_.setAttribute('height', '18');
+      this.borderRect_.setAttribute('stroke', '#ffffff');
+      this.borderRect_.setAttribute('stroke-width', '1.5');
+      this.borderRect_.style.cursor = 'pointer';
+    }
+    this.applyColour();
+  }
+
+  applyColour() {
+    const val = this.getValue() || '#2196F3';
+    if (this.borderRect_) {
+      this.borderRect_.setAttribute('fill', val);
+      this.borderRect_.style.fill = val;
+    }
+  }
+
+  doValueUpdate_(newValue) {
+    super.doValueUpdate_(newValue);
+    this.applyColour();
+  }
+
+  getText_() {
+    return '    ';
+  }
+
+  updateSize_() {
+    if (this.size_) {
+      this.size_.width = 32;
+      this.size_.height = 18;
+    }
+  }
+
+  showEditor_() {
+    if (typeof document === 'undefined') return;
+    const container = document.createElement('div');
+    container.style.padding = '10px';
+    container.style.width = '240px';
+    container.style.background = '#1e293b';
+    container.style.borderRadius = '8px';
+    container.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+    container.style.color = '#e2e8f0';
+    container.style.fontFamily = "'Segoe UI', 'Inter', sans-serif";
+    container.style.fontSize = '12px';
+
+    const title = document.createElement('div');
+    title.innerText = 'Choose Color';
+    title.style.fontWeight = '600';
+    title.style.marginBottom = '8px';
+    container.appendChild(title);
+
+    const palette = [
+      '#F44336', '#E91E63', '#9C27B0', '#673AB7',
+      '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4',
+      '#009688', '#4CAF50', '#8BC34A', '#CDDC39',
+      '#FFEB3B', '#FFC107', '#FF9800', '#FF5722',
+      '#795548', '#9E9E9E', '#607D8B', '#000000',
+      '#FFFFFF', '#1E293B', '#0D9488', '#E11D48'
+    ];
+
+    const grid = document.createElement('div');
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = 'repeat(6, 1fr)';
+    grid.style.gap = '6px';
+    grid.style.marginBottom = '10px';
+
+    palette.forEach(c => {
+      const swatch = document.createElement('div');
+      swatch.style.width = '28px';
+      swatch.style.height = '28px';
+      swatch.style.borderRadius = '4px';
+      swatch.style.backgroundColor = c;
+      swatch.style.cursor = 'pointer';
+      swatch.style.boxSizing = 'border-box';
+      swatch.style.border = (c.toLowerCase() === (this.getValue() || '').toLowerCase())
+        ? '2px solid #38bdf8'
+        : '1px solid rgba(255,255,255,0.2)';
+      swatch.title = c;
+      swatch.onmouseenter = () => { swatch.style.transform = 'scale(1.15)'; };
+      swatch.onmouseleave = () => { swatch.style.transform = 'scale(1)'; };
+      swatch.onclick = () => {
+        this.setValue(c);
+        if (Blockly.DropDownDiv) Blockly.DropDownDiv.hideWithoutAnimation();
+      };
+      grid.appendChild(swatch);
+    });
+    container.appendChild(grid);
+
+    const customRow = document.createElement('div');
+    customRow.style.display = 'flex';
+    customRow.style.alignItems = 'center';
+    customRow.style.gap = '8px';
+
+    const colorPicker = document.createElement('input');
+    colorPicker.type = 'color';
+    colorPicker.value = (this.getValue() && this.getValue().startsWith('#') && this.getValue().length >= 7)
+      ? this.getValue().slice(0, 7)
+      : '#2196f3';
+    colorPicker.style.width = '34px';
+    colorPicker.style.height = '28px';
+    colorPicker.style.padding = '0';
+    colorPicker.style.border = 'none';
+    colorPicker.style.borderRadius = '4px';
+    colorPicker.style.cursor = 'pointer';
+
+    const hexInput = document.createElement('input');
+    hexInput.type = 'text';
+    hexInput.value = this.getValue() || '#2196F3';
+    hexInput.style.flex = '1';
+    hexInput.style.padding = '4px 8px';
+    hexInput.style.background = '#0f172a';
+    hexInput.style.border = '1px solid #475569';
+    hexInput.style.borderRadius = '4px';
+    hexInput.style.color = '#fff';
+    hexInput.style.fontFamily = 'monospace';
+    hexInput.style.fontSize = '12px';
+
+    colorPicker.oninput = (e) => {
+      hexInput.value = e.target.value.toUpperCase();
+      this.setValue(e.target.value);
+    };
+
+    hexInput.onchange = (e) => {
+      let val = e.target.value.trim();
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+        colorPicker.value = val;
+        this.setValue(val);
+      }
+    };
+
+    const applyBtn = document.createElement('button');
+    applyBtn.innerText = 'OK';
+    applyBtn.style.padding = '4px 10px';
+    applyBtn.style.background = '#2563eb';
+    applyBtn.style.color = '#fff';
+    applyBtn.style.border = 'none';
+    applyBtn.style.borderRadius = '4px';
+    applyBtn.style.cursor = 'pointer';
+    applyBtn.style.fontWeight = '600';
+    applyBtn.onclick = () => {
+      let val = hexInput.value.trim();
+      if (!val.startsWith('#')) val = '#' + val;
+      this.setValue(val);
+      if (Blockly.DropDownDiv) Blockly.DropDownDiv.hideWithoutAnimation();
+    };
+
+    customRow.appendChild(colorPicker);
+    customRow.appendChild(hexInput);
+    customRow.appendChild(applyBtn);
+    container.appendChild(customRow);
+
+    if (Blockly.DropDownDiv) {
+      Blockly.DropDownDiv.createDom();
+      Blockly.DropDownDiv.clearContent();
+      const contentDiv = Blockly.DropDownDiv.getContentDiv();
+      contentDiv.appendChild(container);
+      Blockly.DropDownDiv.setColour('#1e293b', '#334155');
+      Blockly.DropDownDiv.showPositionedByField(this, () => {});
+    }
+  }
+}
+
+Blockly.fieldRegistry.register('field_colour', FieldColour);
+
+// Dynamic FieldDropdown support: ensure dynamic menuGenerator functions always return fresh options
+const _origFieldDropdownGetOptions = Blockly.FieldDropdown.prototype.getOptions;
+Blockly.FieldDropdown.prototype.getOptions = function(opt_useCache) {
+  if (typeof this.menuGenerator_ === 'function') {
+    this.generatedOptions = this.menuGenerator_();
+    this.validateOptions(this.generatedOptions);
+    return this.generatedOptions;
+  }
+  return _origFieldDropdownGetOptions.call(this, opt_useCache);
+};
+
 // ── App Blocks ──────────────────────────────────────────
 Blockly.defineBlocksWithJsonArray([
     // ==========================================
@@ -1787,13 +1981,30 @@ const widgetEventBlockTypes = [
 // Post-hoc: patch the menu generator on every WIDGET_ID dropdown
 function patchWidgetDropdowns() {
   if (!workspace) return;
-  const allBlocks = workspace.getAllBlocks(false);
-  allBlocks.forEach(block => {
-    const field = block.getField('WIDGET_ID');
-    if (field) {
-      field.menuGenerator_ = _getWidgetDropdownOptions;
+  const updateWorkspaceBlocks = (ws) => {
+    if (!ws) return;
+    const allBlocks = ws.getAllBlocks(false);
+    allBlocks.forEach(block => {
+      const field = block.getField('WIDGET_ID');
+      if (field) {
+        field.generatedOptions = null;
+        field.menuGenerator_ = _getWidgetDropdownOptions;
+        const currentVal = field.getValue();
+        const opts = _getWidgetDropdownOptions();
+        const hasCurrentVal = opts.some(opt => opt[1] === currentVal);
+        if ((!hasCurrentVal || currentVal === 'none') && opts.length > 0 && opts[0][1] !== 'none') {
+          field.setValue(opts[0][1]);
+        }
+      }
+    });
+  };
+  updateWorkspaceBlocks(workspace);
+  try {
+    const flyout = workspace.getFlyout ? workspace.getFlyout() : (workspace.toolbox_ && workspace.toolbox_.flyout_);
+    if (flyout && flyout.getWorkspace()) {
+      updateWorkspaceBlocks(flyout.getWorkspace());
     }
-  });
+  } catch(e) {}
 }
 
 // Called from C# to update the widget ID list
@@ -2018,8 +2229,24 @@ class _RootPageState extends State<RootPage> {${stateVarBlock}${initStateMethod}
 };
 
 // ── Utility functions ──────────────────────────────────
-function esc(str) { return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
-function hexToColor(hex) { return '0xFF' + (hex || '#000000').replace('#', '').toUpperCase(); }
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\$/g, '\\$')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
+
+function hexToColor(hex) {
+  if (!hex || hex === 'transparent' || hex === 'none') return '0x00000000';
+  let clean = String(hex).replace('#', '').trim();
+  if (clean.length === 6) return '0xFF' + clean.toUpperCase();
+  if (clean.length === 8) return '0x' + clean.toUpperCase();
+  if (clean.length === 3) return '0xFF' + clean.split('').map(c => c + c).join('').toUpperCase();
+  return '0xFF000000';
+}
 
 function toPascalCase(str) {
   return (str || '').replace(/[^a-zA-Z0-9]/g, '_').split('_').filter(Boolean)

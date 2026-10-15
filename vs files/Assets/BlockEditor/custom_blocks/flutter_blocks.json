@@ -3,8 +3,8 @@
     "name": "flutter_nav_push",
     "palette": "0",
     "type": " ",
-    "spec": "Navigate to page %s",
-    "code": "Navigator.pushNamed(context, %1$s);"
+    "spec": "Navigate to page %s.inputOnly",
+    "code": "Navigator.pushNamed(context, '%1$s');"
   },
   {
     "name": "flutter_nav_pop",
@@ -17,15 +17,15 @@
     "name": "flutter_show_toast",
     "palette": "1",
     "type": " ",
-    "spec": "Show Toast / Snackbar %s",
-    "code": "ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(%1$s)));"
+    "spec": "Show Toast / Snackbar %s.inputOnly",
+    "code": "ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('%1$s')));"
   },
   {
     "name": "flutter_show_dialog",
     "palette": "1",
     "type": "c",
-    "spec": "Show Dialog with title %s",
-    "code": "showDialog(context: context, builder: (context) => AlertDialog(title: Text(%1$s), content: Column(mainAxisSize: MainAxisSize.min, children: [\n%c$s\n])));"
+    "spec": "Show Dialog with title %s.inputOnly",
+    "code": "showDialog(context: context, builder: (ctx) => AlertDialog(title: Text('%1$s'), content: Column(mainAxisSize: MainAxisSize.min, children: [\n%c$s\n])));"
   },
   {
     "name": "flutter_haptic_feedback",

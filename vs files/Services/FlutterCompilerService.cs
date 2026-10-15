@@ -1839,7 +1839,28 @@ class _{className}State extends State<{className}> {{
                     double bw = node.TryGetProperty("borderWidth", out var bwP) && double.TryParse(bwP.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dBw) ? dBw : 0;
                     string bcCode = AlignmentHelper.ToFlutterColorCode(bc);
 
-                    if (cr >= 0 || bw > 0)
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(btnId) && _activeDynamicVars.Contains($"_{camelBtnId}Elevation"))
+                    {
+                        styleProps.Add($"elevation: _{camelBtnId}Elevation ?? 2.0");
+                    }
+                    else if (node.TryGetProperty("hasShadow", out var hsProp) && hsProp.ValueKind == JsonValueKind.False)
+                    {
+                        styleProps.Add("elevation: 0");
+                    }
+
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(btnId) && _activeDynamicVars.Contains($"_{camelBtnId}Radius"))
+                    {
+                        var shapeParams = new List<string>();
+                        shapeParams.Add($"borderRadius: BorderRadius.circular(_{camelBtnId}Radius ?? 20.0)");
+                        if (bw > 0)
+                        {
+                            string bwStr = bw % 1 == 0 ? ((int)bw).ToString() : bw.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            string colParam = !string.IsNullOrWhiteSpace(bcCode) ? $"color: {bcCode}, " : "";
+                            shapeParams.Add($"side: BorderSide({colParam}width: {bwStr})");
+                        }
+                        styleProps.Add($"shape: RoundedRectangleBorder({string.Join(", ", shapeParams)})");
+                    }
+                    else if (cr >= 0 || bw > 0)
                     {
                         var shapeParams = new List<string>();
                         double effectiveCr = cr >= 0 ? cr : 20.0;
@@ -1853,11 +1874,6 @@ class _{className}State extends State<{className}> {{
                             shapeParams.Add($"side: BorderSide({colParam}width: {bwStr})");
                         }
                         styleProps.Add($"shape: RoundedRectangleBorder({string.Join(", ", shapeParams)})");
-                    }
-
-                    if (node.TryGetProperty("hasShadow", out var hsProp) && hsProp.ValueKind == JsonValueKind.False)
-                    {
-                        styleProps.Add("elevation: 0");
                     }
 
                     var btnTextStyles = new List<string>();
@@ -1923,7 +1939,13 @@ class _{className}State extends State<{className}> {{
 
                     string bgCol = node.TryGetProperty("backgroundColor", out var bgP) ? bgP.GetString() ?? "" : "";
                     string bgCode = AlignmentHelper.ToFlutterColorCode(bgCol);
-                    if (!string.IsNullOrWhiteSpace(bgCode))
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(tfId) && _activeDynamicVars.Contains($"_{camelTfId}BgColor"))
+                    {
+                        decorProps.Add("filled: true");
+                        string fallback = !string.IsNullOrWhiteSpace(bgCode) ? bgCode : "Colors.transparent";
+                        decorProps.Add($"fillColor: _{camelTfId}BgColor ?? {fallback}");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(bgCode))
                     {
                         decorProps.Add("filled: true");
                         decorProps.Add($"fillColor: {bgCode}");
@@ -1980,12 +2002,25 @@ class _{className}State extends State<{className}> {{
 
                     // Text style (textColor, textSize)
                     var tfStyleProps = new List<string>();
-                    if (node.TryGetProperty("textColor", out var tcP) && !string.IsNullOrWhiteSpace(tcP.GetString()))
+                    string tcCol = node.TryGetProperty("textColor", out var tcP) && !string.IsNullOrWhiteSpace(tcP.GetString()) ? tcP.GetString()! : "";
+                    string tcCode = AlignmentHelper.ToFlutterColorCode(tcCol);
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(tfId) && _activeDynamicVars.Contains($"_{camelTfId}TextColor"))
                     {
-                        string tcCode = AlignmentHelper.ToFlutterColorCode(tcP.GetString());
-                        if (!string.IsNullOrWhiteSpace(tcCode)) tfStyleProps.Add($"color: {tcCode}");
+                        string fallback = !string.IsNullOrWhiteSpace(tcCode) ? tcCode : "Colors.black87";
+                        tfStyleProps.Add($"color: _{camelTfId}TextColor ?? {fallback}");
                     }
-                    if (node.TryGetProperty("textSize", out var tsP) && double.TryParse(tsP.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double tsVal) && tsVal > 0)
+                    else if (!string.IsNullOrWhiteSpace(tcCode))
+                    {
+                        tfStyleProps.Add($"color: {tcCode}");
+                    }
+
+                    double tsVal = node.TryGetProperty("textSize", out var tsP) && double.TryParse(tsP.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedTs) && parsedTs > 0 ? parsedTs : 0;
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(tfId) && _activeDynamicVars.Contains($"_{camelTfId}FontSize"))
+                    {
+                        string fallback = tsVal > 0 ? (tsVal % 1 == 0 ? ((int)tsVal).ToString() : tsVal.ToString(System.Globalization.CultureInfo.InvariantCulture)) : "16.0";
+                        tfStyleProps.Add($"fontSize: _{camelTfId}FontSize ?? {fallback}");
+                    }
+                    else if (tsVal > 0)
                     {
                         string tsStr = tsVal % 1 == 0 ? ((int)tsVal).ToString() : tsVal.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         tfStyleProps.Add($"fontSize: {tsStr}");
@@ -2063,7 +2098,13 @@ class _{className}State extends State<{className}> {{
                     }
                     string imgWidget = $"Image.asset({assetArg}, fit: {fitArg})";
 
-                    if (node.TryGetProperty("cornerRadius", out var crProp) && double.TryParse(crProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double cr) && cr > 0)
+                    double cr = node.TryGetProperty("cornerRadius", out var crProp) && double.TryParse(crProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dCr) && dCr > 0 ? dCr : 0;
+                    if (_activeDynamicVars != null && !string.IsNullOrEmpty(imgId) && _activeDynamicVars.Contains($"_{camelImgId}Radius"))
+                    {
+                        string fallback = cr > 0 ? (cr % 1 == 0 ? ((int)cr).ToString() : cr.ToString(System.Globalization.CultureInfo.InvariantCulture)) : "0.0";
+                        imgWidget = $"ClipRRect(borderRadius: BorderRadius.circular(_{camelImgId}Radius ?? {fallback}), child: {imgWidget})";
+                    }
+                    else if (cr > 0)
                     {
                         string crStr = cr % 1 == 0 ? ((int)cr).ToString() : cr.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         imgWidget = $"ClipRRect(borderRadius: BorderRadius.circular({crStr}), child: {imgWidget})";
