@@ -1837,6 +1837,29 @@ dartGenerator.scrub_ = function(block, code, opt_thisOnly) {
   return code;
 };
 
+dartGenerator.workspaceToCode = function(ws) {
+  if (!ws) return '';
+  this.init(ws);
+  const blocks = ws.getTopBlocks(true);
+  const code = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    // Ignore orphan value/reporter blocks (unconnected blocks that output a value)
+    if (block.outputConnection && !block.previousConnection && !block.nextConnection) {
+      continue;
+    }
+    let line = this.blockToCode(block);
+    if (Array.isArray(line)) {
+      // Top-level block returned a value tuple - do not emit bare expressions
+      continue;
+    }
+    if (line) {
+      code.push(line);
+    }
+  }
+  return this.finish(code.join('\n'));
+};
+
 dartGenerator.init = function(ws) {
   dartGenerator._workspace = ws;
 };
@@ -2783,7 +2806,7 @@ dartGenerator.forBlock['checkbox_set_checked'] = function(block) {
 
 dartGenerator.forBlock['checkbox_is_checked'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  return [`(${toCamelCase(widgetId)})`, dartGenerator.ORDER_ATOMIC];
+  return [`(_${toCamelCase(widgetId)}Checked ?? false)`, dartGenerator.ORDER_ATOMIC];
 };
 
 dartGenerator.forBlock['switch_set_checked'] = function(block) {
@@ -2794,7 +2817,7 @@ dartGenerator.forBlock['switch_set_checked'] = function(block) {
 
 dartGenerator.forBlock['switch_is_checked'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  return [`(${toCamelCase(widgetId)})`, dartGenerator.ORDER_ATOMIC];
+  return [`(_${toCamelCase(widgetId)}Checked ?? false)`, dartGenerator.ORDER_ATOMIC];
 };
 
 // ── Slider Generators ──────────────────────────────────
@@ -2807,7 +2830,7 @@ dartGenerator.forBlock['slider_set_value'] = function(block) {
 
 dartGenerator.forBlock['slider_get_value'] = function(block) {
   const widgetId = block.getFieldValue('WIDGET_ID') || 'none';
-  return [`(${toCamelCase(widgetId)}Value)`, dartGenerator.ORDER_ATOMIC];
+  return [`(_${toCamelCase(widgetId)}Value ?? 0.0)`, dartGenerator.ORDER_ATOMIC];
 };
 
 // ── Layout (Row / Column / Container) Generators ─────────

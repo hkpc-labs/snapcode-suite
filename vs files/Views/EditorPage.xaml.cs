@@ -1539,7 +1539,7 @@ namespace Snapcode.Views
                 foreach (var widget in NativeDesigner.AllWidgetsFlat)
                 {
                     string t = widget.Type?.ToLower() ?? "";
-                    if (t == "button" || t == "image")
+                    if (t == "button" || t == "image" || t == "column" || t == "row" || t == "container" || t == "card" || t == "text" || t == "textview")
                     {
                         events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onClick", DisplayName = $"{widget.Name} (onTap / onClick)", Icon = widget.Icon });
                         events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onLongPress", DisplayName = $"{widget.Name} (onLongPress)", Icon = widget.Icon });

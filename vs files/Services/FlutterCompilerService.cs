@@ -235,6 +235,28 @@ namespace SnapCode.Services
                         }
                     }
 
+                    // Auto-declare boolean flags or getters if directly assigned in event code
+                    var bareBoolMatches = Regex.Matches(eventCode, @"\b([a-zA-Z][a-zA-Z0-9_]*?)\s*=\s*(?:true|false)\b");
+                    foreach (Match m in bareBoolMatches)
+                    {
+                        string varName = m.Groups[1].Value;
+                        if (!varName.StartsWith("_") && seenVars.Add(varName))
+                        {
+                            declarations.Add($"bool {varName} = false;");
+                        }
+                    }
+
+                    // Auto-declare numeric values if directly assigned
+                    var bareNumMatches = Regex.Matches(eventCode, @"\b([a-zA-Z][a-zA-Z0-9_]*?Value)\s*=\s*[\d\.]+;");
+                    foreach (Match m in bareNumMatches)
+                    {
+                        string varName = m.Groups[1].Value;
+                        if (!varName.StartsWith("_") && seenVars.Add(varName))
+                        {
+                            declarations.Add($"double {varName} = 0.0;");
+                        }
+                    }
+
                     _activeDynamicVars = seenVars;
                 }
                 else
@@ -269,75 +291,38 @@ namespace SnapCode.Services
             string currentTarget = "";
             var currentBodyLines = new List<string>();
             bool inBlock = false;
-            var usedMethodNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            void EmitMethod(string eventType, string target, List<string> body)
+            // Collect blocks and deduplicate: later blocks for the same (cleanEvt, cleanTgt) override earlier ones
+            var blockList = new List<(string eventType, string target, List<string> body)>();
+
+            void SaveCurrentBlock()
             {
-                int start = 0;
-                while (start < body.Count && string.IsNullOrWhiteSpace(body[start])) start++;
-                int end = body.Count - 1;
-                while (end >= start && string.IsNullOrWhiteSpace(body[end])) end--;
-
-                if (start > end) return;
-
-                string cleanEvt = eventType;
-                string paramDecl = "";
-                if (cleanEvt.Contains('(') && cleanEvt.EndsWith(')'))
+                if (currentBodyLines.Count > 0)
                 {
-                    int openParen = cleanEvt.IndexOf('(');
-                    paramDecl = cleanEvt.Substring(openParen + 1, cleanEvt.Length - openParen - 2).Trim();
-                    cleanEvt = cleanEvt.Substring(0, openParen).Trim();
-                }
-                if (cleanEvt.StartsWith("on", StringComparison.OrdinalIgnoreCase) && cleanEvt.Length > 2)
-                {
-                    cleanEvt = cleanEvt.Substring(2);
-                }
-                cleanEvt = ToPascalCase(cleanEvt);
-                if (string.IsNullOrWhiteSpace(cleanEvt)) cleanEvt = "Event";
-
-                string cleanTgt = ToPascalCase(target);
-                if (string.IsNullOrWhiteSpace(cleanTgt)) cleanTgt = "None";
-
-                string methodName = $"on{cleanEvt}{cleanTgt}";
-                string baseName = methodName;
-                int suffix = 2;
-                while (usedMethodNames.Contains(methodName))
-                {
-                    methodName = $"{baseName}{suffix++}";
-                }
-                usedMethodNames.Add(methodName);
-
-                bool isAsync = false;
-                for (int i = start; i <= end; i++)
-                {
-                    if (Regex.IsMatch(body[i], @"\bawait\b"))
+                    var cleaned = new List<string>();
+                    foreach (var l in currentBodyLines)
                     {
-                        isAsync = true;
-                        break;
+                        string tr = l.Trim();
+                        // Filter out orphan/dangling value expressions like (column1) or (column1);
+                        if (Regex.IsMatch(tr, @"^\([a-zA-Z0-9_\.]+\);?$"))
+                        {
+                            continue;
+                        }
+                        cleaned.Add(l);
                     }
-                }
 
-                string asyncModifier = isAsync ? " async" : "";
-                string paramList = "BuildContext context";
-                if (!string.IsNullOrWhiteSpace(paramDecl))
-                {
-                    paramList += $", {paramDecl}";
-                }
-                sb.AppendLine($"  void {methodName}({paramList}){asyncModifier} {{");
-                for (int i = start; i <= end; i++)
-                {
-                    string line = body[i];
-                    if (string.IsNullOrWhiteSpace(line))
+                    int start = 0;
+                    while (start < cleaned.Count && string.IsNullOrWhiteSpace(cleaned[start])) start++;
+                    int end = cleaned.Count - 1;
+                    while (end >= start && string.IsNullOrWhiteSpace(cleaned[end])) end--;
+
+                    if (start <= end)
                     {
-                        sb.AppendLine();
+                        var trimmedBody = cleaned.GetRange(start, end - start + 1);
+                        blockList.Add((currentEventType, currentTarget, trimmedBody));
                     }
-                    else
-                    {
-                        sb.AppendLine($"    {line.TrimStart()}");
-                    }
+                    currentBodyLines.Clear();
                 }
-                sb.AppendLine("  }");
-                sb.AppendLine();
             }
 
             foreach (var rawLine in lines)
@@ -348,8 +333,7 @@ namespace SnapCode.Services
                 {
                     if (inBlock || currentBodyLines.Count > 0)
                     {
-                        EmitMethod(currentEventType, currentTarget, currentBodyLines);
-                        currentBodyLines.Clear();
+                        SaveCurrentBlock();
                     }
                     currentEventType = match.Groups[1].Value.Trim();
                     currentTarget = match.Groups[2].Value.Trim();
@@ -376,7 +360,81 @@ namespace SnapCode.Services
 
             if (currentBodyLines.Count > 0)
             {
-                EmitMethod(currentEventType, currentTarget, currentBodyLines);
+                SaveCurrentBlock();
+            }
+
+            // Deduplicate blocks by (cleanEvt, cleanTgt) so latest block wins
+            var dedupMap = new Dictionary<string, (string eventType, string target, List<string> body)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var b in blockList)
+            {
+                string cleanEvt = b.eventType;
+                if (cleanEvt.Contains('(') && cleanEvt.EndsWith(')'))
+                {
+                    int openParen = cleanEvt.IndexOf('(');
+                    cleanEvt = cleanEvt.Substring(0, openParen).Trim();
+                }
+                if (cleanEvt.StartsWith("on", StringComparison.OrdinalIgnoreCase) && cleanEvt.Length > 2)
+                {
+                    cleanEvt = cleanEvt.Substring(2);
+                }
+                cleanEvt = ToPascalCase(cleanEvt);
+                string cleanTgt = ToPascalCase(b.target);
+                string key = $"{cleanEvt}_{cleanTgt}";
+                dedupMap[key] = b;
+            }
+
+            var usedMethodNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var b in dedupMap.Values)
+            {
+                string cleanEvt = b.eventType;
+                string paramDecl = "";
+                if (cleanEvt.Contains('(') && cleanEvt.EndsWith(')'))
+                {
+                    int openParen = cleanEvt.IndexOf('(');
+                    paramDecl = cleanEvt.Substring(openParen + 1, cleanEvt.Length - openParen - 2).Trim();
+                    cleanEvt = cleanEvt.Substring(0, openParen).Trim();
+                }
+                if (cleanEvt.StartsWith("on", StringComparison.OrdinalIgnoreCase) && cleanEvt.Length > 2)
+                {
+                    cleanEvt = cleanEvt.Substring(2);
+                }
+                cleanEvt = ToPascalCase(cleanEvt);
+                if (string.IsNullOrWhiteSpace(cleanEvt)) cleanEvt = "Event";
+
+                string cleanTgt = ToPascalCase(b.target);
+                if (string.IsNullOrWhiteSpace(cleanTgt)) cleanTgt = "None";
+
+                string methodName = $"on{cleanEvt}{cleanTgt}";
+                string baseName = methodName;
+                int suffix = 2;
+                while (usedMethodNames.Contains(methodName))
+                {
+                    methodName = $"{baseName}{suffix++}";
+                }
+                usedMethodNames.Add(methodName);
+
+                bool isAsync = b.body.Any(l => Regex.IsMatch(l, @"\bawait\b"));
+                string asyncModifier = isAsync ? " async" : "";
+                string paramList = "BuildContext context";
+                if (!string.IsNullOrWhiteSpace(paramDecl))
+                {
+                    paramList += $", {paramDecl}";
+                }
+                sb.AppendLine($"  void {methodName}({paramList}){asyncModifier} {{");
+                foreach (var line in b.body)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        sb.AppendLine();
+                    }
+                    else
+                    {
+                        sb.AppendLine($"    {line.TrimStart()}");
+                    }
+                }
+                sb.AppendLine("  }");
+                sb.AppendLine();
             }
 
             return sb.ToString().TrimEnd();
