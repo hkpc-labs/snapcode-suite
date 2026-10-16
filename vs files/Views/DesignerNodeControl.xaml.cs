@@ -16,16 +16,22 @@ namespace Snapcode.Views
         public WidgetItem NodeItem { get; private set; }
         private NativeUIDesigner _parentDesigner;
         public DesignerNodeControl? ParentNodeControl { get; private set; }
+        public bool IsReadOnlyMirror { get; private set; } = false;
         private Panel? _layoutContainer; // If this node is a Row/Column/Container/etc.
         private FrameworkElement? _mockElement;
 
-        public DesignerNodeControl(WidgetItem item, NativeUIDesigner designer, DesignerNodeControl? parentNode = null)
+        public DesignerNodeControl(WidgetItem item, NativeUIDesigner designer, DesignerNodeControl? parentNode = null, bool isReadOnlyMirror = false)
         {
             this.InitializeComponent();
             NodeItem = item;
             _parentDesigner = designer;
             ParentNodeControl = parentNode;
-            _parentDesigner.NodeRegistry[item] = this;
+            IsReadOnlyMirror = isReadOnlyMirror;
+
+            if (!isReadOnlyMirror)
+            {
+                _parentDesigner.NodeRegistry[item] = this;
+            }
 
             RenderMockView();
 
@@ -922,7 +928,7 @@ namespace Snapcode.Views
 
             foreach (var child in NodeItem.Children)
             {
-                var childNodeCtrl = new DesignerNodeControl(child, _parentDesigner, this);
+                var childNodeCtrl = new DesignerNodeControl(child, _parentDesigner, this, IsReadOnlyMirror);
                 if (_layoutContainer is FlutterFlexPanel)
                 {
                     int flexVal = child.Type == "Expanded"
@@ -1004,6 +1010,14 @@ namespace Snapcode.Views
 
         public void SetSelected(bool isSelected)
         {
+            if (IsReadOnlyMirror)
+            {
+                SelectionBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+                SelectionBorder.Background = new SolidColorBrush(Colors.Transparent);
+                SelectionBorder.BorderThickness = new Thickness(0);
+                return;
+            }
+
             if (isSelected)
             {
                 SynchronizeSelectionBorder();
@@ -1021,12 +1035,28 @@ namespace Snapcode.Views
 
         private void UserControl_PointerPressed(object sender, PointerRoutedEventArgs e)
         {
-            _parentDesigner.SelectNode(this);
+            if (IsReadOnlyMirror)
+            {
+                if (_parentDesigner.NodeRegistry.TryGetValue(NodeItem, out var primaryNode))
+                {
+                    _parentDesigner.SelectNode(primaryNode);
+                }
+            }
+            else
+            {
+                _parentDesigner.SelectNode(this);
+            }
             e.Handled = true;
         }
 
         private void UserControl_DragStarting(UIElement sender, DragStartingEventArgs args)
         {
+            if (IsReadOnlyMirror)
+            {
+                args.Cancel = true;
+                return;
+            }
+
             args.Data.Properties["WidgetType"] = NodeItem.Type;
             args.Data.Properties["WidgetName"] = NodeItem.Name;
             args.Data.Properties["WidgetIcon"] = NodeItem.Icon;
@@ -1036,6 +1066,12 @@ namespace Snapcode.Views
 
         private void UserControl_DragOver(object sender, DragEventArgs e)
         {
+            if (IsReadOnlyMirror)
+            {
+                e.AcceptedOperation = DataPackageOperation.None;
+                return;
+            }
+
             if (_layoutContainer != null && e.DataView.Properties.ContainsKey("WidgetType"))
             {
                 e.AcceptedOperation = DataPackageOperation.Copy;
@@ -1045,6 +1081,7 @@ namespace Snapcode.Views
 
         private void UserControl_Drop(object sender, DragEventArgs e)
         {
+            if (IsReadOnlyMirror) return;
             if (_layoutContainer != null &&
                 e.DataView.Properties.TryGetValue("WidgetType", out var typeObj) && typeObj != null)
             {

@@ -130,12 +130,28 @@ namespace Snapcode.Views
         }
     }
 
+    public class DeviceResolutionPreset
+    {
+        public string Name { get; set; } = "";
+        public string Category { get; set; } = "Mobile"; // "Mobile", "Tablet", "Desktop"
+        public double Width { get; set; } = 390;
+        public double Height { get; set; } = 844;
+
+        public override string ToString() => $"{Name} ({Width} x {Height})";
+    }
+
     public sealed partial class NativeUIDesigner : UserControl
     {
         public ObservableCollection<WidgetItem> PaletteItems { get; set; } = new();
         public ObservableCollection<WidgetItem> CanvasItems { get; set; } = new();
 
         public string ProjectRoot { get; set; }
+
+        private List<DeviceResolutionPreset> _resolutionPresets = new();
+        private DeviceResolutionPreset? _selectedPreset;
+        private bool _isUpdatingPresetSelection = false;
+        private bool _isDualPreview = false;
+        private double _canvasScale = 1.0;
 
         public NativeUIDesigner()
         {
@@ -157,6 +173,8 @@ namespace Snapcode.Views
             PaletteItems.Add(new WidgetItem { Name = "Expanded", Type = "Expanded", Flex = 1, Icon = "\uE74C" });
 
             PaletteList.ItemsSource = PaletteItems;
+
+            InitializeResolutionPresets();
         }
 
         private void PaletteList_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
@@ -294,6 +312,11 @@ namespace Snapcode.Views
             else
             {
                 RenderRoot();
+            }
+
+            if (_isDualPreview)
+            {
+                RenderMirror();
             }
         }
 
@@ -832,6 +855,11 @@ namespace Snapcode.Views
             {
                 SelectNode(newNodeCtrl);
             }
+
+            if (_isDualPreview)
+            {
+                RenderMirror();
+            }
         }
 
         public void OnWidgetTreeChanged(WidgetItem newlyAddedItem = null)
@@ -948,6 +976,114 @@ namespace Snapcode.Views
         private bool _isLandscape = false;
         private Snapcode.Models.PageMetadata? _currentMetadata;
 
+        private void InitializeResolutionPresets()
+        {
+            _resolutionPresets = new List<DeviceResolutionPreset>
+            {
+                new DeviceResolutionPreset { Name = "Compact Phone", Category = "Mobile", Width = 360, Height = 640 },
+                new DeviceResolutionPreset { Name = "Standard Phone", Category = "Mobile", Width = 390, Height = 844 },
+                new DeviceResolutionPreset { Name = "Large Phone", Category = "Mobile", Width = 412, Height = 915 },
+                new DeviceResolutionPreset { Name = "Small Tablet (8\")", Category = "Tablet", Width = 600, Height = 960 },
+                new DeviceResolutionPreset { Name = "Standard Tablet (10\")", Category = "Tablet", Width = 800, Height = 1280 },
+                new DeviceResolutionPreset { Name = "Large Tablet (12.9\")", Category = "Tablet", Width = 1024, Height = 1366 },
+                new DeviceResolutionPreset { Name = "Laptop (720p)", Category = "Desktop", Width = 1280, Height = 720 },
+                new DeviceResolutionPreset { Name = "Standard Laptop", Category = "Desktop", Width = 1366, Height = 768 },
+                new DeviceResolutionPreset { Name = "Full HD Desktop", Category = "Desktop", Width = 1920, Height = 1080 }
+            };
+
+            _selectedPreset = _resolutionPresets[1]; // Standard Phone (390 x 844)
+            if (ComboDeviceResolution != null)
+            {
+                ComboDeviceResolution.ItemsSource = _resolutionPresets;
+                ComboDeviceResolution.SelectedItem = _selectedPreset;
+            }
+            UpdateCanvasOrientation(animate: false);
+        }
+
+        private void BtnDeviceMobile_Click(object sender, RoutedEventArgs e)
+        {
+            _isLandscape = false;
+            SelectPresetByCategory("Mobile", 390, 844);
+        }
+
+        private void BtnDeviceTablet_Click(object sender, RoutedEventArgs e)
+        {
+            _isLandscape = false;
+            SelectPresetByCategory("Tablet", 800, 1280);
+        }
+
+        private void BtnDeviceDesktop_Click(object sender, RoutedEventArgs e)
+        {
+            _isLandscape = true;
+            SelectPresetByCategory("Desktop", 1366, 768);
+        }
+
+        private void SelectPresetByCategory(string category, double preferredW, double preferredH)
+        {
+            var preset = _resolutionPresets.FirstOrDefault(p => p.Category == category && p.Width == preferredW && p.Height == preferredH)
+                         ?? _resolutionPresets.FirstOrDefault(p => p.Category == category);
+            if (preset != null && ComboDeviceResolution != null)
+            {
+                _isUpdatingPresetSelection = true;
+                ComboDeviceResolution.SelectedItem = preset;
+                _isUpdatingPresetSelection = false;
+                ApplyDeviceResolution(preset, animate: true);
+            }
+        }
+
+        private void ComboDeviceResolution_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingPresetSelection) return;
+            if (ComboDeviceResolution?.SelectedItem is DeviceResolutionPreset preset)
+            {
+                if (preset.Category == "Desktop" && !_isLandscape)
+                {
+                    _isLandscape = true;
+                }
+                else if (preset.Category != "Desktop" && _isLandscape && _selectedPreset?.Category == "Desktop")
+                {
+                    _isLandscape = false;
+                }
+                ApplyDeviceResolution(preset, animate: true);
+            }
+        }
+
+        private void UpdateCategoryButtonStyles(string activeCategory)
+        {
+            if (BtnDeviceMobile == null || BtnDeviceTablet == null || BtnDeviceDesktop == null) return;
+
+            var accentBg = Application.Current.Resources.TryGetValue("AccentFillColorDefaultBrush", out var aBg) && aBg is Microsoft.UI.Xaml.Media.Brush ab ? ab : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0, 120, 215));
+            var accentFg = Application.Current.Resources.TryGetValue("TextOnAccentFillColorPrimaryBrush", out var aFg) && aFg is Microsoft.UI.Xaml.Media.Brush af ? af : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
+            var transBg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            var normFg = Application.Current.Resources.TryGetValue("TextFillColorPrimaryBrush", out var nFg) && nFg is Microsoft.UI.Xaml.Media.Brush nf ? nf : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Black);
+
+            BtnDeviceMobile.Background = activeCategory == "Mobile" ? accentBg : transBg;
+            BtnDeviceMobile.Foreground = activeCategory == "Mobile" ? accentFg : normFg;
+
+            BtnDeviceTablet.Background = activeCategory == "Tablet" ? accentBg : transBg;
+            BtnDeviceTablet.Foreground = activeCategory == "Tablet" ? accentFg : normFg;
+
+            BtnDeviceDesktop.Background = activeCategory == "Desktop" ? accentBg : transBg;
+            BtnDeviceDesktop.Foreground = activeCategory == "Desktop" ? accentFg : normFg;
+        }
+
+        private void ApplyDeviceResolution(DeviceResolutionPreset preset, bool animate = true)
+        {
+            if (preset == null) return;
+            _selectedPreset = preset;
+            UpdateCategoryButtonStyles(preset.Category);
+            UpdateCanvasOrientation(animate);
+        }
+
+        private (double width, double height) GetDimensionsForOrientation(DeviceResolutionPreset? preset, bool isLandscape)
+        {
+            if (preset == null) return (390, 844);
+            double minDim = Math.Min(preset.Width, preset.Height);
+            double maxDim = Math.Max(preset.Width, preset.Height);
+
+            return isLandscape ? (maxDim, minDim) : (minDim, maxDim);
+        }
+
         public void SetPageName(string name)
         {
             _currentPageName = name;
@@ -957,30 +1093,337 @@ namespace Snapcode.Views
             }
             else
             {
-                TxtAppTitle.Text = $"{name}.dart";
+                if (TxtAppTitle != null) TxtAppTitle.Text = $"{name}.dart";
+                if (SecondaryTxtAppTitle != null) SecondaryTxtAppTitle.Text = $"{name}.dart";
             }
         }
 
         private void BtnRotateCanvas_Click(object sender, RoutedEventArgs e)
         {
             _isLandscape = !_isLandscape;
-            UpdateCanvasOrientation();
+            UpdateCanvasOrientation(animate: true);
+            if (_isDualPreview)
+            {
+                RenderMirror();
+            }
         }
 
-        public void UpdateCanvasOrientation()
+        public void UpdateCanvasOrientation(bool animate = true)
         {
+            if (_selectedPreset == null && _resolutionPresets != null && _resolutionPresets.Count > 1)
+            {
+                _selectedPreset = _resolutionPresets[1];
+            }
+
+            var (pW, pH) = GetDimensionsForOrientation(_selectedPreset, _isLandscape);
+            var (sW, sH) = GetDimensionsForOrientation(_selectedPreset, !_isLandscape);
+
             if (PhoneFrameBorder != null)
             {
-                PhoneFrameBorder.Width = _isLandscape ? 720 : 360;
-                PhoneFrameBorder.Height = _isLandscape ? 360 : 720;
+                if (animate)
+                {
+                    AnimateFrameSize(PhoneFrameBorder, pW, pH);
+                }
+                else
+                {
+                    PhoneFrameBorder.Width = pW;
+                    PhoneFrameBorder.Height = pH;
+                }
             }
+
+            if (SecondaryFrameBorder != null && _isDualPreview)
+            {
+                if (animate)
+                {
+                    AnimateFrameSize(SecondaryFrameBorder, sW, sH);
+                }
+                else
+                {
+                    SecondaryFrameBorder.Width = sW;
+                    SecondaryFrameBorder.Height = sH;
+                }
+            }
+
+            string primaryOrientText = _isLandscape ? "Landscape" : "Portrait";
+            string secondaryOrientText = !_isLandscape ? "Landscape" : "Portrait";
+
             if (TxtCanvasInfo != null)
             {
-                TxtCanvasInfo.Text = _isLandscape ? "720 x 360 (Landscape)" : "360 x 720 (Portrait)";
+                TxtCanvasInfo.Text = $"{pW} x {pH} ({primaryOrientText})";
             }
             if (TxtOrientationLabel != null)
             {
-                TxtOrientationLabel.Text = _isLandscape ? "Portrait" : "Landscape";
+                TxtOrientationLabel.Text = _isLandscape ? "Landscape" : "Portrait";
+            }
+            if (TxtPrimaryOrientationBadge != null)
+            {
+                TxtPrimaryOrientationBadge.Text = $"{primaryOrientText} ({pW}x{pH})";
+            }
+            if (TxtSecondaryOrientationBadge != null)
+            {
+                TxtSecondaryOrientationBadge.Text = $"{secondaryOrientText} ({sW}x{sH})";
+            }
+
+            CheckDisplayAccommodateSize();
+        }
+
+        private void AnimateFrameSize(FrameworkElement element, double targetWidth, double targetHeight, Action? onCompleted = null)
+        {
+            if (double.IsNaN(element.Width) || element.Width <= 0) element.Width = targetWidth;
+            if (double.IsNaN(element.Height) || element.Height <= 0) element.Height = targetHeight;
+
+            if (Math.Abs(element.Width - targetWidth) < 1 && Math.Abs(element.Height - targetHeight) < 1)
+            {
+                element.Width = targetWidth;
+                element.Height = targetHeight;
+                onCompleted?.Invoke();
+                return;
+            }
+
+            var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+
+            var animW = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                From = element.Width,
+                To = targetWidth,
+                Duration = new Duration(TimeSpan.FromMilliseconds(280)),
+                EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut },
+                EnableDependentAnimation = true
+            };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animW, element);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animW, "Width");
+            sb.Children.Add(animW);
+
+            var animH = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                From = element.Height,
+                To = targetHeight,
+                Duration = new Duration(TimeSpan.FromMilliseconds(280)),
+                EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut },
+                EnableDependentAnimation = true
+            };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animH, element);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animH, "Height");
+            sb.Children.Add(animH);
+
+            sb.Completed += (s, e) =>
+            {
+                element.Width = targetWidth;
+                element.Height = targetHeight;
+                onCompleted?.Invoke();
+            };
+
+            sb.Begin();
+        }
+
+        private void BtnDualPreview_Click(object sender, RoutedEventArgs e)
+        {
+            _isDualPreview = BtnDualPreview != null && BtnDualPreview.IsChecked == true;
+            UpdateDualPreviewLayout(animate: true);
+            if (_isDualPreview)
+            {
+                RenderMirror();
+            }
+        }
+
+        private void UpdateDualPreviewLayout(bool animate = true)
+        {
+            if (SecondaryFrameWrapper == null || SecondaryFrameBorder == null) return;
+
+            if (_isDualPreview)
+            {
+                var (sW, sH) = GetDimensionsForOrientation(_selectedPreset, !_isLandscape);
+                SecondaryFrameBorder.Width = sW;
+                SecondaryFrameBorder.Height = sH;
+                string secondaryOrientText = !_isLandscape ? "Landscape" : "Portrait";
+                if (TxtSecondaryOrientationBadge != null)
+                {
+                    TxtSecondaryOrientationBadge.Text = $"{secondaryOrientText} ({sW}x{sH})";
+                }
+
+                SecondaryFrameWrapper.Visibility = Visibility.Visible;
+
+                if (animate && SecondaryTransform != null)
+                {
+                    SecondaryTransform.X = 50;
+                    SecondaryFrameWrapper.Opacity = 0;
+
+                    var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                    var animX = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                    {
+                        From = 50,
+                        To = 0,
+                        Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+                        EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut },
+                        EnableDependentAnimation = true
+                    };
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animX, SecondaryTransform);
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animX, "X");
+                    sb.Children.Add(animX);
+
+                    var animOp = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                    {
+                        From = 0,
+                        To = 1.0,
+                        Duration = new Duration(TimeSpan.FromMilliseconds(280)),
+                        EnableDependentAnimation = true
+                    };
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animOp, SecondaryFrameWrapper);
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animOp, "Opacity");
+                    sb.Children.Add(animOp);
+
+                    sb.Begin();
+                }
+                else
+                {
+                    if (SecondaryTransform != null) SecondaryTransform.X = 0;
+                    SecondaryFrameWrapper.Opacity = 1.0;
+                }
+            }
+            else
+            {
+                if (animate && SecondaryTransform != null)
+                {
+                    var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                    var animX = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                    {
+                        From = 0,
+                        To = 40,
+                        Duration = new Duration(TimeSpan.FromMilliseconds(200)),
+                        EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseIn },
+                        EnableDependentAnimation = true
+                    };
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animX, SecondaryTransform);
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animX, "X");
+                    sb.Children.Add(animX);
+
+                    var animOp = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                    {
+                        From = 1.0,
+                        To = 0,
+                        Duration = new Duration(TimeSpan.FromMilliseconds(200)),
+                        EnableDependentAnimation = true
+                    };
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animOp, SecondaryFrameWrapper);
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animOp, "Opacity");
+                    sb.Children.Add(animOp);
+
+                    sb.Completed += (s, e) =>
+                    {
+                        SecondaryFrameWrapper.Visibility = Visibility.Collapsed;
+                    };
+                    sb.Begin();
+                }
+                else
+                {
+                    SecondaryFrameWrapper.Opacity = 0;
+                    SecondaryFrameWrapper.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            CheckDisplayAccommodateSize();
+        }
+
+        private void BtnSetSecondaryAsPrimary_Click(object sender, RoutedEventArgs e)
+        {
+            _isLandscape = !_isLandscape;
+            UpdateCanvasOrientation(animate: true);
+            if (_isDualPreview)
+            {
+                RenderMirror();
+            }
+        }
+
+        private void ComboCanvasScale_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ComboCanvasScale?.SelectedItem is ComboBoxItem item &&
+                item.Tag != null &&
+                double.TryParse(item.Tag.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double scale))
+            {
+                _canvasScale = scale;
+                if (CanvasScaleTransform != null)
+                {
+                    CanvasScaleTransform.ScaleX = scale;
+                    CanvasScaleTransform.ScaleY = scale;
+                }
+                CheckDisplayAccommodateSize();
+            }
+        }
+
+        private void CanvasScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            CheckDisplayAccommodateSize();
+        }
+
+        public void CheckDisplayAccommodateSize()
+        {
+            if (CanvasScrollViewer == null || CanvasContainer == null) return;
+
+            double availableWidth = CanvasScrollViewer.ActualWidth;
+            if (availableWidth <= 0) return;
+
+            if (_isDualPreview)
+            {
+                var (pW, pH) = GetDimensionsForOrientation(_selectedPreset, _isLandscape);
+                var (sW, sH) = GetDimensionsForOrientation(_selectedPreset, !_isLandscape);
+
+                // Total required width for side-by-side: (primary + secondary + spacing + margins) * scale
+                double spacingAndPadding = 32 + 28 + 32;
+                double requiredWidthSideBySide = (pW + sW + spacingAndPadding) * _canvasScale;
+
+                if (availableWidth < requiredWidthSideBySide)
+                {
+                    // Not enough width for side-by-side -> stack vertically
+                    if (CanvasContainer.Orientation != Orientation.Vertical)
+                    {
+                        CanvasContainer.Orientation = Orientation.Vertical;
+                    }
+                    if (InfoDualPreviewNotice != null)
+                    {
+                        InfoDualPreviewNotice.Visibility = Visibility.Visible;
+                    }
+                }
+                else
+                {
+                    // Ample width -> arrange horizontally side-by-side
+                    if (CanvasContainer.Orientation != Orientation.Horizontal)
+                    {
+                        CanvasContainer.Orientation = Orientation.Horizontal;
+                    }
+                    if (InfoDualPreviewNotice != null)
+                    {
+                        InfoDualPreviewNotice.Visibility = Visibility.Collapsed;
+                    }
+                }
+            }
+            else
+            {
+                if (CanvasContainer.Orientation != Orientation.Horizontal)
+                {
+                    CanvasContainer.Orientation = Orientation.Horizontal;
+                }
+                if (InfoDualPreviewNotice != null)
+                {
+                    InfoDualPreviewNotice.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        private void BtnCloseNotice_Click(object sender, RoutedEventArgs e)
+        {
+            if (InfoDualPreviewNotice != null)
+            {
+                InfoDualPreviewNotice.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        public void RenderMirror()
+        {
+            if (SecondaryRootCanvas == null || !_isDualPreview) return;
+            SecondaryRootCanvas.Children.Clear();
+            foreach (var item in CanvasItems)
+            {
+                SecondaryRootCanvas.Children.Add(new DesignerNodeControl(item, this, parentNode: null, isReadOnlyMirror: true));
             }
         }
 
@@ -998,13 +1441,12 @@ namespace Snapcode.Views
             {
                 _isLandscape = false;
             }
-            UpdateCanvasOrientation();
+            UpdateCanvasOrientation(animate: false);
 
             // Status Bar
-            if (MockStatusBar != null)
-            {
-                MockStatusBar.Visibility = metadata.IsStatusBarHidden ? Visibility.Collapsed : Visibility.Visible;
-            }
+            var sbVis = metadata.IsStatusBarHidden ? Visibility.Collapsed : Visibility.Visible;
+            if (MockStatusBar != null) MockStatusBar.Visibility = sbVis;
+            if (SecondaryMockStatusBar != null) SecondaryMockStatusBar.Visibility = sbVis;
 
             // MockToolBar / AppBar
             var barFgBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
@@ -1014,13 +1456,23 @@ namespace Snapcode.Views
                 barFgBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(barFg);
             }
 
+            var tbVis = metadata.ShowAppBar ? Visibility.Visible : Visibility.Collapsed;
             if (MockToolBar != null)
             {
-                MockToolBar.Visibility = metadata.ShowAppBar ? Visibility.Visible : Visibility.Collapsed;
+                MockToolBar.Visibility = tbVis;
                 if (!string.IsNullOrEmpty(metadata.AppBarBackgroundColor))
                 {
                     var barBg = ParseHexColor(metadata.AppBarBackgroundColor, Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243));
                     MockToolBar.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(barBg);
+                }
+            }
+            if (SecondaryMockToolBar != null)
+            {
+                SecondaryMockToolBar.Visibility = tbVis;
+                if (!string.IsNullOrEmpty(metadata.AppBarBackgroundColor))
+                {
+                    var barBg = ParseHexColor(metadata.AppBarBackgroundColor, Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243));
+                    SecondaryMockToolBar.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(barBg);
                 }
             }
 
@@ -1049,17 +1501,24 @@ namespace Snapcode.Views
             if (BtnUndo != null) BtnUndo.Foreground = barFgBrush;
             if (BtnRedo != null) BtnRedo.Foreground = barFgBrush;
 
+            string title = !string.IsNullOrWhiteSpace(metadata.AppBarTitle)
+                ? metadata.AppBarTitle
+                : (!string.IsNullOrWhiteSpace(metadata.Title) ? metadata.Title : $"{_currentPageName}.dart");
+
             if (TxtAppTitle != null)
             {
-                string title = !string.IsNullOrWhiteSpace(metadata.AppBarTitle)
-                    ? metadata.AppBarTitle
-                    : (!string.IsNullOrWhiteSpace(metadata.Title) ? metadata.Title : $"{_currentPageName}.dart");
                 TxtAppTitle.Text = title;
                 TxtAppTitle.Foreground = barFgBrush;
                 TxtAppTitle.HorizontalAlignment = metadata.AppBarCenterTitle ? HorizontalAlignment.Center : HorizontalAlignment.Left;
                 TxtAppTitle.Margin = (metadata.AppBarCenterTitle || BtnDrawerLeading?.Visibility != Visibility.Visible)
                     ? new Thickness(16, 0, 0, 0)
                     : new Thickness(52, 0, 0, 0);
+            }
+            if (SecondaryTxtAppTitle != null)
+            {
+                SecondaryTxtAppTitle.Text = title;
+                SecondaryTxtAppTitle.Foreground = barFgBrush;
+                SecondaryTxtAppTitle.HorizontalAlignment = metadata.AppBarCenterTitle ? HorizontalAlignment.Center : HorizontalAlignment.Left;
             }
 
             // AppBar Elevation Shadow
@@ -1076,35 +1535,46 @@ namespace Snapcode.Views
                     MockAppBarShadow.Visibility = Visibility.Collapsed;
                 }
             }
-
-            // Floating Action Button
-            if (MockFAB != null)
+            if (SecondaryMockAppBarShadow != null)
             {
-                if (metadata.HasFAB)
+                if (metadata.ShowAppBar && metadata.AppBarElevation > 0)
                 {
-                    MockFAB.Visibility = Visibility.Visible;
-                    if (!string.IsNullOrEmpty(metadata.FabBackgroundColor))
-                    {
-                        var fabBg = ParseHexColor(metadata.FabBackgroundColor, Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243));
-                        MockFAB.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(fabBg);
-                    }
-                    if (MockFABIcon != null)
-                    {
-                        string iconGlyph = metadata.FabIcon switch
-                        {
-                            "edit" => "\uE70F",
-                            "check" => "\uE73E",
-                            "camera" => "\uE722",
-                            "share" => "\uE72D",
-                            "message" => "\uE8BD",
-                            _ => "\uE710" // add
-                        };
-                        MockFABIcon.Glyph = iconGlyph;
-                    }
+                    SecondaryMockAppBarShadow.Visibility = Visibility.Visible;
+                    SecondaryMockAppBarShadow.Height = Math.Max(4, Math.Min(16, metadata.AppBarElevation * 1.5));
+                    SecondaryMockAppBarShadow.Opacity = Math.Min(1.0, 0.3 + (metadata.AppBarElevation * 0.07));
                 }
                 else
                 {
-                    MockFAB.Visibility = Visibility.Collapsed;
+                    SecondaryMockAppBarShadow.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            // Floating Action Button
+            var fabVis = metadata.HasFAB ? Visibility.Visible : Visibility.Collapsed;
+            if (MockFAB != null)
+            {
+                MockFAB.Visibility = fabVis;
+                if (metadata.HasFAB)
+                {
+                    var fabBg = ParseHexColor(metadata.FabBackgroundColor, Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243));
+                    MockFAB.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(fabBg);
+                    if (MockFABIcon != null)
+                    {
+                        MockFABIcon.Glyph = GetFabGlyph(metadata.FabIcon);
+                    }
+                }
+            }
+            if (SecondaryMockFAB != null)
+            {
+                SecondaryMockFAB.Visibility = fabVis;
+                if (metadata.HasFAB)
+                {
+                    var fabBg = ParseHexColor(metadata.FabBackgroundColor, Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243));
+                    SecondaryMockFAB.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(fabBg);
+                    if (SecondaryMockFABIcon != null)
+                    {
+                        SecondaryMockFABIcon.Glyph = GetFabGlyph(metadata.FabIcon);
+                    }
                 }
             }
 
@@ -1113,7 +1583,24 @@ namespace Snapcode.Views
             {
                 var scaffoldBg = ParseHexColor(metadata.ScaffoldBackgroundColor, Microsoft.UI.Colors.White);
                 RootCanvas.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(scaffoldBg);
+                if (SecondaryRootCanvas != null)
+                {
+                    SecondaryRootCanvas.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(scaffoldBg);
+                }
             }
+        }
+
+        private string GetFabGlyph(string? iconName)
+        {
+            return (iconName ?? "").ToLowerInvariant() switch
+            {
+                "edit" => "\uE70F",
+                "check" => "\uE73E",
+                "camera" => "\uE722",
+                "share" => "\uE72D",
+                "message" => "\uE8BD",
+                _ => "\uE710" // add
+            };
         }
 
         private Stack<string> _undoStack = new Stack<string>();
