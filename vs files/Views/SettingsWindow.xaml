@@ -45,6 +45,11 @@
                         <FontIcon Glyph="&#xE771;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Keyboard Shortcuts" Tag="Shortcuts">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE765;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Updates" Tag="Updates">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE895;" />
@@ -231,6 +236,81 @@
                             <x:String>Fira Code</x:String>
                         </ComboBox>
                     </StackPanel>
+                </Grid>
+
+                <!-- Keyboard Shortcuts -->
+                <Grid x:Name="ShortcutsContent" Visibility="Collapsed" Padding="32">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,16">
+                        <TextBlock Text="Keyboard Shortcuts" Style="{StaticResource TitleTextBlockStyle}" />
+                        <TextBlock Text="Configure shortcuts for quick tools, designer operations, and Flutter execution. Windows system shortcuts are automatically protected." Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                    </StackPanel>
+
+                    <!-- Filter and Action Buttons -->
+                    <Grid Grid.Row="1" Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="SearchShortcuts" PlaceholderText="Search commands or shortcuts..." TextChanged="SearchShortcuts_TextChanged" MaxWidth="320" HorizontalAlignment="Left" Width="300" />
+
+                        <Button x:Name="BtnResetAllShortcuts" Content="Reset All to Defaults" Click="BtnResetAllShortcuts_Click" Grid.Column="1" Margin="12,0,0,0" />
+                        <Button x:Name="BtnSaveShortcuts" Content="Save Shortcuts" Click="BtnSaveShortcuts_Click" Grid.Column="2" Style="{StaticResource AccentButtonStyle}" Margin="8,0,0,0" />
+                    </Grid>
+
+                    <!-- Shortcuts ListView -->
+                    <ListView x:Name="ListShortcuts" Grid.Row="2" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" />
+                                                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="4" Padding="6,1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Category}" FontSize="10" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" FontWeight="Medium" />
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <!-- Shortcut Key Badge -->
+                                        <Border Grid.Column="1" Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="10,4" VerticalAlignment="Center" Margin="12,0">
+                                            <TextBlock Text="{Binding DisplayText}" FontWeight="SemiBold" FontSize="12" FontFamily="Consolas" />
+                                        </Border>
+
+                                        <!-- Actions: Edit & Reset -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <Button Content="Edit" Tag="{Binding Id}" Click="BtnEditShortcut_Click" Padding="10,4" FontSize="12" />
+                                            <Button Content="Reset" Tag="{Binding Id}" Click="BtnResetSingleShortcut_Click" Padding="8,4" FontSize="11" ToolTipService.ToolTip="Reset this command to default" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <!-- Status Notification Banner -->
+                    <Border x:Name="ShortcutNoticeBanner" Grid.Row="3" Visibility="Collapsed" Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,12,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon x:Name="ShortcutNoticeIcon" Glyph="&#xE73E;" Foreground="{ThemeResource SystemControlBackgroundAccentBrush}" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock x:Name="ShortcutNoticeText" Text="Shortcuts saved successfully." FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
                 </Grid>
 
                 <!-- Updates -->

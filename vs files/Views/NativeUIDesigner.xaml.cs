@@ -175,6 +175,17 @@ namespace Snapcode.Views
             PaletteList.ItemsSource = PaletteItems;
 
             InitializeResolutionPresets();
+
+            // Bind actions to centralized ShortcutManager
+            var sm = Snapcode.Services.ShortcutManager.Instance;
+            sm.BindAction("designer.undo", () => DispatcherQueue.TryEnqueue(Undo));
+            sm.BindAction("designer.redo", () => DispatcherQueue.TryEnqueue(Redo));
+            sm.BindAction("designer.rotate", () => DispatcherQueue.TryEnqueue(RotateCanvas));
+            sm.BindAction("designer.dual_preview", () => DispatcherQueue.TryEnqueue(ToggleDualPreview));
+            sm.BindAction("designer.mobile", () => DispatcherQueue.TryEnqueue(() => BtnDeviceMobile_Click(this, new RoutedEventArgs())));
+            sm.BindAction("designer.tablet", () => DispatcherQueue.TryEnqueue(() => BtnDeviceTablet_Click(this, new RoutedEventArgs())));
+            sm.BindAction("designer.desktop", () => DispatcherQueue.TryEnqueue(() => BtnDeviceDesktop_Click(this, new RoutedEventArgs())));
+            sm.BindAction("designer.delete", () => DispatcherQueue.TryEnqueue(DeleteSelectedWidget));
         }
 
         private void PaletteList_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
@@ -1151,9 +1162,9 @@ namespace Snapcode.Views
             {
                 TxtCanvasInfo.Text = $"{pW} x {pH} ({primaryOrientText})";
             }
-            if (TxtOrientationLabel != null)
+            if (BtnRotateCanvas != null)
             {
-                TxtOrientationLabel.Text = _isLandscape ? "Landscape" : "Portrait";
+                ToolTipService.SetToolTip(BtnRotateCanvas, $"Rotate Canvas Orientation (Ctrl+R) - Current: {primaryOrientText}");
             }
             if (TxtPrimaryOrientationBadge != null)
             {
@@ -1665,6 +1676,46 @@ namespace Snapcode.Views
             Redo();
         }
 
+        private void BtnTopUndo_Click(object sender, RoutedEventArgs e)
+        {
+            Undo();
+        }
+
+        private void BtnTopRedo_Click(object sender, RoutedEventArgs e)
+        {
+            Redo();
+        }
+
+        public void RotateCanvas()
+        {
+            _isLandscape = !_isLandscape;
+            UpdateCanvasOrientation(animate: true);
+            if (_isDualPreview)
+            {
+                RenderMirror();
+            }
+        }
+
+        public void ToggleDualPreview()
+        {
+            if (BtnDualPreview != null)
+            {
+                BtnDualPreview.IsChecked = !(BtnDualPreview.IsChecked == true);
+                BtnDualPreview_Click(BtnDualPreview, new RoutedEventArgs());
+            }
+        }
+
+        public void DeleteSelectedWidget()
+        {
+            if (_selectedWidget != null)
+            {
+                RemoveWidgetFromTree(CanvasItems, _selectedWidget);
+                SelectNode(null);
+                RenderRoot();
+                SaveStateForUndo();
+            }
+        }
+
         private void Undo_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
         {
             Undo();
@@ -1677,10 +1728,73 @@ namespace Snapcode.Views
             args.Handled = true;
         }
 
+        private void Rotate_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            RotateCanvas();
+            args.Handled = true;
+        }
+
+        private void DualPreview_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            ToggleDualPreview();
+            args.Handled = true;
+        }
+
+        private void Mobile_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            BtnDeviceMobile_Click(this, new RoutedEventArgs());
+            args.Handled = true;
+        }
+
+        private void Tablet_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            BtnDeviceTablet_Click(this, new RoutedEventArgs());
+            args.Handled = true;
+        }
+
+        private void Desktop_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            BtnDeviceDesktop_Click(this, new RoutedEventArgs());
+            args.Handled = true;
+        }
+
+        private void Delete_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            var focused = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(this.XamlRoot);
+            if (focused is not TextBox && focused is not PasswordBox && focused is not RichEditBox)
+            {
+                DeleteSelectedWidget();
+                args.Handled = true;
+            }
+        }
+
         private void Save_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
         {
             SaveRequested?.Invoke(this, EventArgs.Empty);
             args.Handled = true;
+        }
+
+        private void UserControl_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            var focused = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(this.XamlRoot);
+            bool isTextEditing = focused is TextBox || focused is PasswordBox || focused is RichEditBox;
+
+            var mods = Snapcode.Services.ShortcutManager.GetCurrentModifiers();
+
+            if (isTextEditing)
+            {
+                // In text boxes, allow native text edit shortcuts
+                if (Snapcode.Services.ShortcutManager.IsStandardTextEditingShortcut(e.Key, mods))
+                {
+                    return;
+                }
+            }
+
+            // Route through Centralized ShortcutManager
+            if (Snapcode.Services.ShortcutManager.Instance.TryExecute(e.Key, mods, "Designer"))
+            {
+                e.Handled = true;
+            }
         }
 
         public void LoadUIJson(string json)
@@ -1691,6 +1805,12 @@ namespace Snapcode.Views
             {
                 RenderRoot();
                 OnWidgetTreeChanged(null);
+                if (!_isRestoringState)
+                {
+                    _undoStack.Clear();
+                    _redoStack.Clear();
+                    _undoStack.Push(GetUIJson());
+                }
                 return;
             }
 
@@ -1706,6 +1826,13 @@ namespace Snapcode.Views
                 }
                 RenderRoot();
                 OnWidgetTreeChanged(null);
+
+                if (!_isRestoringState)
+                {
+                    _undoStack.Clear();
+                    _redoStack.Clear();
+                    _undoStack.Push(GetUIJson());
+                }
             }
             catch (Exception ex)
             {

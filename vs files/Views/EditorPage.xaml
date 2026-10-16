@@ -6,7 +6,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="using:Snapcode.Views"
     mc:Ignorable="d"
-    Background="Transparent">
+    Background="Transparent"
+    IsTabStop="True"
+    KeyDown="Page_KeyDown">
 
     <Grid>
         <Grid.KeyboardAccelerators>

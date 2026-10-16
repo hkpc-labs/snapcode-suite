@@ -169,6 +169,7 @@ namespace Snapcode.Views
                 EnvVarsContent.Visibility = Visibility.Collapsed;
                 AndroidDevicesContent.Visibility = Visibility.Collapsed;
                 AppearanceContent.Visibility = Visibility.Collapsed;
+                ShortcutsContent.Visibility = Visibility.Collapsed;
                 UpdatesContent.Visibility = Visibility.Collapsed;
                 AboutContent.Visibility = Visibility.Collapsed;
 
@@ -187,6 +188,10 @@ namespace Snapcode.Views
                     case "Appearance":
                         AppearanceContent.Visibility = Visibility.Visible;
                         break;
+                    case "Shortcuts":
+                        ShortcutsContent.Visibility = Visibility.Visible;
+                        RefreshShortcutsList();
+                        break;
                     case "Updates":
                         UpdatesContent.Visibility = Visibility.Visible;
                         break;
@@ -194,6 +199,181 @@ namespace Snapcode.Views
                         AboutContent.Visibility = Visibility.Visible;
                         break;
                 }
+            }
+        }
+
+        private void RefreshShortcutsList(string? filter = null)
+        {
+            var allCommands = Snapcode.Services.ShortcutManager.Instance.Commands;
+            if (string.IsNullOrWhiteSpace(filter))
+            {
+                ListShortcuts.ItemsSource = allCommands.ToList();
+            }
+            else
+            {
+                string f = filter.ToLowerInvariant().Trim();
+                ListShortcuts.ItemsSource = allCommands.Where(c => 
+                    c.Name.ToLowerInvariant().Contains(f) || 
+                    c.Category.ToLowerInvariant().Contains(f) ||
+                    c.Description.ToLowerInvariant().Contains(f) ||
+                    c.DisplayText.ToLowerInvariant().Contains(f)
+                ).ToList();
+            }
+        }
+
+        private void SearchShortcuts_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            RefreshShortcutsList(SearchShortcuts?.Text);
+        }
+
+        private async void BtnResetAllShortcuts_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Reset All Shortcuts?",
+                Content = "Are you sure you want to reset all keyboard shortcuts to their default keybindings?",
+                PrimaryButtonText = "Reset to Defaults",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = this.Content.XamlRoot
+            };
+
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+            {
+                Snapcode.Services.ShortcutManager.Instance.ResetAllToDefaults();
+                await Snapcode.Services.ShortcutManager.Instance.SaveAsync();
+                RefreshShortcutsList(SearchShortcuts?.Text);
+                ShowShortcutNotice("All shortcuts have been reset to default values.");
+            }
+        }
+
+        private async void BtnResetSingleShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string cmdId)
+            {
+                var cmd = Snapcode.Services.ShortcutManager.Instance.Commands.FirstOrDefault(c => c.Id == cmdId);
+                if (cmd != null)
+                {
+                    cmd.ResetToDefault();
+                    await Snapcode.Services.ShortcutManager.Instance.SaveAsync();
+                    RefreshShortcutsList(SearchShortcuts?.Text);
+                    ShowShortcutNotice($"Reset '{cmd.Name}' to default shortcut: {cmd.DisplayText}");
+                }
+            }
+        }
+
+        private async void BtnSaveShortcuts_Click(object sender, RoutedEventArgs e)
+        {
+            BtnSaveShortcuts.IsEnabled = false;
+            await Snapcode.Services.ShortcutManager.Instance.SaveAsync();
+            ShowShortcutNotice("Shortcuts saved and applied successfully!");
+            BtnSaveShortcuts.IsEnabled = true;
+        }
+
+        private async void ShowShortcutNotice(string message)
+        {
+            if (ShortcutNoticeBanner != null && ShortcutNoticeText != null)
+            {
+                ShortcutNoticeText.Text = message;
+                ShortcutNoticeBanner.Visibility = Visibility.Visible;
+                await System.Threading.Tasks.Task.Delay(3000);
+                ShortcutNoticeBanner.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private async void BtnEditShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not string cmdId) return;
+            var cmd = Snapcode.Services.ShortcutManager.Instance.Commands.FirstOrDefault(c => c.Id == cmdId);
+            if (cmd == null) return;
+
+            Windows.System.VirtualKey recordedKey = cmd.Key;
+            Windows.System.VirtualKeyModifiers recordedMods = cmd.Modifiers;
+
+            var dialog = new ContentDialog
+            {
+                Title = $"Edit Shortcut: {cmd.Name}",
+                PrimaryButtonText = "Assign Shortcut",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = this.Content.XamlRoot
+            };
+
+            var panel = new StackPanel { Spacing = 14, MinWidth = 360 };
+            panel.Children.Add(new TextBlock
+            {
+                Text = $"Action: {cmd.Name} ({cmd.Category})\n{cmd.Description}",
+                FontSize = 12,
+                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            var recorderBox = new TextBox
+            {
+                Header = "Press New Key Combination",
+                Text = cmd.DisplayText,
+                IsReadOnly = true,
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas"),
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            panel.Children.Add(recorderBox);
+
+            var validationMsg = new TextBlock
+            {
+                FontSize = 11,
+                Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.OrangeRed),
+                TextWrapping = TextWrapping.Wrap,
+                Visibility = Visibility.Collapsed
+            };
+            panel.Children.Add(validationMsg);
+
+            recorderBox.KeyDown += (s, args) =>
+            {
+                args.Handled = true;
+                var rawKey = args.Key;
+
+                // Ignore bare modifier presses
+                if (rawKey == Windows.System.VirtualKey.Control ||
+                    rawKey == Windows.System.VirtualKey.Shift ||
+                    rawKey == Windows.System.VirtualKey.Menu ||
+                    rawKey == Windows.System.VirtualKey.LeftWindows ||
+                    rawKey == Windows.System.VirtualKey.RightWindows)
+                {
+                    return;
+                }
+
+                var currentMods = Snapcode.Services.ShortcutManager.GetCurrentModifiers();
+                recordedKey = rawKey;
+                recordedMods = currentMods;
+
+                string formatted = Snapcode.Services.ShortcutManager.FormatShortcut(recordedKey, recordedMods);
+                recorderBox.Text = formatted;
+
+                var (isValid, error) = Snapcode.Services.ShortcutManager.Instance.ValidateShortcut(cmd.Id, recordedKey, recordedMods);
+                if (!isValid)
+                {
+                    validationMsg.Text = error;
+                    validationMsg.Visibility = Visibility.Visible;
+                    dialog.IsPrimaryButtonEnabled = false;
+                }
+                else
+                {
+                    validationMsg.Visibility = Visibility.Collapsed;
+                    dialog.IsPrimaryButtonEnabled = true;
+                }
+            };
+
+            dialog.Content = panel;
+            var res = await dialog.ShowAsync();
+            if (res == ContentDialogResult.Primary)
+            {
+                cmd.Key = recordedKey;
+                cmd.Modifiers = recordedMods;
+                await Snapcode.Services.ShortcutManager.Instance.SaveAsync();
+                RefreshShortcutsList(SearchShortcuts?.Text);
+                ShowShortcutNotice($"Updated '{cmd.Name}' shortcut to {cmd.DisplayText}");
             }
         }
 

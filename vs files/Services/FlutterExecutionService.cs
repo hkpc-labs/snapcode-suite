@@ -403,7 +403,7 @@ namespace Snapcode.Services
             }
         }
 
-        private void AddLog(string message, LogEntryType type)
+        public void AddLog(string message, LogEntryType type = LogEntryType.Info)
         {
             var entry = new DebugLogEntry
             {

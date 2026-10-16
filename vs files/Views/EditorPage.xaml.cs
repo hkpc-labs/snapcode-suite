@@ -69,6 +69,86 @@ namespace Snapcode.Views
                 DebugConsole.CloseRequested += (s, e) => ToggleDebugConsole(false);
                 DebugConsole.PopOutRequested += (s, e) => BtnPopOutConsole_Click(s, new RoutedEventArgs());
             }
+
+            // Bind global & Flutter actions to ShortcutManager
+            var sm = Snapcode.Services.ShortcutManager.Instance;
+            sm.BindAction("file.save", () => DispatcherQueue.TryEnqueue(async () => await SaveWorkspaceAsync(_currentPageName, _currentEventContext)));
+            sm.BindAction("general.settings", () => DispatcherQueue.TryEnqueue(() => { var sw = new SettingsWindow(); sw.Activate(); }));
+            sm.BindAction("flutter.run", () => DispatcherQueue.TryEnqueue(() => BtnRun_Click(this, new RoutedEventArgs())));
+            sm.BindAction("flutter.hot_reload", () => DispatcherQueue.TryEnqueue(async () => await Snapcode.Services.FlutterExecutionService.Instance.HotReloadAsync()));
+            sm.BindAction("flutter.hot_restart", () => DispatcherQueue.TryEnqueue(async () => await Snapcode.Services.FlutterExecutionService.Instance.HotRestartAsync()));
+            sm.BindAction("flutter.stop", () => DispatcherQueue.TryEnqueue(async () => await Snapcode.Services.FlutterExecutionService.Instance.StopAsync()));
+            sm.BindAction("flutter.clean", () => DispatcherQueue.TryEnqueue(() => BtnClearBlocks_Click(this, new RoutedEventArgs())));
+            sm.BindAction("flutter.build_apk", () => DispatcherQueue.TryEnqueue(async () => await BuildApkShortcutAsync()));
+        }
+
+        private void Page_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            var focused = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(this.XamlRoot);
+            bool isTextEditing = focused is TextBox || focused is PasswordBox || focused is RichEditBox;
+
+            var mods = Snapcode.Services.ShortcutManager.GetCurrentModifiers();
+
+            if (isTextEditing)
+            {
+                if (Snapcode.Services.ShortcutManager.IsStandardTextEditingShortcut(e.Key, mods))
+                {
+                    return;
+                }
+            }
+
+            string currentScope = "Global";
+            if (EditorTabs?.SelectedItem is NavigationViewItem navItem)
+            {
+                if (navItem.Tag?.ToString() == "view") currentScope = "Designer";
+                else if (navItem.Tag?.ToString() == "code") currentScope = "Editor";
+            }
+
+            if (Snapcode.Services.ShortcutManager.Instance.TryExecute(e.Key, mods, currentScope))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private async System.Threading.Tasks.Task BuildApkShortcutAsync()
+        {
+            try
+            {
+                var exec = Snapcode.Services.FlutterExecutionService.Instance;
+                exec.AddLog("Starting Flutter APK build (debug mode)...", Models.LogEntryType.System);
+
+                string flutterDir = System.IO.Path.Combine(_projectPath, Services.ProjectService.FlutterFolderName);
+                if (!System.IO.Directory.Exists(flutterDir)) flutterDir = _projectPath;
+
+                var config = await Services.ConfigService.LoadAsync();
+                string flutterExe = !string.IsNullOrEmpty(config.FlutterSdkPath)
+                    ? System.IO.Path.Combine(config.FlutterSdkPath, "bin", "flutter.bat")
+                    : "flutter";
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = flutterExe,
+                    Arguments = "build apk --debug",
+                    WorkingDirectory = flutterDir,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                var proc = System.Diagnostics.Process.Start(psi);
+                if (proc != null)
+                {
+                    proc.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) exec.AddLog(e.Data, Models.LogEntryType.Info); };
+                    proc.ErrorDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) exec.AddLog(e.Data, Models.LogEntryType.Warning); };
+                    proc.BeginOutputReadLine();
+                    proc.BeginErrorReadLine();
+                }
+            }
+            catch (Exception ex)
+            {
+                Snapcode.Services.FlutterExecutionService.Instance.AddLog($"Build APK error: {ex.Message}", Models.LogEntryType.Error);
+            }
         }
 
         private async void AutoSaveTimer_Tick(object sender, object e)
