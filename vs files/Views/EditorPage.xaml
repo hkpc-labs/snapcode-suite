@@ -8,12 +8,10 @@
     mc:Ignorable="d"
     Background="Transparent"
     IsTabStop="True"
-    KeyDown="Page_KeyDown">
+    KeyDown="Page_KeyDown"
+    KeyboardAcceleratorPlacementMode="Hidden">
 
-    <Grid>
-        <Grid.KeyboardAccelerators>
-            <KeyboardAccelerator Modifiers="Control" Key="S" Invoked="GlobalSave_Invoked" />
-        </Grid.KeyboardAccelerators>
+    <Grid KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.RowDefinitions>
             <RowDefinition Height="40" /> <!-- Custom Title Bar Region (with Menus) -->
             <RowDefinition Height="32" /> <!-- Compact ToolBar Region -->
@@ -38,6 +36,7 @@
                     </MenuBarItem>
                     <MenuBarItem Title="View">
                         <MenuFlyoutItem Text="Files (View Manager)" Click="BtnToggleViewManager_Click" />
+                        <ToggleMenuFlyoutItem x:Name="MenuToggleQuickPageNav" Text="Quick Page Navigation" IsChecked="True" Click="MenuToggleQuickPageNav_Click" />
                         <MenuFlyoutItem Text="Assets Manager" Click="BtnAssets_Click" />
                         <MenuFlyoutItem Text="Code Preview" Click="BtnToggleCode_Click" />
                     </MenuBarItem>
@@ -62,57 +61,100 @@
             </StackPanel>
         </Grid>
 
-        <!-- COMPACT HORIZONTAL TOOLBAR -->
-        <CommandBar Grid.Row="1" DefaultLabelPosition="Collapsed" Background="Transparent" BorderThickness="0" Padding="12,0,12,0">
-            <!-- Icon only buttons for quick access -->
-            <AppBarButton x:Name="BtnSaveQuick" Icon="Save" Click="BtnSave_Click" ToolTipService.ToolTip="Save (Ctrl+S)" />
-            <AppBarButton x:Name="BtnAssetsQuick" Icon="Pictures" Click="BtnAssets_Click" ToolTipService.ToolTip="Assets" />
-            <AppBarSeparator />
-            <AppBarButton x:Name="BtnClearAllQuick" Icon="Delete" Click="BtnClearBlocks_Click" ToolTipService.ToolTip="Clear Cache" />
-            <AppBarButton x:Name="BtnSettingsQuick" Icon="Setting" Click="BtnPageConfig_Click" ToolTipService.ToolTip="Settings" />
-            
-            <CommandBar.Content>
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,0,0">
-                    <ComboBox x:Name="ComboTarget" SelectedIndex="0" Width="95" Height="28" Padding="8,2" SelectionChanged="ComboTarget_SelectionChanged" Background="Transparent" BorderThickness="0">
-                        <ComboBoxItem x:Name="ComboItemWeb" Content="Web" Tag="web" />
-                        <ComboBoxItem x:Name="ComboItemAndroid" Content="Android" Tag="android" />
-                        <ComboBoxItem x:Name="ComboItemWindows" Content="Windows" Tag="windows" />
-                    </ComboBox>
+        <!-- COMPACT HORIZONTAL TOOLBAR WITH CENTERED QUICK PAGE NAVIGATION -->
+        <Grid Grid.Row="1" Background="Transparent" Padding="12,0,12,0" Height="32">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-                    <ComboBox x:Name="ComboDevice" Width="160" Height="28" Padding="8,2" SelectionChanged="ComboDevice_SelectionChanged" Background="Transparent" BorderThickness="0">
-                        <!-- Populated dynamically based on Target & Discovery -->
-                    </ComboBox>
+            <!-- Column 0: Left side controls (Target, Device, Run, HotReload, HotRestart, Console) -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <ComboBox x:Name="ComboTarget" SelectedIndex="0" Width="95" Height="28" Padding="8,2" SelectionChanged="ComboTarget_SelectionChanged" Background="Transparent" BorderThickness="0">
+                    <ComboBoxItem x:Name="ComboItemWeb" Content="Web" Tag="web" />
+                    <ComboBoxItem x:Name="ComboItemAndroid" Content="Android" Tag="android" />
+                    <ComboBoxItem x:Name="ComboItemWindows" Content="Windows" Tag="windows" />
+                </ComboBox>
 
-                    <ProgressRing x:Name="RingDeviceLoading" Width="14" Height="14" IsActive="False" Visibility="Collapsed" Margin="2,0" />
+                <ComboBox x:Name="ComboDevice" Width="160" Height="28" Padding="8,2" SelectionChanged="ComboDevice_SelectionChanged" Background="Transparent" BorderThickness="0">
+                    <!-- Populated dynamically based on Target & Discovery -->
+                </ComboBox>
 
-                    <Button x:Name="BtnRefreshDevices" Click="BtnRefreshDevices_Click" Height="28" Width="28" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Refresh Devices &amp; Emulators">
-                        <FontIcon Glyph="&#xE72C;" FontSize="11" />
-                    </Button>
+                <ProgressRing x:Name="RingDeviceLoading" Width="14" Height="14" IsActive="False" Visibility="Collapsed" Margin="2,0" />
 
-                    <Button x:Name="BtnRunQuick" Click="BtnRun_Click" Background="{ThemeResource AccentFillColorDefaultBrush}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" Height="28" CornerRadius="4" Padding="12,2" BorderThickness="0" ToolTipService.ToolTip="Start Debugging (F5)">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon x:Name="IconRunQuick" Glyph="&#xE768;" FontSize="12" />
-                            <TextBlock x:Name="TxtRunQuick" Text="Start" FontSize="12" FontWeight="SemiBold" />
+                <Button x:Name="BtnRefreshDevices" Click="BtnRefreshDevices_Click" Height="28" Width="28" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Refresh Devices &amp; Emulators">
+                    <FontIcon Glyph="&#xE72C;" FontSize="11" />
+                </Button>
+
+                <Button x:Name="BtnRunQuick" Click="BtnRun_Click" Background="{ThemeResource AccentFillColorDefaultBrush}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" Height="28" CornerRadius="4" Padding="12,2" BorderThickness="0" ToolTipService.ToolTip="Start Debugging (F5)">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon x:Name="IconRunQuick" Glyph="&#xE768;" FontSize="12" />
+                        <TextBlock x:Name="TxtRunQuick" Text="Start" FontSize="12" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="BtnHotReloadQuick" Click="BtnHotReload_Click" IsEnabled="False" Height="28" Width="30" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Hot Reload (r / Ctrl+F10)">
+                    <FontIcon Glyph="&#xE72C;" FontSize="12" Foreground="#00BCD4" />
+                </Button>
+
+                <Button x:Name="BtnHotRestartQuick" Click="BtnHotRestart_Click" IsEnabled="False" Height="28" Width="30" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Hot Restart (R / Ctrl+Shift+F10)">
+                    <FontIcon Glyph="&#xE777;" FontSize="12" Foreground="#FF9800" />
+                </Button>
+
+                <Button x:Name="BtnToggleConsoleQuick" Click="BtnToggleConsole_Click" Height="28" Padding="8,2" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Toggle Debug Console">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <FontIcon Glyph="&#xE756;" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock Text="Console" FontSize="11" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <!-- Column 1: Middle empty space -> Horizontal Page Navigation for fast access -->
+            <Grid Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="8,0" Background="Transparent">
+                <Grid.ContextFlyout>
+                    <MenuFlyout>
+                        <ToggleMenuFlyoutItem x:Name="ContextTogglePageNav" Text="Show Quick Page Navigation" IsChecked="True" Click="MenuToggleQuickPageNav_Click" />
+                    </MenuFlyout>
+                </Grid.ContextFlyout>
+
+                <Border x:Name="QuickPageNavHost" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="3,2" Height="28">
+                    <Border.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="Hide Quick Page Navigation" Icon="Cancel" Click="MenuHideQuickPageNav_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Next Page (Ctrl+Tab)" Icon="Forward" Click="MenuNextPage_Click" />
+                            <MenuFlyoutItem Text="Previous Page (Ctrl+Shift+Tab)" Icon="Back" Click="MenuPrevPage_Click" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Add New Page..." Icon="Add" Click="BtnAddPage_Click" />
+                        </MenuFlyout>
+                    </Border.ContextFlyout>
+                    
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+                        <StackPanel x:Name="QuickPageTabsPanel" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                            <!-- Populated dynamically with fast-access page tabs -->
                         </StackPanel>
-                    </Button>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
 
-                    <Button x:Name="BtnHotReloadQuick" Click="BtnHotReload_Click" IsEnabled="False" Height="28" Width="30" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Hot Reload (r / Ctrl+F10)">
-                        <FontIcon Glyph="&#xE72C;" FontSize="12" Foreground="#00BCD4" />
-                    </Button>
-
-                    <Button x:Name="BtnHotRestartQuick" Click="BtnHotRestart_Click" IsEnabled="False" Height="28" Width="30" Padding="0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Hot Restart (R / Ctrl+Shift+F10)">
-                        <FontIcon Glyph="&#xE777;" FontSize="12" Foreground="#FF9800" />
-                    </Button>
-
-                    <Button x:Name="BtnToggleConsoleQuick" Click="BtnToggleConsole_Click" Height="28" Padding="8,2" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Toggle Debug Console">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <FontIcon Glyph="&#xE756;" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Console" FontSize="11" />
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-            </CommandBar.Content>
-        </CommandBar>
+            <!-- Column 2: Right side quick access buttons -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <Button x:Name="BtnSaveQuick" Click="BtnSave_Click" Height="28" Width="28" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTipService.ToolTip="Save Workspace (Ctrl+S)">
+                    <FontIcon Glyph="&#xE74E;" FontSize="13" />
+                </Button>
+                <Button x:Name="BtnAssetsQuick" Click="BtnAssets_Click" Height="28" Width="28" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTipService.ToolTip="Assets Manager">
+                    <FontIcon Glyph="&#xEB9F;" FontSize="13" />
+                </Button>
+                <Rectangle Width="1" Height="14" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="3,0" />
+                <Button x:Name="BtnClearAllQuick" Click="BtnClearBlocks_Click" Height="28" Width="28" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTipService.ToolTip="Clear Cache">
+                    <FontIcon Glyph="&#xE74D;" FontSize="13" />
+                </Button>
+                <Button x:Name="BtnSettingsQuick" Click="BtnPageConfig_Click" Height="28" Width="28" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTipService.ToolTip="Page Settings">
+                    <FontIcon Glyph="&#xE713;" FontSize="13" />
+                </Button>
+            </StackPanel>
+        </Grid>
 
         <!-- SPLIT VIEW -->
         <SplitView x:Name="ViewManagerSplitView" Grid.Row="2" DisplayMode="Overlay" IsPaneOpen="False" OpenPaneLength="250" PaneBackground="{ThemeResource SolidBackgroundFillColorSecondaryBrush}">

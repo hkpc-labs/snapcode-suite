@@ -73,7 +73,20 @@ namespace Snapcode.Views
 
             // Bind global & Flutter actions to ShortcutManager
             var sm = Snapcode.Services.ShortcutManager.Instance;
-            sm.BindAction("file.save", () => DispatcherQueue.TryEnqueue(async () => await SaveWorkspaceAsync(_currentPageName, _currentEventContext)));
+            sm.BindAction("file.save", () => DispatcherQueue.TryEnqueue(async () =>
+            {
+                if (EditorTabs?.SelectedItem is NavigationViewItem navItem && navItem.Tag?.ToString() == "code")
+                {
+                    if (MonacoEditor != null)
+                    {
+                        await MonacoEditor.SaveCurrentFileAsync();
+                    }
+                    return;
+                }
+                await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
+            }));
+            sm.BindAction("page.next", () => DispatcherQueue.TryEnqueue(() => NavigateNextPage()));
+            sm.BindAction("page.prev", () => DispatcherQueue.TryEnqueue(() => NavigatePreviousPage()));
             sm.BindAction("general.settings", () => DispatcherQueue.TryEnqueue(() => { var sw = new SettingsWindow(); sw.Activate(); }));
             sm.BindAction("flutter.run", () => DispatcherQueue.TryEnqueue(() => BtnRun_Click(this, new RoutedEventArgs())));
             sm.BindAction("flutter.hot_reload", () => DispatcherQueue.TryEnqueue(async () => await Snapcode.Services.FlutterExecutionService.Instance.HotReloadAsync()));
@@ -96,6 +109,21 @@ namespace Snapcode.Views
                 {
                     return;
                 }
+            }
+
+            // Quick Page Shift: Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PageDown, Ctrl+PageUp
+            if ((mods & Windows.System.VirtualKeyModifiers.Control) != 0 && (e.Key == Windows.System.VirtualKey.Tab || e.Key == Windows.System.VirtualKey.PageDown))
+            {
+                e.Handled = true;
+                if ((mods & Windows.System.VirtualKeyModifiers.Shift) != 0) NavigatePreviousPage();
+                else NavigateNextPage();
+                return;
+            }
+            if ((mods & Windows.System.VirtualKeyModifiers.Control) != 0 && e.Key == Windows.System.VirtualKey.PageUp)
+            {
+                e.Handled = true;
+                NavigatePreviousPage();
+                return;
             }
 
             string currentScope = "Global";
@@ -427,6 +455,7 @@ namespace Snapcode.Views
                 _currentPageName = "main";
                 ListPages.SelectedItem = _currentPageName;
                 _isSwitchingPage = false;
+                RefreshQuickPageNavigation();
 
                 // Immediately load Native UI state for the current page so widgets render on canvas instantly
                 try
@@ -1623,62 +1652,330 @@ namespace Snapcode.Views
             
             if (ListPages.SelectedItem is string pageName && pageName != _currentPageName)
             {
-                string oldPageName = _currentPageName;
-                string oldEventContext = _currentEventContext;
-                
-                _currentPageName = pageName;
-                _currentEventContext = null;
+                await SwitchToPageAsync(pageName);
+            }
+        }
 
-                await SaveWorkspaceAsync(oldPageName, oldEventContext);
-                
-                if (_isWebViewReady)
+        public async Task SwitchToPageAsync(string pageName)
+        {
+            if (string.IsNullOrWhiteSpace(pageName) || pageName == _currentPageName) return;
+
+            string oldPageName = _currentPageName;
+            string oldEventContext = _currentEventContext;
+            
+            _currentPageName = pageName;
+            _currentEventContext = null;
+
+            await SaveWorkspaceAsync(oldPageName, oldEventContext);
+
+            _isSwitchingPage = true;
+            if (ListPages != null)
+            {
+                ListPages.SelectedItem = pageName;
+            }
+            _isSwitchingPage = false;
+
+            UpdateQuickPageNavigationActiveState();
+            
+            if (_isWebViewReady)
+            {
+                try
                 {
+                    string workspaceJson = await ProjectService.LoadPageWorkspaceAsync(_projectPath, _currentPageName);
+                    
+                    var metadata = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
+                    string pageType = metadata?.Type?.ToLower() ?? "page";
+                    if (pageType == "custom view") pageType = "custom_view";
+                    
+                    await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.setWorkspaceContext('{pageType}')");
+
+                    if (workspaceJson != "{}" && !string.IsNullOrWhiteSpace(workspaceJson))
+                    {
+                        string safeJson = JsonSerializer.Serialize(workspaceJson);
+                        await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadWorkspace({safeJson})");
+                    }
+                    else
+                    {
+                        await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.clearWorkspace()");
+                    }
+
                     try
                     {
-                        string workspaceJson = await ProjectService.LoadPageWorkspaceAsync(_projectPath, _currentPageName);
-                        
-                        var metadata = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
-                        string pageType = metadata?.Type?.ToLower() ?? "page";
-                        if (pageType == "custom view") pageType = "custom_view";
-                        
-                        await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.setWorkspaceContext('{pageType}')");
-
-                        if (workspaceJson != "{}" && !string.IsNullOrWhiteSpace(workspaceJson))
+                        string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
+                        if (NativeDesigner != null)
                         {
-                            string safeJson = JsonSerializer.Serialize(workspaceJson);
-                            await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadWorkspace({safeJson})");
+                            NativeDesigner.ApplyPageMetadata(metadata);
+                            NativeDesigner.SetPageName(_currentPageName);
+                            NativeDesigner.LoadUIJson(uiJson);
                         }
-                        else
-                        {
-                            await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.clearWorkspace()");
-                        }
-
-                        try
-                        {
-                            string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
-                            if (NativeDesigner != null)
-                            {
-                                NativeDesigner.ApplyPageMetadata(metadata);
-                                NativeDesigner.SetPageName(_currentPageName);
-                                NativeDesigner.LoadUIJson(uiJson);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to inject UI state: {ex.Message}");
-                        }
-
-                        DispatcherQueue?.TryEnqueue(() =>
-                        {
-                            TxtSaveStatus.Text = $"Loaded {pageName}";
-                        });
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to switch page: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to inject UI state: {ex.Message}");
+                    }
+
+                    DispatcherQueue?.TryEnqueue(() =>
+                    {
+                        TxtSaveStatus.Text = $"Loaded {pageName}";
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to switch page: {ex.Message}");
+                }
+            }
+            else
+            {
+                try
+                {
+                    var metadata = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
+                    string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
+                    if (NativeDesigner != null)
+                    {
+                        NativeDesigner.ApplyPageMetadata(metadata);
+                        NativeDesigner.SetPageName(_currentPageName);
+                        NativeDesigner.LoadUIJson(uiJson);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        public void RefreshQuickPageNavigation()
+        {
+            if (QuickPageTabsPanel == null) return;
+
+            QuickPageTabsPanel.Children.Clear();
+
+            var pages = new List<string>();
+            if (ListPages != null && ListPages.Items.Count > 0)
+            {
+                foreach (var item in ListPages.Items)
+                {
+                    if (item is string p && !pages.Contains(p)) pages.Add(p);
+                }
+            }
+            else if (!string.IsNullOrEmpty(_projectPath))
+            {
+                var discovered = ProjectService.GetProjectPages(_projectPath);
+                foreach (var p in discovered)
+                {
+                    if (ProjectFileClassifier.IsVisualPage(_projectPath, p) && !pages.Contains(p))
+                    {
+                        pages.Add(p);
                     }
                 }
             }
+
+            if (pages.Count == 0) pages.Add("main");
+
+            // Ensure "main" is always the first tab
+            if (pages.Contains("main") && pages.IndexOf("main") != 0)
+            {
+                pages.Remove("main");
+                pages.Insert(0, "main");
+            }
+
+            foreach (var pageName in pages)
+            {
+                bool isActive = string.Equals(pageName, _currentPageName, StringComparison.OrdinalIgnoreCase);
+
+                var btn = new Button
+                {
+                    Height = 24,
+                    Padding = new Thickness(8, 2, 8, 2),
+                    CornerRadius = new CornerRadius(4),
+                    Margin = new Thickness(1, 0, 1, 0),
+                    Tag = pageName,
+                    BorderThickness = new Thickness(0),
+                    Background = isActive
+                        ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"]
+                        : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent)
+                };
+
+                ToolTipService.SetToolTip(btn, $"Switch to {pageName}.dart (Ctrl+Tab)");
+
+                var sp = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 4,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                var icon = new FontIcon
+                {
+                    Glyph = "\uE7C3",
+                    FontSize = 11,
+                    Foreground = isActive
+                        ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
+                        : (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"]
+                };
+
+                var text = new TextBlock
+                {
+                    Text = $"{pageName}.dart",
+                    FontSize = 11,
+                    FontWeight = isActive ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal,
+                    Foreground = isActive
+                        ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
+                        : (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorPrimaryBrush"],
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                sp.Children.Add(icon);
+                sp.Children.Add(text);
+                btn.Content = sp;
+
+                string capturedPage = pageName;
+                btn.Click += async (s, e) =>
+                {
+                    await SwitchToPageAsync(capturedPage);
+                };
+
+                // Right click context menu on individual tab
+                var flyout = new MenuFlyout();
+                var itemSwitch = new MenuFlyoutItem { Text = $"Switch to {capturedPage}.dart" };
+                itemSwitch.Click += async (s, e) => await SwitchToPageAsync(capturedPage);
+                flyout.Items.Add(itemSwitch);
+
+                var itemConfig = new MenuFlyoutItem { Text = "Page Configuration..." };
+                itemConfig.Click += (s, e) => BtnPageConfig_Click(s, e);
+                flyout.Items.Add(itemConfig);
+
+                flyout.Items.Add(new MenuFlyoutSeparator());
+
+                var itemHide = new MenuFlyoutItem { Text = "Hide Quick Page Navigation" };
+                itemHide.Click += (s, e) => MenuHideQuickPageNav_Click(s, e);
+                flyout.Items.Add(itemHide);
+
+                btn.ContextFlyout = flyout;
+
+                QuickPageTabsPanel.Children.Add(btn);
+            }
+
+            // Append small "+" button to add a new page directly from the navigator
+            var btnAdd = new Button
+            {
+                Width = 22,
+                Height = 22,
+                Padding = new Thickness(0),
+                CornerRadius = new CornerRadius(4),
+                Margin = new Thickness(2, 0, 0, 0),
+                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                BorderThickness = new Thickness(0)
+            };
+            ToolTipService.SetToolTip(btnAdd, "Add New Page...");
+            btnAdd.Content = new FontIcon { Glyph = "\uE710", FontSize = 10, Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] };
+            btnAdd.Click += (s, e) => BtnAddPage_Click(s, e);
+            QuickPageTabsPanel.Children.Add(btnAdd);
+        }
+
+        private void UpdateQuickPageNavigationActiveState()
+        {
+            if (QuickPageTabsPanel == null) return;
+
+            foreach (var child in QuickPageTabsPanel.Children)
+            {
+                if (child is Button btn && btn.Tag is string pageName)
+                {
+                    bool isActive = string.Equals(pageName, _currentPageName, StringComparison.OrdinalIgnoreCase);
+
+                    btn.Background = isActive
+                        ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"]
+                        : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+                    if (btn.Content is StackPanel sp && sp.Children.Count >= 2)
+                    {
+                        if (sp.Children[0] is FontIcon icon)
+                        {
+                            icon.Foreground = isActive
+                                ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
+                                : (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+                        }
+                        if (sp.Children[1] is TextBlock text)
+                        {
+                            text.FontWeight = isActive ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+                            text.Foreground = isActive
+                                ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
+                                : (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
+                        }
+                    }
+                }
+            }
+        }
+
+        public void NavigateNextPage()
+        {
+            var pages = GetVisualPageNames();
+            if (pages.Count <= 1) return;
+
+            int idx = pages.IndexOf(_currentPageName);
+            int nextIdx = (idx >= 0) ? (idx + 1) % pages.Count : 0;
+            _ = SwitchToPageAsync(pages[nextIdx]);
+        }
+
+        public void NavigatePreviousPage()
+        {
+            var pages = GetVisualPageNames();
+            if (pages.Count <= 1) return;
+
+            int idx = pages.IndexOf(_currentPageName);
+            int prevIdx = (idx >= 0) ? (idx - 1 + pages.Count) % pages.Count : pages.Count - 1;
+            _ = SwitchToPageAsync(pages[prevIdx]);
+        }
+
+        private List<string> GetVisualPageNames()
+        {
+            var pages = new List<string>();
+            if (ListPages != null && ListPages.Items.Count > 0)
+            {
+                foreach (var item in ListPages.Items)
+                {
+                    if (item is string p && !pages.Contains(p)) pages.Add(p);
+                }
+            }
+            if (!pages.Contains("main")) pages.Insert(0, "main");
+            return pages;
+        }
+
+        private void MenuHideQuickPageNav_Click(object sender, RoutedEventArgs e)
+        {
+            if (QuickPageNavHost != null)
+            {
+                QuickPageNavHost.Visibility = Visibility.Collapsed;
+            }
+            if (MenuToggleQuickPageNav != null) MenuToggleQuickPageNav.IsChecked = false;
+            if (ContextTogglePageNav != null) ContextTogglePageNav.IsChecked = false;
+        }
+
+        private void MenuToggleQuickPageNav_Click(object sender, RoutedEventArgs e)
+        {
+            bool show;
+            if (sender is ToggleMenuFlyoutItem item)
+            {
+                show = item.IsChecked;
+            }
+            else
+            {
+                show = QuickPageNavHost?.Visibility != Visibility.Visible;
+            }
+
+            if (QuickPageNavHost != null)
+            {
+                QuickPageNavHost.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            }
+            if (MenuToggleQuickPageNav != null) MenuToggleQuickPageNav.IsChecked = show;
+            if (ContextTogglePageNav != null) ContextTogglePageNav.IsChecked = show;
+        }
+
+        private void MenuNextPage_Click(object sender, RoutedEventArgs e)
+        {
+            NavigateNextPage();
+        }
+
+        private void MenuPrevPage_Click(object sender, RoutedEventArgs e)
+        {
+            NavigatePreviousPage();
         }
 
         private async void BtnAddPage_Click(object sender, RoutedEventArgs e)
@@ -1727,7 +2024,8 @@ namespace Snapcode.Views
                     }
                     _isSwitchingPage = false;
                     
-                    ListPages.SelectedItem = newPageName;
+                    RefreshQuickPageNavigation();
+                    await SwitchToPageAsync(newPageName);
                 }
             }
             catch (Exception ex)

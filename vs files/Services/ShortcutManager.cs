@@ -131,6 +131,33 @@ namespace Snapcode.Services
                 Modifiers = VirtualKeyModifiers.Control
             });
 
+            // Navigation
+            RegisterCommand(new ShortcutCommand
+            {
+                Id = "page.next",
+                Name = "Next Page / Shift Forward",
+                Category = "Navigation",
+                Description = "Switches to the next visual page or Dart file in the project",
+                Scope = "Global",
+                DefaultKey = VirtualKey.Tab,
+                DefaultModifiers = VirtualKeyModifiers.Control,
+                Key = VirtualKey.Tab,
+                Modifiers = VirtualKeyModifiers.Control
+            });
+
+            RegisterCommand(new ShortcutCommand
+            {
+                Id = "page.prev",
+                Name = "Previous Page / Shift Backward",
+                Category = "Navigation",
+                Description = "Switches to the previous visual page or Dart file in the project",
+                Scope = "Global",
+                DefaultKey = VirtualKey.Tab,
+                DefaultModifiers = VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift,
+                Key = VirtualKey.Tab,
+                Modifiers = VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift
+            });
+
             // View Designer
             RegisterCommand(new ShortcutCommand
             {
