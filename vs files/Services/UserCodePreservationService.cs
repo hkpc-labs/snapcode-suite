@@ -278,6 +278,11 @@ namespace Snapcode.Services
             }
 
             File.WriteAllText(filePath, finalCode);
+            try
+            {
+                DartFormatterService.FormatFile(filePath);
+            }
+            catch { }
         }
 
         /// <summary>
@@ -309,6 +314,11 @@ namespace Snapcode.Services
             }
 
             await File.WriteAllTextAsync(filePath, finalCode).ConfigureAwait(false);
+            try
+            {
+                await DartFormatterService.FormatFileAsync(filePath).ConfigureAwait(false);
+            }
+            catch { }
         }
 
         /// <summary>

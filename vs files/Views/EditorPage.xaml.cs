@@ -34,6 +34,7 @@ namespace Snapcode.Views
         private DispatcherTimer _autoSaveTimer;
         private DebugLogsWindow? _standaloneDebugWindow;
         private List<FlutterDevice> _discoveredDevices = new();
+        private int _deviceQueryVersion = 0;
 
         public EditorPage()
         {
@@ -1314,7 +1315,43 @@ namespace Snapcode.Views
 
         private async Task PopulateDevicesAsync(string target = null)
         {
+            int currentVersion = System.Threading.Interlocked.Increment(ref _deviceQueryVersion);
             string activeTarget = target ?? GetSelectedTarget();
+            string targetName = (ComboTarget?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? activeTarget;
+
+            // Immediately switch ComboDevice to loading state so user doesn't see old platform's devices
+            DispatcherQueue?.TryEnqueue(() =>
+            {
+                if (ComboDevice != null)
+                {
+                    ComboDevice.Items.Clear();
+                    ComboDevice.Items.Add(new ComboBoxItem
+                    {
+                        Content = $"Detecting {targetName} devices...",
+                        Tag = "loading",
+                        IsEnabled = false
+                    });
+                    ComboDevice.SelectedIndex = 0;
+                    ComboDevice.IsEnabled = false;
+                }
+
+                if (RingDeviceLoading != null)
+                {
+                    RingDeviceLoading.Visibility = Visibility.Visible;
+                    RingDeviceLoading.IsActive = true;
+                }
+
+                if (BtnRefreshDevices != null)
+                {
+                    BtnRefreshDevices.IsEnabled = false;
+                }
+
+                if (TxtTargetInfo != null)
+                {
+                    TxtTargetInfo.Text = $"Target: {targetName} (Detecting...)";
+                }
+            });
+
             List<FlutterDevice> devices = new();
             try
             {
@@ -1327,8 +1364,26 @@ namespace Snapcode.Views
 
             DispatcherQueue?.TryEnqueue(() =>
             {
+                // Discard stale result if a newer target switch occurred while this was running
+                if (currentVersion != _deviceQueryVersion)
+                {
+                    return;
+                }
+
+                if (RingDeviceLoading != null)
+                {
+                    RingDeviceLoading.IsActive = false;
+                    RingDeviceLoading.Visibility = Visibility.Collapsed;
+                }
+
+                if (BtnRefreshDevices != null)
+                {
+                    BtnRefreshDevices.IsEnabled = true;
+                }
+
                 if (ComboDevice == null) return;
 
+                ComboDevice.IsEnabled = true;
                 _discoveredDevices = devices;
                 ComboDevice.Items.Clear();
 
@@ -1380,8 +1435,12 @@ namespace Snapcode.Views
                 }
                 else
                 {
-                    ComboDevice.Items.Add(new ComboBoxItem { Content = "No devices detected", Tag = null, IsEnabled = false });
+                    ComboDevice.Items.Add(new ComboBoxItem { Content = $"No {targetName} devices detected", Tag = null, IsEnabled = false });
                     ComboDevice.SelectedIndex = 0;
+                    if (TxtTargetInfo != null)
+                    {
+                        TxtTargetInfo.Text = $"Target: {targetName} (No devices)";
+                    }
                 }
             });
         }

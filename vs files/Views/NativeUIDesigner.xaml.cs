@@ -1508,9 +1508,13 @@ namespace Snapcode.Views
                 }
             }
 
-            // Sync Undo / Redo buttons foreground with AppBar foreground
-            if (BtnUndo != null) BtnUndo.Foreground = barFgBrush;
-            if (BtnRedo != null) BtnRedo.Foreground = barFgBrush;
+            // Sync AppBar action icons visibility and foreground
+            if (MockAppBarActions != null)
+            {
+                MockAppBarActions.Visibility = metadata.AppBarShowActions ? Visibility.Visible : Visibility.Collapsed;
+                if (MockActionSearch != null) MockActionSearch.Foreground = barFgBrush;
+                if (MockActionMore != null) MockActionMore.Foreground = barFgBrush;
+            }
 
             string title = !string.IsNullOrWhiteSpace(metadata.AppBarTitle)
                 ? metadata.AppBarTitle

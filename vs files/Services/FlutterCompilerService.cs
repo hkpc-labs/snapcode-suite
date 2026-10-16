@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Snapcode.Views;
 using Snapcode.Models;
+using Snapcode.Services;
 
 namespace SnapCode.Services
 {
@@ -748,7 +749,11 @@ Widget build(BuildContext context) {{
 
                 string actionsCode = "";
                 if (metadata?.AppBarShowActions == true)
-                    actionsCode = "\n        actions: const [IconButton(icon: Icon(Icons.search), onPressed: null), IconButton(icon: Icon(Icons.more_vert), onPressed: null)],";
+                    actionsCode = @"
+        actions: const [
+          IconButton(icon: Icon(Icons.search), onPressed: null),
+          IconButton(icon: Icon(Icons.more_vert), onPressed: null),
+        ],";
 
                 appBarCode = $@"appBar: AppBar(
         title: const Text('{effectiveTitle}'),
@@ -770,14 +775,30 @@ Widget build(BuildContext context) {{
             }
             if (metadata?.HasDrawer == true)
             {
-                scaffoldExtras += "\n      drawer: const Drawer(child: SafeArea(child: Column(children: [ListTile(leading: Icon(Icons.home), title: Text(\"Home\")), ListTile(leading: Icon(Icons.settings), title: Text(\"Settings\"))]))),";
+                scaffoldExtras += @"
+      drawer: const Drawer(
+        child: SafeArea(
+          child: Column(
+            children: [
+              ListTile(leading: Icon(Icons.home), title: Text(""Home"")),
+              ListTile(leading: Icon(Icons.settings), title: Text(""Settings"")),
+            ],
+          ),
+        ),
+      ),";
             }
             if (metadata?.HasFAB == true)
             {
                 string fabIcon = !string.IsNullOrEmpty(metadata.FabIcon) ? metadata.FabIcon : "add";
                 string fabBg = !string.IsNullOrEmpty(metadata.FabBackgroundColor) ? metadata.FabBackgroundColor : "#2196F3";
                 string fabTip = !string.IsNullOrEmpty(metadata.FabTooltip) ? metadata.FabTooltip : "Action";
-                scaffoldExtras += $"\n      floatingActionButton: FloatingActionButton(onPressed: () {{}}, tooltip: '{fabTip}', backgroundColor: {ToFlutterColorCode(fabBg)}, child: const Icon(Icons.{fabIcon})),";
+                scaffoldExtras += $@"
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {{}},
+        tooltip: '{fabTip}',
+        backgroundColor: {ToFlutterColorCode(fabBg)},
+        child: const Icon(Icons.{fabIcon}),
+      ),";
             }
 
             string bodyWidget = (metadata?.SafeArea ?? true)
@@ -795,9 +816,10 @@ Widget build(BuildContext context) {{
             }
             scaffoldCode += $"\n      body: {bodyWidget},\n    );";
 
+            string generatedCode;
             if (string.Equals(pageName, "main", StringComparison.OrdinalIgnoreCase))
             {
-                return $@"{imports}
+                generatedCode = $@"{imports}
 
 // <!-- USER_CODE_START: IMPORTS -->
 // <!-- USER_CODE_END: IMPORTS -->
@@ -860,7 +882,7 @@ class _MainPageState extends State<MainPage> {{
             }
             else
             {
-                return $@"{imports}
+                generatedCode = $@"{imports}
 
 // <!-- USER_CODE_START: IMPORTS -->
 // <!-- USER_CODE_END: IMPORTS -->
@@ -899,6 +921,15 @@ class _{className}State extends State<{className}> {{
   }}
 }}
 ";
+            }
+
+            try
+            {
+                return DartFormatterService.FormatCode(generatedCode);
+            }
+            catch
+            {
+                return generatedCode;
             }
         }
 

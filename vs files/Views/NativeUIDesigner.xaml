@@ -176,9 +176,9 @@
                                     <Grid x:Name="MockToolBar" Grid.Row="1" Background="#03A9F4">
                                         <Button x:Name="BtnDrawerLeading" Content="&#xE700;" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="White" BorderThickness="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0" Width="40" Height="40" Padding="0" Visibility="Collapsed" IsHitTestVisible="False" />
                                         <TextBlock x:Name="TxtAppTitle" Text="main.dart" FontSize="18" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" Margin="16,0,0,0" />
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
-                                            <Button x:Name="BtnUndo" Content="&#xE7A7;" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="White" BorderThickness="0" Click="BtnUndo_Click" />
-                                            <Button x:Name="BtnRedo" Content="&#xE7A6;" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="White" BorderThickness="0" Click="BtnRedo_Click" />
+                                        <StackPanel x:Name="MockAppBarActions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" Visibility="Collapsed" IsHitTestVisible="False">
+                                            <FontIcon x:Name="MockActionSearch" Glyph="&#xE721;" FontSize="15" Foreground="White" Margin="0,0,12,0" />
+                                            <FontIcon x:Name="MockActionMore" Glyph="&#xE712;" FontSize="15" Foreground="White" />
                                         </StackPanel>
                                     </Grid>
                                     
