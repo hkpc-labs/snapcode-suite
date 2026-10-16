@@ -131,8 +131,15 @@
                     </Border.ContextFlyout>
                     
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
-                        <StackPanel x:Name="QuickPageTabsPanel" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                            <!-- Populated dynamically with fast-access page tabs -->
+                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                            <StackPanel x:Name="QuickPageTabsPanel" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                                <!-- Populated dynamically with fast-access page tabs -->
+                            </StackPanel>
+
+                            <!-- Add New Page Button with pure XAML ThemeResource styling -->
+                            <Button x:Name="BtnQuickAddPage" Click="BtnAddPage_Click" Width="22" Height="22" Padding="0" CornerRadius="4" Margin="2,0,0,0" Background="Transparent" BorderThickness="0" ToolTipService.ToolTip="Add New Page...">
+                                <FontIcon Glyph="&#xE710;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </Button>
                         </StackPanel>
                     </ScrollViewer>
                 </Border>

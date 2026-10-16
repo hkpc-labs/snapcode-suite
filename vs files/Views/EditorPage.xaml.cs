@@ -95,6 +95,9 @@ namespace Snapcode.Views
             sm.BindAction("flutter.stop", () => DispatcherQueue.TryEnqueue(async () => await Snapcode.Services.FlutterExecutionService.Instance.StopAsync()));
             sm.BindAction("flutter.clean", () => DispatcherQueue.TryEnqueue(() => BtnClearBlocks_Click(this, new RoutedEventArgs())));
             sm.BindAction("flutter.build_apk", () => DispatcherQueue.TryEnqueue(async () => await BuildApkShortcutAsync()));
+
+            this.ActualThemeChanged += (s, e) => UpdateQuickPageNavigationActiveState();
+            this.Loaded += (s, e) => UpdateQuickPageNavigationActiveState();
         }
 
         private void Page_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
@@ -1851,6 +1854,16 @@ namespace Snapcode.Views
             });
         }
 
+        private bool IsCurrentThemeLight()
+        {
+            var theme = this.ActualTheme;
+            if (theme == ElementTheme.Default)
+            {
+                theme = (App.MainWindow?.Content as FrameworkElement)?.ActualTheme ?? ElementTheme.Dark;
+            }
+            return theme == ElementTheme.Light;
+        }
+
         public void RefreshQuickPageNavigation()
         {
             if (QuickPageTabsPanel == null) return;
@@ -1888,8 +1901,6 @@ namespace Snapcode.Views
 
             foreach (var pageName in pages)
             {
-                bool isActive = string.Equals(pageName, _currentPageName, StringComparison.OrdinalIgnoreCase);
-
                 var btn = new Button
                 {
                     Height = 24,
@@ -1898,9 +1909,7 @@ namespace Snapcode.Views
                     Margin = new Thickness(1, 0, 1, 0),
                     Tag = pageName,
                     BorderThickness = new Thickness(0),
-                    Background = isActive
-                        ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"]
-                        : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent)
+                    Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent)
                 };
 
                 ToolTipService.SetToolTip(btn, $"Switch to {pageName}.dart (Ctrl+Tab)");
@@ -1915,20 +1924,13 @@ namespace Snapcode.Views
                 var icon = new FontIcon
                 {
                     Glyph = "\uE7C3",
-                    FontSize = 11,
-                    Foreground = isActive
-                        ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
-                        : (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"]
+                    FontSize = 11
                 };
 
                 var text = new TextBlock
                 {
                     Text = $"{pageName}.dart",
                     FontSize = 11,
-                    FontWeight = isActive ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal,
-                    Foreground = isActive
-                        ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
-                        : (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorPrimaryBrush"],
                     VerticalAlignment = VerticalAlignment.Center
                 };
 
@@ -1940,6 +1942,25 @@ namespace Snapcode.Views
                 btn.Click += async (s, e) =>
                 {
                     await SwitchToPageAsync(capturedPage);
+                };
+
+                // Pointer hover feedback for inactive tabs
+                btn.PointerEntered += (s, e) =>
+                {
+                    if (!string.Equals(capturedPage, _currentPageName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        bool isLight = IsCurrentThemeLight();
+                        btn.Background = isLight 
+                            ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(18, 0, 0, 0))
+                            : new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(24, 255, 255, 255));
+                    }
+                };
+                btn.PointerExited += (s, e) =>
+                {
+                    if (!string.Equals(capturedPage, _currentPageName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        btn.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                    }
                 };
 
                 // Right click context menu on individual tab
@@ -1963,26 +1984,32 @@ namespace Snapcode.Views
                 QuickPageTabsPanel.Children.Add(btn);
             }
 
-            // Append small "+" button to add a new page directly from the navigator
-            var btnAdd = new Button
-            {
-                Width = 22,
-                Height = 22,
-                Padding = new Thickness(0),
-                CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(2, 0, 0, 0),
-                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent),
-                BorderThickness = new Thickness(0)
-            };
-            ToolTipService.SetToolTip(btnAdd, "Add New Page...");
-            btnAdd.Content = new FontIcon { Glyph = "\uE710", FontSize = 10, Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] };
-            btnAdd.Click += (s, e) => BtnAddPage_Click(s, e);
-            QuickPageTabsPanel.Children.Add(btnAdd);
+            UpdateQuickPageNavigationActiveState();
         }
 
         private void UpdateQuickPageNavigationActiveState()
         {
             if (QuickPageTabsPanel == null) return;
+
+            bool isLight = IsCurrentThemeLight();
+
+            // Active Tab Brushes:
+            var brushActiveBg = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"]
+                ?? new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 103, 192));
+            var brushActiveFg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
+
+            // Inactive Tab Brushes:
+            // Light Theme: Deep dark charcoal (#1A1A1A) text so it is crystal clear on the light card host.
+            // Dark Theme:  Crisp white/light gray (#F3F3F3) text on the dark card host.
+            var brushInactiveText = isLight
+                ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 26))
+                : new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 243, 243, 243));
+
+            var brushInactiveIcon = isLight
+                ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 103, 192))
+                : new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 96, 205, 255));
+
+            var brushTransparent = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
 
             foreach (var child in QuickPageTabsPanel.Children)
             {
@@ -1990,24 +2017,18 @@ namespace Snapcode.Views
                 {
                     bool isActive = string.Equals(pageName, _currentPageName, StringComparison.OrdinalIgnoreCase);
 
-                    btn.Background = isActive
-                        ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentFillColorDefaultBrush"]
-                        : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                    btn.Background = isActive ? brushActiveBg : brushTransparent;
 
                     if (btn.Content is StackPanel sp && sp.Children.Count >= 2)
                     {
                         if (sp.Children[0] is FontIcon icon)
                         {
-                            icon.Foreground = isActive
-                                ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
-                                : (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+                            icon.Foreground = isActive ? brushActiveFg : brushInactiveIcon;
                         }
                         if (sp.Children[1] is TextBlock text)
                         {
                             text.FontWeight = isActive ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
-                            text.Foreground = isActive
-                                ? (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"]
-                                : (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
+                            text.Foreground = isActive ? brushActiveFg : brushInactiveText;
                         }
                     }
                 }
