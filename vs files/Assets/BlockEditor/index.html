@@ -1990,10 +1990,10 @@ function patchWidgetDropdowns() {
         field.generatedOptions = null;
         field.menuGenerator_ = _getWidgetDropdownOptions;
         const currentVal = field.getValue();
-        const opts = _getWidgetDropdownOptions();
-        const hasCurrentVal = opts.some(opt => opt[1] === currentVal);
-        if ((!hasCurrentVal || currentVal === 'none') && opts.length > 0 && opts[0][1] !== 'none') {
-          field.setValue(opts[0][1]);
+        if (currentVal && currentVal !== 'none') {
+          if (!_widgetRegistry.some(opt => opt[1] === currentVal)) {
+            _widgetRegistry.unshift([currentVal, currentVal]);
+          }
         }
       }
     });
@@ -3339,18 +3339,57 @@ function initWorkspace(themeMode) {
 window.loadWorkspace = function(jsonString) {
   try {
     if (!workspace) return;
-    Blockly.serialization.workspaces.load(JSON.parse(jsonString), workspace);
+    workspace.clear();
+    if (jsonString && jsonString.trim() !== '' && jsonString.trim() !== '{}' && jsonString.trim() !== 'null' && jsonString.trim() !== '""') {
+      let parsed = JSON.parse(jsonString);
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch(e) {}
+      }
+      if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length > 0) {
+        Blockly.serialization.workspaces.load(parsed, workspace);
+      }
+    }
   } catch(e) {
     console.error('Failed to load workspace:', e);
   }
 };
 
+function getRootBlockType(widgetId, eventType, widgetType) {
+  const evt = (eventType || '').toLowerCase();
+  const wt = (widgetType || '').toLowerCase();
+
+  if (widgetId === 'page' || evt === 'initstate' || evt === 'dispose' || evt === 'build') {
+    if (evt === 'dispose') return 'lifecycle_dispose';
+    return 'lifecycle_init_state';
+  } else if (evt === 'onclick' || evt === 'ontap' || evt === 'click') {
+    return 'widget_on_click';
+  } else if (evt === 'onlongpress' || evt === 'longpress') {
+    return 'widget_on_long_press';
+  } else if (evt === 'ontextchanged' || evt === 'onsubmitted' || wt === 'textfield' || wt === 'edittext') {
+    return 'widget_on_text_changed';
+  } else if (evt === 'onsliderchanged' || wt === 'slider') {
+    return 'widget_on_slider_changed';
+  } else if (evt === 'oncheckboxchanged' || wt === 'checkbox') {
+    return 'widget_on_checkbox_changed';
+  } else if (evt === 'onswitchchanged' || wt === 'switch') {
+    return 'widget_on_switch_changed';
+  }
+  return 'widget_on_click';
+}
+
 // Called from C# to initialize an isolated event workspace
-window.loadEventWorkspace = function(widgetId, eventType, jsonString) {
+window.loadEventWorkspace = function(widgetId, eventType, jsonString, widgetType) {
   try {
     if (!workspace) return;
     workspace.clear();
 
+    const expectedBlockType = getRootBlockType(widgetId, eventType, widgetType);
+
+    if (widgetId && widgetId !== 'page' && !_widgetRegistry.some(opt => opt[1] === widgetId)) {
+      _widgetRegistry.unshift([widgetId + (widgetType ? ' (' + widgetType + ')' : ''), widgetId]);
+    }
+
+    let loaded = false;
     if (jsonString && jsonString.trim() !== '{}' && jsonString.trim() !== 'null' && jsonString.trim() !== '""' && jsonString.trim() !== '"\\"{}\\""') {
       let parsed = JSON.parse(jsonString);
       if (typeof parsed === 'string') {
@@ -3358,47 +3397,71 @@ window.loadEventWorkspace = function(widgetId, eventType, jsonString) {
       }
       if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length > 0) {
           Blockly.serialization.workspaces.load(parsed, workspace);
-      } else {
-          createLockedRootBlock(widgetId, eventType);
+          loaded = true;
       }
+    }
+
+    if (!loaded) {
+      createLockedRootBlock(widgetId, eventType, widgetType);
     } else {
-      createLockedRootBlock(widgetId, eventType);
+      // If loaded from JSON, verify that the top root block matches the target widget and event
+      const topBlocks = workspace.getTopBlocks(false);
+      let rootBlock = topBlocks.find(b => b.type.startsWith('widget_on_') || b.type.startsWith('lifecycle_'));
+      
+      // If root block doesn't exist or is of wrong type, recreate it
+      if (!rootBlock || rootBlock.type !== expectedBlockType) {
+        workspace.clear();
+        createLockedRootBlock(widgetId, eventType, widgetType);
+        return;
+      }
+
+      if (widgetId && widgetId !== 'page') {
+        const field = rootBlock.getField('WIDGET_ID');
+        if (field) {
+          field.menuGenerator_ = _getWidgetDropdownOptions;
+          field.generatedOptions = null;
+          field.setValue(widgetId);
+          if (field.forceRerender) field.forceRerender();
+        } else if (rootBlock.setFieldValue) {
+          rootBlock.setFieldValue(widgetId, 'WIDGET_ID');
+        }
+      }
+      rootBlock.setMovable(false);
+      rootBlock.setDeletable(false);
+      rootBlock.render();
     }
   } catch(e) {
     console.error('Failed to load event workspace:', e);
-    createLockedRootBlock(widgetId, eventType);
+    createLockedRootBlock(widgetId, eventType, widgetType);
   }
 };
 
-function createLockedRootBlock(widgetId, eventType) {
-      let blockType = '';
-      if (eventType === 'onClick') blockType = 'widget_on_click';
-      else if (eventType === 'onLongPress') blockType = 'widget_on_long_press';
-      else if (eventType === 'onTextChanged') blockType = 'widget_on_text_changed';
-      else if (eventType === 'onCheckboxChanged') blockType = 'widget_on_checkbox_changed';
-      else if (eventType === 'onSwitchChanged') blockType = 'widget_on_switch_changed';
-      else if (eventType === 'onSliderChanged') blockType = 'widget_on_slider_changed';
+function createLockedRootBlock(widgetId, eventType, widgetType) {
+  let blockType = getRootBlockType(widgetId, eventType, widgetType);
 
-      if (blockType) {
-        if (!_widgetRegistry.some(opt => opt[1] === widgetId)) {
-          _widgetRegistry.unshift([widgetId, widgetId]);
-        }
-        const rootBlock = workspace.newBlock(blockType);
-        const field = rootBlock.getField('WIDGET_ID');
-        if (field) {
-            field.menuGenerator_ = _getWidgetDropdownOptions;
-            rootBlock.setFieldValue(widgetId, 'WIDGET_ID');
-        }
-
-        rootBlock.initSvg();
-        rootBlock.render();
-        // Lock it down
-        rootBlock.setMovable(false);
-        rootBlock.setDeletable(false);
-        rootBlock.setEditable(false);
-        // Position it nicely
-        rootBlock.moveBy(50, 50);
+  if (blockType) {
+    if (widgetId && widgetId !== 'page' && !_widgetRegistry.some(opt => opt[1] === widgetId)) {
+      _widgetRegistry.unshift([widgetId + (widgetType ? ' (' + widgetType + ')' : ''), widgetId]);
+    }
+    const rootBlock = workspace.newBlock(blockType);
+    const field = rootBlock.getField('WIDGET_ID');
+    if (field) {
+      field.menuGenerator_ = _getWidgetDropdownOptions;
+      field.generatedOptions = null;
+      if (widgetId && widgetId !== 'page') {
+        field.setValue(widgetId);
+        if (field.forceRerender) field.forceRerender();
       }
+    } else if (rootBlock.setFieldValue && widgetId && widgetId !== 'page') {
+      rootBlock.setFieldValue(widgetId, 'WIDGET_ID');
+    }
+
+    rootBlock.initSvg();
+    rootBlock.render();
+    rootBlock.setMovable(false);
+    rootBlock.setDeletable(false);
+    rootBlock.moveBy(50, 50);
+  }
 }
 
 // Called from C# to get current workspace state

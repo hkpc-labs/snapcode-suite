@@ -125,10 +125,27 @@ namespace Snapcode.Views
                 string workspaceFile = $"{_currentPageName}_{_currentEventContext}";
                 string workspaceJson = await ProjectService.LoadPageWorkspaceAsync(_projectPath, workspaceFile);
                 
+                string widgetType = "";
+                if (NativeDesigner?.AllWidgetsFlat != null)
+                {
+                    var matching = NativeDesigner.AllWidgetsFlat.FirstOrDefault(w => w.Id == args.WidgetId);
+                    if (matching != null) widgetType = matching.Type ?? "";
+                }
+
                 string safeWidgetId = JsonSerializer.Serialize(args.WidgetId);
                 string safeEventType = JsonSerializer.Serialize(args.EventType);
                 string safeJson = JsonSerializer.Serialize(workspaceJson ?? "");
-                await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadEventWorkspace({safeWidgetId}, {safeEventType}, {safeJson})");
+                string safeWidgetType = JsonSerializer.Serialize(widgetType);
+                await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadEventWorkspace({safeWidgetId}, {safeEventType}, {safeJson}, {safeWidgetType})");
+            }
+
+            if (ListEvents?.ItemsSource is System.Collections.ObjectModel.ObservableCollection<EventListItem> list)
+            {
+                var matched = list.FirstOrDefault(x => x.WidgetId == args.WidgetId && string.Equals(x.EventType, args.EventType, StringComparison.OrdinalIgnoreCase));
+                if (matched != null)
+                {
+                    ListEvents.SelectedItem = matched;
+                }
             }
         }
 
@@ -585,6 +602,15 @@ namespace Snapcode.Views
                         TxtSaveStatus.Text = "Loaded";
                     });
                 }
+                else
+                {
+                    await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.loadWorkspace('{}')");
+                    DispatcherQueue?.TryEnqueue(() =>
+                    {
+                        TxtSaveStatus.Text = "Loaded";
+                    });
+                }
+                _hasUnsavedChanges = false;
                 
                 // Load Native UI state only when requested (e.g. project load or page change, NOT on tab switch)
                 if (loadNativeUi && (NativeDesigner == null || NativeDesigner.CanvasItems.Count == 0))
@@ -1545,6 +1571,7 @@ namespace Snapcode.Views
         {
             public string WidgetId { get; set; }
             public string EventType { get; set; }
+            public string WidgetType { get; set; }
             public string DisplayName { get; set; }
             public string Icon { get; set; }
         }
@@ -1553,10 +1580,20 @@ namespace Snapcode.Views
         {
             var events = new System.Collections.ObjectModel.ObservableCollection<EventListItem>();
             
+            // All Page Events (Overview)
+            events.Add(new EventListItem 
+            { 
+                WidgetId = "", 
+                EventType = "", 
+                WidgetType = "Page", 
+                DisplayName = "★ All Page Events (Overview)", 
+                Icon = "\uE71D" 
+            });
+
             // Flutter Lifecycle Events
-            events.Add(new EventListItem { WidgetId = "page", EventType = "initState", DisplayName = "Page: initState (on Create)", Icon = "\uE81E" });
-            events.Add(new EventListItem { WidgetId = "page", EventType = "build", DisplayName = "Page: build (on Render)", Icon = "\uE81E" });
-            events.Add(new EventListItem { WidgetId = "page", EventType = "dispose", DisplayName = "Page: dispose (on Destroy)", Icon = "\uE81E" });
+            events.Add(new EventListItem { WidgetId = "page", EventType = "initState", WidgetType = "Page", DisplayName = "Page: initState (on Create)", Icon = "\uE81E" });
+            events.Add(new EventListItem { WidgetId = "page", EventType = "build", WidgetType = "Page", DisplayName = "Page: build (on Render)", Icon = "\uE81E" });
+            events.Add(new EventListItem { WidgetId = "page", EventType = "dispose", WidgetType = "Page", DisplayName = "Page: dispose (on Destroy)", Icon = "\uE81E" });
 
             if (NativeDesigner != null && NativeDesigner.AllWidgetsFlat != null)
             {
@@ -1565,17 +1602,17 @@ namespace Snapcode.Views
                     string t = widget.Type?.ToLower() ?? "";
                     if (t == "button" || t == "image" || t == "column" || t == "row" || t == "container" || t == "card" || t == "text" || t == "textview")
                     {
-                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onClick", DisplayName = $"{widget.Name} (onTap / onClick)", Icon = widget.Icon });
-                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onLongPress", DisplayName = $"{widget.Name} (onLongPress)", Icon = widget.Icon });
+                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onClick", WidgetType = widget.Type, DisplayName = $"{widget.Name} (onTap / onClick)", Icon = widget.Icon });
+                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onLongPress", WidgetType = widget.Type, DisplayName = $"{widget.Name} (onLongPress)", Icon = widget.Icon });
                     }
                     else if (t == "textfield")
                     {
-                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onChanged", DisplayName = $"{widget.Name} (onChanged)", Icon = widget.Icon });
-                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onSubmitted", DisplayName = $"{widget.Name} (onSubmitted)", Icon = widget.Icon });
+                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onChanged", WidgetType = widget.Type, DisplayName = $"{widget.Name} (onChanged)", Icon = widget.Icon });
+                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onSubmitted", WidgetType = widget.Type, DisplayName = $"{widget.Name} (onSubmitted)", Icon = widget.Icon });
                     }
                     else if (t == "checkbox" || t == "switch" || t == "slider")
                     {
-                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onChanged", DisplayName = $"{widget.Name} (onChanged)", Icon = widget.Icon });
+                        events.Add(new EventListItem { WidgetId = widget.Id, EventType = "onChanged", WidgetType = widget.Type, DisplayName = $"{widget.Name} (onChanged)", Icon = widget.Icon });
                     }
                 }
             }
@@ -1587,16 +1624,19 @@ namespace Snapcode.Views
         {
             if (ListEvents.SelectedItem is EventListItem item)
             {
-                await SwitchToEventWorkspaceAsync(item.WidgetId, item.EventType);
+                await SwitchToEventWorkspaceAsync(item.WidgetId, item.EventType, item.WidgetType);
             }
         }
 
-        private async Task SwitchToEventWorkspaceAsync(string widgetId, string eventType)
+        private async Task SwitchToEventWorkspaceAsync(string widgetId, string eventType, string widgetType = null)
         {
-            string newContext = $"{widgetId}_{eventType}";
+            bool isOverview = string.IsNullOrEmpty(widgetId);
+            string newContext = isOverview ? null : $"{widgetId}_{eventType}";
             
             if (_currentEventContext == newContext) return; // already here
             
+            _autoSaveTimer?.Stop();
+
             if (_hasUnsavedChanges)
             {
                 await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
@@ -1612,14 +1652,32 @@ namespace Snapcode.Views
             
             if (_isWebViewReady && BlocklyWebView != null && BlocklyWebView.CoreWebView2 != null)
             {
-                string workspaceFile = $"{_currentPageName}_{_currentEventContext}";
-                string workspaceJson = await ProjectService.LoadPageWorkspaceAsync(_projectPath, workspaceFile);
-                
-                string safeWidgetId = JsonSerializer.Serialize(widgetId);
-                string safeEventType = JsonSerializer.Serialize(eventType);
-                string safeJson = JsonSerializer.Serialize(workspaceJson ?? "");
-                await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadEventWorkspace({safeWidgetId}, {safeEventType}, {safeJson})");
+                if (isOverview)
+                {
+                    await LoadSavedWorkspaceAsync(loadNativeUi: false);
+                }
+                else
+                {
+                    string workspaceFile = $"{_currentPageName}_{_currentEventContext}";
+                    string workspaceJson = await ProjectService.LoadPageWorkspaceAsync(_projectPath, workspaceFile);
+                    
+                    if (string.IsNullOrEmpty(widgetType) && NativeDesigner?.AllWidgetsFlat != null)
+                    {
+                        var matching = NativeDesigner.AllWidgetsFlat.FirstOrDefault(w => w.Id == widgetId);
+                        if (matching != null) widgetType = matching.Type ?? "";
+                    }
+
+                    string safeWidgetId = JsonSerializer.Serialize(widgetId);
+                    string safeEventType = JsonSerializer.Serialize(eventType);
+                    string safeJson = JsonSerializer.Serialize(workspaceJson ?? "");
+                    string safeWidgetType = JsonSerializer.Serialize(widgetType ?? "");
+                    await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadEventWorkspace({safeWidgetId}, {safeEventType}, {safeJson}, {safeWidgetType})");
+                }
+
+                _hasUnsavedChanges = false;
             }
+
+            _autoSaveTimer?.Start();
         }
     }
 }
