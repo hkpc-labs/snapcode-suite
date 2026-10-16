@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using Windows.ApplicationModel.DataTransfer;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Snapcode.Views
 {
@@ -1436,6 +1437,167 @@ namespace Snapcode.Views
             {
                 SecondaryRootCanvas.Children.Add(new DesignerNodeControl(item, this, parentNode: null, isReadOnlyMirror: true));
             }
+        }
+
+        /// <summary>
+        /// Animates the designer canvas with a smooth directional slide and cross-fade transition
+        /// during page switching, providing clear tactile visual feedback without UI hitching.
+        /// </summary>
+        public async Task AnimatePageTransitionAsync(int direction, Action updateContentAction)
+        {
+            if (PrimaryTransform == null || PrimaryFrameWrapper == null)
+            {
+                updateContentAction();
+                return;
+            }
+
+            double exitTargetX = direction >= 0 ? -36 : 36;
+            double enterStartX = direction >= 0 ? 36 : -36;
+
+            var exitTcs = new TaskCompletionSource<bool>();
+            var exitSb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+
+            var animExitX = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                From = 0,
+                To = exitTargetX,
+                Duration = new Duration(TimeSpan.FromMilliseconds(110)),
+                EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseIn },
+                EnableDependentAnimation = true
+            };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animExitX, PrimaryTransform);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animExitX, "X");
+            exitSb.Children.Add(animExitX);
+
+            var animExitOp = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                From = PrimaryFrameWrapper.Opacity,
+                To = 0.15,
+                Duration = new Duration(TimeSpan.FromMilliseconds(110)),
+                EnableDependentAnimation = true
+            };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animExitOp, PrimaryFrameWrapper);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animExitOp, "Opacity");
+            exitSb.Children.Add(animExitOp);
+
+            bool animateSecondary = _isDualPreview && SecondaryTransform != null && SecondaryFrameWrapper != null && SecondaryFrameWrapper.Visibility == Visibility.Visible;
+            if (animateSecondary)
+            {
+                var animSecExitX = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                {
+                    From = 0,
+                    To = exitTargetX,
+                    Duration = new Duration(TimeSpan.FromMilliseconds(110)),
+                    EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseIn },
+                    EnableDependentAnimation = true
+                };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animSecExitX, SecondaryTransform!);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animSecExitX, "X");
+                exitSb.Children.Add(animSecExitX);
+
+                var animSecExitOp = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                {
+                    From = SecondaryFrameWrapper!.Opacity,
+                    To = 0.15,
+                    Duration = new Duration(TimeSpan.FromMilliseconds(110)),
+                    EnableDependentAnimation = true
+                };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animSecExitOp, SecondaryFrameWrapper);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animSecExitOp, "Opacity");
+                exitSb.Children.Add(animSecExitOp);
+            }
+
+            exitSb.Completed += (s, e) => exitTcs.TrySetResult(true);
+            exitSb.Begin();
+            await exitTcs.Task;
+
+            // Apply content updates (new page metadata, name, and visual widget tree)
+            try
+            {
+                updateContentAction();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[NativeUIDesigner] Content update error during page transition: {ex.Message}");
+            }
+
+            // Reposition to opposite side for entrance slide-in
+            PrimaryTransform.X = enterStartX;
+            PrimaryFrameWrapper.Opacity = 0.15;
+            if (animateSecondary)
+            {
+                SecondaryTransform!.X = enterStartX;
+                SecondaryFrameWrapper!.Opacity = 0.15;
+            }
+
+            var enterTcs = new TaskCompletionSource<bool>();
+            var enterSb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+
+            var animEnterX = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                From = enterStartX,
+                To = 0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+                EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut },
+                EnableDependentAnimation = true
+            };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animEnterX, PrimaryTransform);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animEnterX, "X");
+            enterSb.Children.Add(animEnterX);
+
+            var animEnterOp = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                From = 0.15,
+                To = 1.0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+                EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut },
+                EnableDependentAnimation = true
+            };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animEnterOp, PrimaryFrameWrapper);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animEnterOp, "Opacity");
+            enterSb.Children.Add(animEnterOp);
+
+            if (animateSecondary)
+            {
+                var animSecEnterX = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                {
+                    From = enterStartX,
+                    To = 0,
+                    Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+                    EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut },
+                    EnableDependentAnimation = true
+                };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animSecEnterX, SecondaryTransform!);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animSecEnterX, "X");
+                enterSb.Children.Add(animSecEnterX);
+
+                var animSecEnterOp = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                {
+                    From = 0.15,
+                    To = 1.0,
+                    Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+                    EasingFunction = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut },
+                    EnableDependentAnimation = true
+                };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animSecEnterOp, SecondaryFrameWrapper!);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animSecEnterOp, "Opacity");
+                enterSb.Children.Add(animSecEnterOp);
+            }
+
+            enterSb.Completed += (s, e) =>
+            {
+                PrimaryTransform.X = 0;
+                PrimaryFrameWrapper.Opacity = 1.0;
+                if (animateSecondary)
+                {
+                    SecondaryTransform!.X = 0;
+                    SecondaryFrameWrapper!.Opacity = 1.0;
+                    RenderMirror();
+                }
+                enterTcs.TrySetResult(true);
+            };
+            enterSb.Begin();
+            await enterTcs.Task;
         }
 
         public void ApplyPageMetadata(Snapcode.Models.PageMetadata? metadata)

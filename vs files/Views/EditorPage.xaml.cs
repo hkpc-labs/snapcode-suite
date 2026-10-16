@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
 
@@ -825,7 +826,12 @@ namespace Snapcode.Views
             await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
         }
 
-        private async Task SaveWorkspaceAsync(string overridePageName = null, string overrideEventContext = null)
+        private async Task SaveWorkspaceAsync(
+            string? overridePageName = null, 
+            string? overrideEventContext = null,
+            string? overrideUiJson = null,
+            string? overrideWorkspaceJson = null,
+            string? overrideActiveDartCode = null)
         {
             if (string.IsNullOrEmpty(_projectPath)) return;
 
@@ -835,8 +841,18 @@ namespace Snapcode.Views
             await _saveLock.WaitAsync();
             try
             {
-                string currentActiveCode = null;
-                if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null)
+                string currentActiveCode = overrideActiveDartCode;
+                if (!string.IsNullOrEmpty(overrideWorkspaceJson))
+                {
+                    string workspaceFile = contextToSave != null ? $"{pageToSave}_{contextToSave}" : pageToSave;
+                    await ProjectService.SavePageWorkspaceAsync(_projectPath, workspaceFile, overrideWorkspaceJson);
+
+                    if (currentActiveCode != null)
+                    {
+                        await ProjectService.SavePageEventCodeAsync(_projectPath, workspaceFile, currentActiveCode);
+                    }
+                }
+                else if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null && (DispatcherQueue?.HasThreadAccess ?? false))
                 {
                     try
                     {
@@ -904,31 +920,28 @@ namespace Snapcode.Views
                             string targetEventDart = Path.Combine(pagesDir, $"{baseName}.event.dart");
                             bool needsCompile = !File.Exists(targetEventDart) || 
                                                 File.GetLastWriteTimeUtc(jsonFile) > File.GetLastWriteTimeUtc(targetEventDart);
-                            if (needsCompile)
+                            if (needsCompile && _isWebViewReady && BlocklyWebView?.CoreWebView2 != null && (DispatcherQueue?.HasThreadAccess ?? false))
                             {
                                 string jsonContent = await File.ReadAllTextAsync(jsonFile);
                                 if (!string.IsNullOrWhiteSpace(jsonContent) && jsonContent != "{}")
                                 {
-                                    if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null)
+                                    string safeArg = JsonSerializer.Serialize(jsonContent);
+                                    string compiledCode = await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.generateCodeForWorkspaceJson({safeArg})");
+                                    if (!string.IsNullOrEmpty(compiledCode) && compiledCode != "null")
                                     {
-                                        string safeArg = JsonSerializer.Serialize(jsonContent);
-                                        string compiledCode = await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.generateCodeForWorkspaceJson({safeArg})");
-                                        if (!string.IsNullOrEmpty(compiledCode) && compiledCode != "null")
+                                        string dartCode = compiledCode;
+                                        if (compiledCode.StartsWith("\"") && compiledCode.EndsWith("\""))
                                         {
-                                            string dartCode = compiledCode;
-                                            if (compiledCode.StartsWith("\"") && compiledCode.EndsWith("\""))
+                                            try
                                             {
-                                                try
-                                                {
-                                                    dartCode = JsonSerializer.Deserialize<string>(compiledCode) ?? string.Empty;
-                                                }
-                                                catch
-                                                {
-                                                    dartCode = compiledCode;
-                                                }
+                                                dartCode = JsonSerializer.Deserialize<string>(compiledCode) ?? string.Empty;
                                             }
-                                            await ProjectService.SavePageEventCodeAsync(_projectPath, baseName, dartCode);
+                                            catch
+                                            {
+                                                dartCode = compiledCode;
+                                            }
                                         }
+                                        await ProjectService.SavePageEventCodeAsync(_projectPath, baseName, dartCode);
                                     }
                                 }
                             }
@@ -962,8 +975,8 @@ namespace Snapcode.Views
                     System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed compiling pending event files: {ex.Message}");
                 }
 
-                string savedUiJson = null;
-                if (NativeDesigner != null)
+                string savedUiJson = overrideUiJson;
+                if (savedUiJson == null && NativeDesigner != null && (DispatcherQueue?.HasThreadAccess ?? false))
                 {
                     string uiJson = NativeDesigner.GetUIJson();
                     System.Diagnostics.Debug.WriteLine($"[EditorPage] NativeDesigner.GetUIJson() returned: {uiJson}");
@@ -991,6 +1004,10 @@ namespace Snapcode.Views
                             System.Diagnostics.Debug.WriteLine($"[EditorPage] Saved UI JSON for '{pageToSave}': {uiJson}");
                         }
                     }
+                }
+                else if (!string.IsNullOrEmpty(savedUiJson))
+                {
+                    await ProjectService.SavePageUIAsync(_projectPath, pageToSave, savedUiJson);
                 }
 
                 if (string.IsNullOrEmpty(savedUiJson) || savedUiJson == "[]" || savedUiJson == "{}")
@@ -1656,17 +1673,65 @@ namespace Snapcode.Views
             }
         }
 
+        private int _pendingPageSyncCount = 0;
+
         public async Task SwitchToPageAsync(string pageName)
         {
             if (string.IsNullOrWhiteSpace(pageName) || pageName == _currentPageName) return;
 
+            // Determine navigation direction for fluid directional animation
+            var visualPages = GetVisualPageNames();
+            int oldIndex = visualPages.IndexOf(_currentPageName);
+            int newIndex = visualPages.IndexOf(pageName);
+            int direction = (newIndex >= oldIndex) ? 1 : -1;
+
             string oldPageName = _currentPageName;
             string oldEventContext = _currentEventContext;
-            
+
+            // 1. Snapshot previous page UI and Blockly workspace instantly on the UI thread
+            string snapshotUiJson = NativeDesigner?.GetUIJson();
+            string snapshotWorkspaceJson = null;
+            string snapshotActiveCode = null;
+
+            if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null)
+            {
+                try
+                {
+                    snapshotWorkspaceJson = await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.getWorkspace()");
+                    if (!string.IsNullOrEmpty(snapshotWorkspaceJson) && snapshotWorkspaceJson.StartsWith("\"") && snapshotWorkspaceJson.EndsWith("\""))
+                    {
+                        snapshotWorkspaceJson = JsonSerializer.Deserialize<string>(snapshotWorkspaceJson) ?? "{}";
+                    }
+
+                    string rawCode = await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.getGeneratedCode()");
+                    if (!string.IsNullOrEmpty(rawCode) && rawCode != "null")
+                    {
+                        if (rawCode.StartsWith("\"") && rawCode.EndsWith("\""))
+                        {
+                            try
+                            {
+                                snapshotActiveCode = JsonSerializer.Deserialize<string>(rawCode) ?? string.Empty;
+                            }
+                            catch
+                            {
+                                snapshotActiveCode = rawCode;
+                            }
+                        }
+                        else
+                        {
+                            snapshotActiveCode = rawCode;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Snapshot of old page Blockly state failed: {ex.Message}");
+                }
+            }
+
+            // 2. Set target page as current
             _currentPageName = pageName;
             _currentEventContext = null;
-
-            await SaveWorkspaceAsync(oldPageName, oldEventContext);
 
             _isSwitchingPage = true;
             if (ListPages != null)
@@ -1676,17 +1741,78 @@ namespace Snapcode.Views
             _isSwitchingPage = false;
 
             UpdateQuickPageNavigationActiveState();
-            
-            if (_isWebViewReady)
+
+            // 3. Show slim Fluent progress bar indicating background compiling & saving
+            if (PageSwitchProgressBar != null)
+            {
+                PageSwitchProgressBar.Visibility = Visibility.Visible;
+            }
+
+            // 4. Dispatch the previous page save, code compilation, preservation, formatting, and hot reload to background
+            Interlocked.Increment(ref _pendingPageSyncCount);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await SaveWorkspaceAsync(
+                        oldPageName, 
+                        oldEventContext, 
+                        overrideUiJson: snapshotUiJson, 
+                        overrideWorkspaceJson: snapshotWorkspaceJson, 
+                        overrideActiveDartCode: snapshotActiveCode);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Background save of '{oldPageName}' failed: {ex.Message}");
+                }
+                finally
+                {
+                    if (Interlocked.Decrement(ref _pendingPageSyncCount) == 0)
+                    {
+                        DispatcherQueue?.TryEnqueue(() =>
+                        {
+                            if (PageSwitchProgressBar != null)
+                            {
+                                PageSwitchProgressBar.Visibility = Visibility.Collapsed;
+                            }
+                        });
+                    }
+                }
+            });
+
+            // 5. Load target page UI JSON & metadata from disk
+            Snapcode.Models.PageMetadata? metadata = null;
+            string targetUiJson = "[]";
+            try
+            {
+                metadata = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
+                targetUiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed loading new page UI/meta: {ex.Message}");
+            }
+
+            // 6. Smooth directional slide & crossfade transition on the visual designer
+            if (NativeDesigner != null)
+            {
+                await NativeDesigner.AnimatePageTransitionAsync(direction, () =>
+                {
+                    NativeDesigner.ApplyPageMetadata(metadata);
+                    NativeDesigner.SetPageName(_currentPageName);
+                    NativeDesigner.LoadUIJson(targetUiJson);
+                });
+            }
+
+            // 7. Update Blockly Workspace for the new page
+            if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null)
             {
                 try
                 {
                     string workspaceJson = await ProjectService.LoadPageWorkspaceAsync(_projectPath, _currentPageName);
-                    
-                    var metadata = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
                     string pageType = metadata?.Type?.ToLower() ?? "page";
                     if (pageType == "custom view") pageType = "custom_view";
-                    
+
                     await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.setWorkspaceContext('{pageType}')");
 
                     if (workspaceJson != "{}" && !string.IsNullOrWhiteSpace(workspaceJson))
@@ -1698,47 +1824,31 @@ namespace Snapcode.Views
                     {
                         await BlocklyWebView.CoreWebView2.ExecuteScriptAsync("window.clearWorkspace()");
                     }
-
-                    try
-                    {
-                        string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
-                        if (NativeDesigner != null)
-                        {
-                            NativeDesigner.ApplyPageMetadata(metadata);
-                            NativeDesigner.SetPageName(_currentPageName);
-                            NativeDesigner.LoadUIJson(uiJson);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to inject UI state: {ex.Message}");
-                    }
-
-                    DispatcherQueue?.TryEnqueue(() =>
-                    {
-                        TxtSaveStatus.Text = $"Loaded {pageName}";
-                    });
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to switch page: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[EditorPage] Failed to switch Blockly workspace: {ex.Message}");
                 }
             }
-            else
+
+            // 8. If Code Editor tab is active, update Monaco editor
+            if (EditorTabs?.SelectedItem is NavigationViewItem navItem && navItem.Tag?.ToString() == "code" && MonacoEditor != null)
             {
-                try
+                string fileName = _currentPageName.Equals("main", StringComparison.OrdinalIgnoreCase) 
+                    ? "main.dart" 
+                    : $"{_currentPageName.ToLowerInvariant()}.dart";
+                string targetDartPath = Path.Combine(_projectPath, ProjectService.FlutterFolderName, "lib", fileName);
+                if (!File.Exists(targetDartPath)) targetDartPath = Path.Combine(_projectPath, "lib", fileName);
+                if (File.Exists(targetDartPath))
                 {
-                    var metadata = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
-                    string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
-                    if (NativeDesigner != null)
-                    {
-                        NativeDesigner.ApplyPageMetadata(metadata);
-                        NativeDesigner.SetPageName(_currentPageName);
-                        NativeDesigner.LoadUIJson(uiJson);
-                    }
+                    await MonacoEditor.OpenFileAsync(targetDartPath);
                 }
-                catch { }
             }
+
+            DispatcherQueue?.TryEnqueue(() =>
+            {
+                TxtSaveStatus.Text = $"Loaded {pageName}.dart";
+            });
         }
 
         public void RefreshQuickPageNavigation()

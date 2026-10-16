@@ -215,6 +215,9 @@
                     </NavigationView>
 
                     <Grid Grid.Row="1">
+                        <!-- Slim Indeterminate Progress Indicator for Asynchronous Page Switch & Compilation -->
+                        <ProgressBar x:Name="PageSwitchProgressBar" IsIndeterminate="True" Height="2" VerticalAlignment="Top" Canvas.ZIndex="100" Visibility="Collapsed" />
+
                         <!-- View Panel (UI Designer) -->
                         <Grid x:Name="ViewPanel" Canvas.ZIndex="3" Opacity="1" IsHitTestVisible="True" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
                             <local:NativeUIDesigner x:Name="NativeDesigner" />
