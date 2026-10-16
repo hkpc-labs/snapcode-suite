@@ -425,15 +425,27 @@
                 </StackPanel>
                 
                 <StackPanel x:Name="EventsPanel" Padding="16" Spacing="12" Visibility="Collapsed">
-                    <TextBlock Text="Available Events" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="TxtEventsTargetWidget" Text="Available Events" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="Select an event to open its Blockly logic workspace." FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
                     
                     <ListView x:Name="ListEvents" SelectionMode="Single" SelectionChanged="ListEvents_SelectionChanged">
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
-                                    <FontIcon Glyph="&#xE768;" FontSize="14" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                                    <TextBlock Text="{Binding}" VerticalAlignment="Center" />
-                                </StackPanel>
+                                <Border Padding="10,8" Margin="0,2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="{Binding Icon}" FontSize="14" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                        <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>

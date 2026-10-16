@@ -183,6 +183,14 @@ namespace Snapcode.Views
             return AlignmentHelper.ParseColor(hex, fallback);
         }
 
+        public class DesignerEventItem
+        {
+            public string EventType { get; set; } = "";
+            public string DisplayName { get; set; } = "";
+            public string Description { get; set; } = "";
+            public string Icon { get; set; } = "\uE768";
+        }
+
         public event EventHandler<(string WidgetId, string EventType)> OpenEventWorkspaceRequested;
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
@@ -197,15 +205,78 @@ namespace Snapcode.Views
             {
                 PropertiesPanel.Visibility = Visibility.Collapsed;
                 EventsPanel.Visibility = _selectedWidget != null ? Visibility.Visible : Visibility.Collapsed;
+                if (_selectedWidget != null)
+                {
+                    PopulateEventsForSelectedWidget();
+                }
+            }
+        }
+
+        private void PopulateEventsForSelectedWidget()
+        {
+            if (_selectedWidget == null)
+            {
+                if (EventsPanel != null) EventsPanel.Visibility = Visibility.Collapsed;
+                if (TxtEventsTargetWidget != null) TxtEventsTargetWidget.Text = "Available Events";
+                if (ListEvents != null) ListEvents.ItemsSource = null;
+                return;
+            }
+
+            if (TxtEventsTargetWidget != null)
+            {
+                string wName = !string.IsNullOrWhiteSpace(_selectedWidget.Name) ? _selectedWidget.Name : _selectedWidget.Id;
+                TxtEventsTargetWidget.Text = $"Events: {wName} ({_selectedWidget.Type})";
+            }
+
+            var events = new List<DesignerEventItem>();
+            string t = (_selectedWidget.Type ?? "").ToLowerInvariant().Trim();
+
+            if (t == "button")
+            {
+                events.Add(new DesignerEventItem { EventType = "onClick", DisplayName = "onTap / onClick", Description = "Triggered when button is tapped", Icon = "\uE8A7" });
+                events.Add(new DesignerEventItem { EventType = "onLongPress", DisplayName = "onLongPress", Description = "Triggered when button is pressed and held", Icon = "\uE81E" });
+            }
+            else if (t == "textfield" || t == "edittext")
+            {
+                events.Add(new DesignerEventItem { EventType = "onChanged", DisplayName = "onChanged (Text Changed)", Description = "Triggered whenever input text changes", Icon = "\uE8AC" });
+                events.Add(new DesignerEventItem { EventType = "onSubmitted", DisplayName = "onSubmitted (Enter / Done)", Description = "Triggered when user submits or presses Enter", Icon = "\uE73E" });
+            }
+            else if (t == "slider")
+            {
+                events.Add(new DesignerEventItem { EventType = "onChanged", DisplayName = "onChanged (Value Changed)", Description = "Triggered when slider value changes", Icon = "\uE9E9" });
+            }
+            else if (t == "checkbox")
+            {
+                events.Add(new DesignerEventItem { EventType = "onChanged", DisplayName = "onChanged (Checked / Unchecked)", Description = "Triggered when checkbox is toggled", Icon = "\uE73A" });
+            }
+            else if (t == "switch")
+            {
+                events.Add(new DesignerEventItem { EventType = "onChanged", DisplayName = "onChanged (Toggled On / Off)", Description = "Triggered when switch is toggled", Icon = "\uF08C" });
+            }
+            else if (t == "image" || t == "text" || t == "textview" || t == "container" || t == "card" || t == "column" || t == "row")
+            {
+                events.Add(new DesignerEventItem { EventType = "onClick", DisplayName = "onTap / onClick", Description = $"Triggered when {t} is tapped", Icon = "\uE8A7" });
+                events.Add(new DesignerEventItem { EventType = "onLongPress", DisplayName = "onLongPress", Description = $"Triggered when {t} is long-pressed", Icon = "\uE81E" });
+            }
+            else
+            {
+                // Fallback for custom or other widgets
+                events.Add(new DesignerEventItem { EventType = "onClick", DisplayName = "onTap / onClick", Description = "Triggered on tap", Icon = "\uE8A7" });
+                events.Add(new DesignerEventItem { EventType = "onLongPress", DisplayName = "onLongPress", Description = "Triggered on long press", Icon = "\uE81E" });
+            }
+
+            if (ListEvents != null)
+            {
+                ListEvents.ItemsSource = events;
             }
         }
 
         private void ListEvents_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ListEvents.SelectedItem is string eventType && _selectedWidget != null)
+            if (ListEvents.SelectedItem is DesignerEventItem item && _selectedWidget != null)
             {
                 // Request opening of this event's workspace
-                OpenEventWorkspaceRequested?.Invoke(this, (_selectedWidget.Id, eventType));
+                OpenEventWorkspaceRequested?.Invoke(this, (_selectedWidget.Id, item.EventType));
                 ListEvents.SelectedItem = null; // Clear selection to allow re-clicking
             }
         }
@@ -264,13 +335,7 @@ namespace Snapcode.Views
                 if (RadioProperties.IsChecked == true) PropertiesPanel.Visibility = Visibility.Visible;
                 if (RadioEvents.IsChecked == true) EventsPanel.Visibility = Visibility.Visible;
                 
-                // Populate Events List
-                List<string> availableEvents = new List<string> { "onClick", "onLongPress" };
-                if (_selectedWidget.Type == "TextField") availableEvents.Add("onTextChanged");
-                else if (_selectedWidget.Type == "Switch") availableEvents.Add("onSwitchChanged");
-                else if (_selectedWidget.Type == "Checkbox") availableEvents.Add("onCheckboxChanged");
-                else if (_selectedWidget.Type == "Slider") availableEvents.Add("onSliderChanged");
-                ListEvents.ItemsSource = availableEvents;
+                PopulateEventsForSelectedWidget();
                 
                 TxtPropType.Text = $"Type: {_selectedWidget.Type}";
                 InputPropId.Text = _selectedWidget.Id ?? "";
@@ -378,6 +443,7 @@ namespace Snapcode.Views
             {
                 PropertiesPanel.Visibility = Visibility.Collapsed;
                 if (EventsPanel != null) EventsPanel.Visibility = Visibility.Collapsed;
+                if (ListEvents != null) ListEvents.ItemsSource = null;
                 TxtNoSelection.Visibility = Visibility.Visible;
             }
             }

@@ -29,7 +29,8 @@ namespace Snapcode.Views
         private string _currentPageName = "main";
         private bool _isSwitchingPage = false;
         private string _currentEventContext = null;
-        private bool _isProgrammaticTabChange = false;
+        private (string WidgetId, string EventType, string WidgetType)? _pendingEventTarget = null;
+        private bool _isSelectingEventProgrammatically = false;
         private DispatcherTimer _autoSaveTimer;
         private DebugLogsWindow? _standaloneDebugWindow;
         private List<FlutterDevice> _discoveredDevices = new();
@@ -104,49 +105,86 @@ namespace Snapcode.Views
 
         private async void NativeDesigner_OpenEventWorkspaceRequested(object sender, (string WidgetId, string EventType) args)
         {
-            // Build the context string
-            _currentEventContext = $"{args.WidgetId}_{args.EventType}";
+            // Resolve widget type
+            string widgetType = "";
+            if (NativeDesigner?.AllWidgetsFlat != null)
+            {
+                var matching = NativeDesigner.AllWidgetsFlat.FirstOrDefault(w => w.Id == args.WidgetId);
+                if (matching != null) widgetType = matching.Type ?? "";
+            }
+
+            _pendingEventTarget = (args.WidgetId, args.EventType, widgetType);
 
             // Switch the tab to the "event" pane
-            foreach(var item in EditorTabs.MenuItems)
+            foreach (var item in EditorTabs.MenuItems)
             {
                 if (item is NavigationViewItem navItem && navItem.Tag?.ToString() == "event")
                 {
-                    _isProgrammaticTabChange = true;
-                    EditorTabs.SelectedItem = navItem;
-                    _isProgrammaticTabChange = false;
+                    if (EditorTabs.SelectedItem == navItem)
+                    {
+                        // Already on event tab, execute transition immediately
+                        await HandleEventTabNavigationAsync();
+                    }
+                    else
+                    {
+                        // Switching tab triggers EditorTabs_SelectionChanged which invokes HandleEventTabNavigationAsync
+                        EditorTabs.SelectedItem = navItem;
+                    }
                     break;
                 }
             }
+        }
 
-            // Load the contextual event workspace
-            if (_isWebViewReady && BlocklyWebView != null && BlocklyWebView.CoreWebView2 != null)
+        private async Task HandleEventTabNavigationAsync()
+        {
+            PopulateEventList();
+
+            if (_pendingEventTarget.HasValue)
             {
-                string workspaceFile = $"{_currentPageName}_{_currentEventContext}";
-                string workspaceJson = await ProjectService.LoadPageWorkspaceAsync(_projectPath, workspaceFile);
-                
-                string widgetType = "";
-                if (NativeDesigner?.AllWidgetsFlat != null)
+                var target = _pendingEventTarget.Value;
+                _pendingEventTarget = null;
+
+                // Highlight matching item in right drawer (ListEvents) without re-triggering selection event
+                if (ListEvents?.ItemsSource is System.Collections.ObjectModel.ObservableCollection<EventListItem> list)
                 {
-                    var matching = NativeDesigner.AllWidgetsFlat.FirstOrDefault(w => w.Id == args.WidgetId);
-                    if (matching != null) widgetType = matching.Type ?? "";
+                    var matched = list.FirstOrDefault(x => x.WidgetId == target.WidgetId && string.Equals(x.EventType, target.EventType, StringComparison.OrdinalIgnoreCase));
+                    if (matched != null)
+                    {
+                        _isSelectingEventProgrammatically = true;
+                        try
+                        {
+                            ListEvents.SelectedItem = matched;
+                        }
+                        finally
+                        {
+                            _isSelectingEventProgrammatically = false;
+                        }
+                    }
                 }
 
-                string safeWidgetId = JsonSerializer.Serialize(args.WidgetId);
-                string safeEventType = JsonSerializer.Serialize(args.EventType);
-                string safeJson = JsonSerializer.Serialize(workspaceJson ?? "");
-                string safeWidgetType = JsonSerializer.Serialize(widgetType);
-                await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadEventWorkspace({safeWidgetId}, {safeEventType}, {safeJson}, {safeWidgetType})");
+                await SwitchToEventWorkspaceAsync(target.WidgetId, target.EventType, target.WidgetType);
+            }
+            else
+            {
+                // Manual click on "Events" navigation item: load Overview workspace
+                _currentEventContext = null;
+                if (ListEvents?.ItemsSource is System.Collections.ObjectModel.ObservableCollection<EventListItem> list && list.Count > 0)
+                {
+                    _isSelectingEventProgrammatically = true;
+                    try
+                    {
+                        ListEvents.SelectedIndex = 0; // Select Overview
+                    }
+                    finally
+                    {
+                        _isSelectingEventProgrammatically = false;
+                    }
+                }
+
+                await LoadSavedWorkspaceAsync(loadNativeUi: false);
             }
 
-            if (ListEvents?.ItemsSource is System.Collections.ObjectModel.ObservableCollection<EventListItem> list)
-            {
-                var matched = list.FirstOrDefault(x => x.WidgetId == args.WidgetId && string.Equals(x.EventType, args.EventType, StringComparison.OrdinalIgnoreCase));
-                if (matched != null)
-                {
-                    ListEvents.SelectedItem = matched;
-                }
-            }
+            await PushWidgetListToBlocklyAsync();
         }
 
         
@@ -1320,24 +1358,16 @@ namespace Snapcode.Views
             {
                 string tag = item.Tag.ToString() ?? "";
 
-                // Flush auto-save and compile page before changing tabs so no edits are lost
+                // Flush auto-save and compile page before changing tabs if there are unsaved changes
                 _autoSaveTimer.Stop();
-                await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
-
-                if (tag == "event" && !_isProgrammaticTabChange)
+                if (_hasUnsavedChanges && !_pendingEventTarget.HasValue)
                 {
-                    _currentEventContext = null;
-                    PopulateEventList();
-                    await LoadSavedWorkspaceAsync(loadNativeUi: false);
-                }
-                else if (tag == "event" && _isProgrammaticTabChange)
-                {
-                    PopulateEventList();
+                    await SaveWorkspaceAsync(_currentPageName, _currentEventContext);
                 }
 
                 if (tag == "event")
                 {
-                    await PushWidgetListToBlocklyAsync();
+                    await HandleEventTabNavigationAsync();
                 }
                 
                 if (tag == "code")
@@ -1622,6 +1652,8 @@ namespace Snapcode.Views
 
         private async void ListEvents_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_isSelectingEventProgrammatically) return;
+
             if (ListEvents.SelectedItem is EventListItem item)
             {
                 await SwitchToEventWorkspaceAsync(item.WidgetId, item.EventType, item.WidgetType);

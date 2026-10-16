@@ -3365,7 +3365,14 @@ function getRootBlockType(widgetId, eventType, widgetType) {
     return 'widget_on_click';
   } else if (evt === 'onlongpress' || evt === 'longpress') {
     return 'widget_on_long_press';
-  } else if (evt === 'ontextchanged' || evt === 'onsubmitted' || wt === 'textfield' || wt === 'edittext') {
+  } else if (evt === 'onchanged' || evt === 'changed') {
+    if (wt === 'slider') return 'widget_on_slider_changed';
+    if (wt === 'checkbox') return 'widget_on_checkbox_changed';
+    if (wt === 'switch') return 'widget_on_switch_changed';
+    return 'widget_on_text_changed';
+  } else if (evt === 'onsubmitted' || evt === 'submitted') {
+    return 'widget_on_text_changed';
+  } else if (evt === 'ontextchanged' || wt === 'textfield' || wt === 'edittext') {
     return 'widget_on_text_changed';
   } else if (evt === 'onsliderchanged' || wt === 'slider') {
     return 'widget_on_slider_changed';
