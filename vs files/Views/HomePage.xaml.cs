@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
+using System.Text.RegularExpressions;
 
 namespace Snapcode.Views
 {
@@ -345,6 +346,102 @@ namespace Snapcode.Views
                     {
                         await LoadRecentProjectsAsync();
                     }
+                }
+            }
+        }
+
+        private async void BtnCreateTicTacToeTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            var nameBox = new TextBox
+            {
+                Text = "tic_tac_toe",
+                Header = "Project Name",
+                PlaceholderText = "e.g. tic_tac_toe"
+            };
+
+            string defaultReposPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Snapcode", "repos");
+            Directory.CreateDirectory(defaultReposPath);
+
+            var locationBox = new TextBox
+            {
+                Text = defaultReposPath,
+                Header = "Project Location",
+                IsReadOnly = true
+            };
+
+            var contentPanel = new StackPanel
+            {
+                Spacing = 12
+            };
+            contentPanel.Children.Add(new TextBlock 
+            { 
+                Text = "Create a new project pre-configured with the Tic-Tac-Toe visual widgets and Blockly event blocks.",
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["SystemControlForegroundBaseMediumBrush"]
+            });
+            contentPanel.Children.Add(nameBox);
+            contentPanel.Children.Add(locationBox);
+
+            var dialog = new ContentDialog
+            {
+                Title = "Create Tic-Tac-Toe Project",
+                Content = contentPanel,
+                PrimaryButtonText = "Create Project",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = this.XamlRoot,
+                RequestedTheme = (App.MainWindow?.Content as FrameworkElement)?.RequestedTheme ?? ElementTheme.Default
+            };
+
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+            {
+                string projectName = nameBox.Text.Trim();
+                if (string.IsNullOrEmpty(projectName)) projectName = "tic_tac_toe";
+                projectName = Regex.Replace(projectName.ToLowerInvariant(), @"[^a-z0-9_]", "_");
+
+                LoadingOverlay.Visibility = Visibility.Visible;
+                LogTextBlock.Text = "Creating Tic-Tac-Toe Template project...\n";
+
+                try
+                {
+                    string projectRoot = Path.Combine(defaultReposPath, projectName);
+                    int counter = 1;
+                    string baseRoot = projectRoot;
+                    while (Directory.Exists(projectRoot))
+                    {
+                        projectRoot = $"{baseRoot}_{counter++}";
+                    }
+
+                    LogTextBlock.Text += $"[OK] Target folder: {projectRoot}\n";
+                    LogTextBlock.Text += "[...] Generating visual UI tree, Blockly blocks, and Flutter source...\n";
+
+                    await TemplateService.CreateTicTacToeProjectAsync(projectRoot, Path.GetFileName(projectRoot));
+
+                    LogTextBlock.Text += "[OK] Tic-Tac-Toe Template generated successfully!\n";
+
+                    var config = await ConfigService.LoadAsync();
+                    config.RecentProjects.RemoveAll(p => string.Equals(p, projectRoot, StringComparison.OrdinalIgnoreCase));
+                    config.RecentProjects.Insert(0, projectRoot);
+                    if (config.RecentProjects.Count > 20) config.RecentProjects.RemoveAt(20);
+                    await ConfigService.SaveAsync(config);
+
+                    await LoadRecentProjectsAsync();
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+
+                    OpenProject(projectRoot);
+                }
+                catch (Exception ex)
+                {
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                    var errDialog = new ContentDialog
+                    {
+                        Title = "Error Creating Template",
+                        Content = $"Failed to generate template: {ex.Message}",
+                        CloseButtonText = "OK",
+                        XamlRoot = this.XamlRoot
+                    };
+                    await errDialog.ShowAsync();
                 }
             }
         }

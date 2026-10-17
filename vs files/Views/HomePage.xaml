@@ -151,8 +151,97 @@
                 </Grid>
                 
                     <Grid x:Name="TemplatesContent" Visibility="Collapsed" Padding="32">
-                        <TextBlock Text="Templates Gallery" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Top" />
-                        <TextBlock Text="No templates available." Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Header -->
+                        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+                            <TextBlock Text="Templates Gallery" Style="{StaticResource TitleTextBlockStyle}" />
+                            <TextBlock Text="Pre-built Flutter templates with visual UI layouts and complete Blockly event logic ready to customize."
+                                       Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                       FontSize="14" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <!-- Templates Grid -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="360" ItemHeight="360" HorizontalAlignment="Left">
+                                
+                                <!-- Tic-Tac-Toe Game Card -->
+                                <Border Width="340" Height="340" Margin="0,0,20,20"
+                                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                        BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="20">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Header / Icon -->
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <Border Background="{ThemeResource SystemControlForegroundAccentBrush}" Width="44" Height="44" CornerRadius="8">
+                                                <FontIcon Glyph="&#xE7FC;" FontSize="22" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="Tic-Tac-Toe Game" FontWeight="SemiBold" FontSize="18" />
+                                                <TextBlock Text="2-Player Board Game" FontSize="12" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Badge Pills -->
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,14,0,10">
+                                            <Border Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}" CornerRadius="4" Padding="6,2">
+                                                <TextBlock Text="View Designer" FontSize="11" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" FontWeight="SemiBold" />
+                                            </Border>
+                                            <Border Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}" CornerRadius="4" Padding="6,2">
+                                                <TextBlock Text="Blockly Logic" FontSize="11" Foreground="#10B981" FontWeight="SemiBold" />
+                                            </Border>
+                                            <Border Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}" CornerRadius="4" Padding="6,2">
+                                                <TextBlock Text="State Variables" FontSize="11" Foreground="#F59E0B" FontWeight="SemiBold" />
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- Description -->
+                                        <TextBlock Grid.Row="2" 
+                                                   Text="Classic 3x3 turn-based Tic-Tac-Toe game. Includes visual board cells, live scoreboard with win/tie tracking, game status indicators, win alerts, and restart logic built entirely using View Designer widgets and Blockly blocks."
+                                                   TextWrapping="Wrap" 
+                                                   FontSize="13" 
+                                                   Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                                   LineHeight="20" />
+
+                                        <!-- Feature bullets -->
+                                        <StackPanel Grid.Row="3" Margin="0,8,0,14" Spacing="4">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <FontIcon Glyph="&#xE73E;" FontSize="12" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" VerticalAlignment="Center" />
+                                                <TextBlock Text="9 interactive buttons with dynamic text" FontSize="12" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <FontIcon Glyph="&#xE73E;" FontSize="12" Foreground="{ThemeResource SystemControlForegroundAccentBrush}" VerticalAlignment="Center" />
+                                                <TextBlock Text="Turn switching, win check, and haptic feedback" FontSize="12" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Action Button -->
+                                        <Button Grid.Row="4" x:Name="BtnCreateTicTacToeTemplate"
+                                                Style="{StaticResource AccentButtonStyle}"
+                                                HorizontalAlignment="Stretch"
+                                                Click="BtnCreateTicTacToeTemplate_Click">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                                <FontIcon Glyph="&#xE8A7;" FontSize="14" />
+                                                <TextBlock Text="Create Project from Template" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </VariableSizedWrapGrid>
+                        </ScrollViewer>
                     </Grid>
                     
                     <Grid x:Name="LearnContent" Visibility="Collapsed" Padding="32">

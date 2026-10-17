@@ -82,6 +82,20 @@ namespace SnapCode.Services
                 if (!string.IsNullOrWhiteSpace(eventCode))
                 {
                     var seenVars = new HashSet<string>(StringComparer.Ordinal);
+
+                    // Support explicit state variable declarations in event code via // STATE_VAR: ...
+                    var stateVarMatches = Regex.Matches(eventCode, @"//\s*STATE_VAR:\s*([^\r\n;]+;?)", RegexOptions.IgnoreCase);
+                    foreach (Match m in stateVarMatches)
+                    {
+                        string decl = m.Groups[1].Value.Trim();
+                        if (!decl.EndsWith(";")) decl += ";";
+                        string varName = Regex.Match(decl, @"\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:=|\b;)").Groups[1].Value;
+                        if (!string.IsNullOrEmpty(varName) && seenVars.Add(varName))
+                        {
+                            declarations.Add(decl);
+                        }
+                    }
+
                     var visMatches = Regex.Matches(eventCode, @"_([a-zA-Z0-9_]+?)Visible\b");
                     foreach (Match m in visMatches)
                     {
@@ -329,8 +343,21 @@ namespace SnapCode.Services
             foreach (var rawLine in lines)
             {
                 string line = rawLine;
+                var rawMethodMatch = Regex.Match(line, @"^//\s*(?:RAW_METHOD|HELPER_METHOD)(?::\s*([a-zA-Z0-9_]+))?\s*$", RegexOptions.IgnoreCase);
                 var match = Regex.Match(line, @"^//\s*EVENT_BINDING:\s*(.+?)\s*->\s*(.+?)\s*$", RegexOptions.IgnoreCase);
-                if (match.Success)
+                if (rawMethodMatch.Success)
+                {
+                    if (inBlock || currentBodyLines.Count > 0)
+                    {
+                        SaveCurrentBlock();
+                    }
+                    currentEventType = "RAW_METHOD";
+                    currentTarget = rawMethodMatch.Groups[1].Success && !string.IsNullOrWhiteSpace(rawMethodMatch.Groups[1].Value)
+                        ? rawMethodMatch.Groups[1].Value
+                        : Guid.NewGuid().ToString("N");
+                    inBlock = true;
+                }
+                else if (match.Success)
                 {
                     if (inBlock || currentBodyLines.Count > 0)
                     {
@@ -368,6 +395,12 @@ namespace SnapCode.Services
             var dedupMap = new Dictionary<string, (string eventType, string target, List<string> body)>(StringComparer.OrdinalIgnoreCase);
             foreach (var b in blockList)
             {
+                if (string.Equals(b.eventType, "RAW_METHOD", StringComparison.OrdinalIgnoreCase))
+                {
+                    string rawKey = $"RAW_METHOD_{b.target}";
+                    dedupMap[rawKey] = b;
+                    continue;
+                }
                 string cleanEvt = b.eventType;
                 if (cleanEvt.Contains('(') && cleanEvt.EndsWith(')'))
                 {
@@ -388,6 +421,16 @@ namespace SnapCode.Services
 
             foreach (var b in dedupMap.Values)
             {
+                if (string.Equals(b.eventType, "RAW_METHOD", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var bl in b.body)
+                    {
+                        sb.AppendLine($"  {bl}");
+                    }
+                    sb.AppendLine();
+                    continue;
+                }
+
                 string cleanEvt = b.eventType;
                 string paramDecl = "";
                 if (cleanEvt.Contains('(') && cleanEvt.EndsWith(')'))
@@ -1141,7 +1184,7 @@ class _{className}State extends State<{className}> {{
             }
         }
 
-        private static string ToPascalCase(string str)
+        public static string ToPascalCase(string str)
         {
             if (string.IsNullOrWhiteSpace(str)) return "Page";
             var parts = str.Split(new[] { '_', '-', ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -1157,7 +1200,7 @@ class _{className}State extends State<{className}> {{
             return sb.Length > 0 ? sb.ToString() : "Page";
         }
 
-        private static string ToCamelCase(string str)
+        public static string ToCamelCase(string str)
         {
             if (string.IsNullOrWhiteSpace(str)) return "item";
             string pascal = ToPascalCase(str);
@@ -1165,7 +1208,7 @@ class _{className}State extends State<{className}> {{
             return char.ToLowerInvariant(pascal[0]) + (pascal.Length > 1 ? pascal.Substring(1) : "");
         }
 
-        private static string ToSnakeCase(string str)
+        public static string ToSnakeCase(string str)
         {
             if (string.IsNullOrWhiteSpace(str)) return "page";
             var sb = new System.Text.StringBuilder();

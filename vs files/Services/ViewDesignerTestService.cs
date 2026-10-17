@@ -1052,6 +1052,52 @@ setState(() {
             string navDart = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart("main", "[]", navEventCode);
             Assert(navDart.Contains("import 'settings_page.dart';"), "Dynamic Page Navigation: settings_page.dart auto-imported from route block");
 
+            // 15.3 Template System: Tic-Tac-Toe Template Verification
+            string tempTemplateDir = Path.Combine(Path.GetTempPath(), "snapcode_test_tictactoe_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                TemplateService.CreateTicTacToeProjectAsync(tempTemplateDir, "test_tictactoe").GetAwaiter().GetResult();
+
+                string tttMeta = Path.Combine(tempTemplateDir, ".snapcode", "pages", "main_meta.json");
+                string tttUi = Path.Combine(tempTemplateDir, ".snapcode", "pages", "main_ui.json");
+                string tttMainDart = Path.Combine(tempTemplateDir, "flutter", "lib", "main.dart");
+                string tttResetEvent = Path.Combine(tempTemplateDir, ".snapcode", "pages", "main_btn_reset_onClick.json");
+                string tttCell0Event = Path.Combine(tempTemplateDir, ".snapcode", "pages", "main_btn_cell_0_onClick.json");
+                string tttWorkspace = Path.Combine(tempTemplateDir, ".snapcode", "workspace.json");
+
+                Assert(File.Exists(tttMeta), "Template: main_meta.json exists");
+                Assert(File.Exists(tttUi), "Template: main_ui.json exists");
+                Assert(File.Exists(tttMainDart), "Template: flutter/lib/main.dart compiled and exists");
+                Assert(File.Exists(tttResetEvent), "Template: Reset button event workspace exists");
+                Assert(File.Exists(tttCell0Event), "Template: Cell 0 event workspace exists");
+                Assert(File.Exists(tttWorkspace), "Template: Overview workspace.json exists");
+
+                if (File.Exists(tttUi))
+                {
+                    string uiContent = File.ReadAllText(tttUi);
+                    Assert(uiContent.Contains("btn_cell_0") && uiContent.Contains("btn_cell_8"), "Template: UI contains 9 grid cell buttons");
+                    Assert(uiContent.Contains("txt_status") && uiContent.Contains("txt_score_x"), "Template: UI contains scoreboard & status indicators");
+                    Assert(uiContent.Contains("btn_reset"), "Template: UI contains restart button");
+                }
+
+                if (File.Exists(tttMainDart))
+                {
+                    string dartContent = File.ReadAllText(tttMainDart);
+                    Assert(dartContent.Contains("class MainPage extends StatefulWidget"), "Template: main.dart has MainPage stateful widget");
+                    Assert(dartContent.Contains("_makeMove"), "Template: main.dart contains _makeMove game logic");
+                    Assert(dartContent.Contains("_checkWinner"), "Template: main.dart contains _checkWinner detection");
+                    Assert(dartContent.Contains("onClickBtnCell0"), "Template: main.dart wires cell 0 click event");
+                    Assert(dartContent.Contains("onClickBtnReset"), "Template: main.dart wires reset button click event");
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(tempTemplateDir))
+                {
+                    try { Directory.Delete(tempTemplateDir, true); } catch { }
+                }
+            }
+
             // 15.2 Real Project Verification & Disk Sync
             string userProjectDir = @"C:\Users\hardi\Documents\Snapcode\repos\new_project_test";
             if (Directory.Exists(userProjectDir))
