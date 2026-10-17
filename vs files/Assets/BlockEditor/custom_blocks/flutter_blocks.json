@@ -14,6 +14,13 @@
     "code": "if (Navigator.canPop(context)) { Navigator.pop(context); }"
   },
   {
+    "name": "flutter_show_drawer",
+    "palette": "0",
+    "type": " ",
+    "spec": "Show / Open Navigation Drawer",
+    "code": "Scaffold.of(context).openDrawer();"
+  },
+  {
     "name": "flutter_show_toast",
     "palette": "1",
     "type": " ",

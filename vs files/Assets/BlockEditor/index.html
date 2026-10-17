@@ -146,6 +146,8 @@ window.onerror = function(msg, url, line, col, error) {
   <category name="Navigation" colour="#6366f1">
     <block type="nav_push_named"></block>
     <block type="nav_pop"></block>
+    <block type="ui_show_drawer"></block>
+    <block type="ui_close_drawer"></block>
   </category>
   <category name="Logic" colour="#e11d48">
     <block type="logic_if_else"></block>
@@ -211,11 +213,17 @@ window.onerror = function(msg, url, line, col, error) {
 // SnapCode — Block Definitions (all inlined)
 // ============================================================
 
-// ── Global Widget ID Registry (populated from C# via bridge) ─────
+// ── Global Widget & Page Registries (populated from C# via bridge) ─────
 var _widgetRegistry = [['(no widgets in View Designer)', 'none']];
 
 function _getWidgetDropdownOptions() {
   return _widgetRegistry.length > 0 ? _widgetRegistry : [['(no widgets in View Designer)', 'none']];
+}
+
+var _pageRegistry = [['MainPage (main.dart)', 'MainPage']];
+
+function _getPageDropdownOptions() {
+  return _pageRegistry.length > 0 ? _pageRegistry : [['MainPage (main.dart)', 'MainPage']];
 }
 
 // ── Custom Field: FieldColour ────────────────────────────────
@@ -1016,18 +1024,30 @@ Blockly.defineBlocksWithJsonArray([
   // ── Component Blocks ─────────────────────────────────
   {
     type: 'nav_push_named',
-    message0: 'Navigate to Page Class %1',
+    message0: 'Navigate to Screen %1',
     args0: [
-      { type: 'field_input', name: 'ROUTE', text: 'SecondPage' },
+      { type: 'field_dropdown', name: 'ROUTE', options: _getPageDropdownOptions },
     ],
-    previousStatement: null, nextStatement: null, colour: '#0284c7',
-    tooltip: 'Navigates to another page by page class name',
+    previousStatement: null, nextStatement: null, colour: '#6366f1',
+    tooltip: 'Navigates to another page by screen class name',
   },
   {
     type: 'nav_pop',
     message0: 'Navigate Back (Go Back)',
-    previousStatement: null, nextStatement: null, colour: '#0284c7',
+    previousStatement: null, nextStatement: null, colour: '#6366f1',
     tooltip: 'Pops the current screen from the navigation stack',
+  },
+  {
+    type: 'ui_show_drawer',
+    message0: 'Show / Open Navigation Drawer',
+    previousStatement: null, nextStatement: null, colour: '#6366f1',
+    tooltip: 'Opens the Scaffold navigation drawer for this page',
+  },
+  {
+    type: 'ui_close_drawer',
+    message0: 'Close Navigation Drawer',
+    previousStatement: null, nextStatement: null, colour: '#6366f1',
+    tooltip: 'Closes the open Scaffold navigation drawer',
   },
   {
     type: 'pref_set_string',
@@ -2030,6 +2050,71 @@ window.updateWidgetIds = function(widgetListJson) {
   }
 };
 
+// Post-hoc: patch the menu generator on every ROUTE dropdown for screen navigation
+function patchPageDropdowns() {
+  if (!workspace) return;
+  const updateBlocks = (ws) => {
+    if (!ws) return;
+    const allBlocks = ws.getAllBlocks(false);
+    allBlocks.forEach(block => {
+      if (block.type === 'nav_push_named') {
+        const field = block.getField('ROUTE');
+        if (field) {
+          field.generatedOptions = null;
+          field.menuGenerator_ = _getPageDropdownOptions;
+          const currentVal = field.getValue();
+          if (currentVal) {
+            if (!_pageRegistry.some(opt => opt[1] === currentVal)) {
+              _pageRegistry.unshift([currentVal, currentVal]);
+            }
+          }
+        }
+      }
+    });
+  };
+  updateBlocks(workspace);
+  try {
+    const flyout = workspace.getFlyout ? workspace.getFlyout() : (workspace.toolbox_ && workspace.toolbox_.flyout_);
+    if (flyout && flyout.getWorkspace()) {
+      updateBlocks(flyout.getWorkspace());
+    }
+  } catch(e) {}
+}
+
+// Called from C# to update the available project pages list
+window.updateProjectPages = function(pageListJson) {
+  try {
+    let pages = pageListJson;
+    if (typeof pages === 'string') {
+      try {
+        pages = JSON.parse(pages);
+        if (typeof pages === 'string') pages = JSON.parse(pages);
+      } catch(e) {}
+    }
+    if (Array.isArray(pages) && pages.length > 0) {
+      _pageRegistry = pages.map(p => {
+        const cleanName = (p || '').replace(/\.dart$/i, '').trim();
+        const isDrawer = cleanName.toLowerCase().endsWith('_drawer');
+        let className;
+        if (isDrawer) {
+          className = toPascalCase(cleanName);
+        } else if (cleanName.toLowerCase() === 'main') {
+          className = 'MainPage';
+        } else {
+          className = toPascalCase(cleanName) + (cleanName.toLowerCase().endsWith('page') ? '' : 'Page');
+        }
+        const label = isDrawer ? `Drawer: ${cleanName} (${className})` : `${cleanName}.dart (${className})`;
+        return [label, className];
+      });
+    } else {
+      _pageRegistry = [['MainPage (main.dart)', 'MainPage']];
+    }
+    patchPageDropdowns();
+  } catch(e) {
+    console.error('Failed to update project pages:', e);
+  }
+};
+
 // ============================================================
 // SnapCode — Dart Code Generator
 // ============================================================
@@ -2656,11 +2741,19 @@ dartGenerator.forBlock['state_get_variable'] = function(block) {
 
 // ── Component Generators ────────────────────────────────
 dartGenerator.forBlock['nav_push_named'] = function(block) {
-  const route = block.getFieldValue('ROUTE') || 'SecondPage';
+  const route = block.getFieldValue('ROUTE') || 'MainPage';
   return `Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ${route}()));\n`;
 };
 
 dartGenerator.forBlock['nav_pop'] = function(block) {
+  return `Navigator.of(context).pop();\n`;
+};
+
+dartGenerator.forBlock['ui_show_drawer'] = function(block) {
+  return `Scaffold.of(context).openDrawer();\n`;
+};
+
+dartGenerator.forBlock['ui_close_drawer'] = function(block) {
   return `Navigator.of(context).pop();\n`;
 };
 

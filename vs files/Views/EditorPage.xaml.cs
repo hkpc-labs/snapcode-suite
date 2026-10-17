@@ -28,6 +28,7 @@ namespace Snapcode.Views
         private string _lastGeneratedCode = "";
         private bool _hasUnsavedChanges = false;
         private string _currentPageName = "main";
+        private Snapcode.Models.PageMetadata? _currentMetadata = null;
         private bool _isSwitchingPage = false;
         private string _currentEventContext = null;
         private (string WidgetId, string EventType, string WidgetType)? _pendingEventTarget = null;
@@ -52,6 +53,7 @@ namespace Snapcode.Views
                 NativeDesigner.WidgetTreeFlatJsonChanged += NativeDesigner_WidgetTreeFlatJsonChanged;
                 NativeDesigner.UIStateChanged += NativeDesigner_UIStateChanged;
                 NativeDesigner.OpenEventWorkspaceRequested += NativeDesigner_OpenEventWorkspaceRequested;
+                NativeDesigner.OpenDrawerDesignerRequested += async (s, drawerPage) => await SwitchToPageAsync(drawerPage);
                 NativeDesigner.SaveRequested += NativeDesigner_SaveRequested;
             }
 
@@ -369,6 +371,24 @@ namespace Snapcode.Views
             }
         }
 
+        private async Task PushProjectPagesToBlocklyAsync()
+        {
+            if (!_isWebViewReady || BlocklyWebView?.CoreWebView2 == null || string.IsNullOrEmpty(_projectPath)) return;
+            try
+            {
+                var pages = ProjectService.GetProjectPages(_projectPath);
+                var visualPages = pages.Where(p => ProjectFileClassifier.IsVisualPage(_projectPath, p)).ToList();
+                if (visualPages.Count == 0) visualPages.Add("main");
+                string json = JsonSerializer.Serialize(visualPages);
+                string safeJson = JsonSerializer.Serialize(json);
+                await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.updateProjectPages({safeJson})");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditorPage] PushProjectPagesToBlocklyAsync error: {ex.Message}");
+            }
+        }
+
         private bool _wasMaximizedBeforeEntering = false;
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -467,8 +487,8 @@ namespace Snapcode.Views
                     string uiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
                     if (NativeDesigner != null)
                     {
-                        var pageMeta = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
-                        NativeDesigner.ApplyPageMetadata(pageMeta);
+                        _currentMetadata = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
+                        NativeDesigner.ApplyPageMetadata(_currentMetadata);
                         NativeDesigner.SetPageName(_currentPageName);
                         NativeDesigner.LoadUIJson(uiJson);
                     }
@@ -744,6 +764,7 @@ namespace Snapcode.Views
                 if (pageType == "custom view") pageType = "custom_view";
                 
                 await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.setWorkspaceContext('{pageType}')");
+                await PushProjectPagesToBlocklyAsync();
 
                 if (workspaceJson != "{}" && !string.IsNullOrWhiteSpace(workspaceJson))
                 {
@@ -1046,6 +1067,7 @@ namespace Snapcode.Views
                         pageMeta
                     );
 
+                    bool isDrawerPage = (pageMeta?.Type == "Drawer") || pageToSave.EndsWith("_drawer", StringComparison.OrdinalIgnoreCase);
                     string fileName = pageToSave.Equals("main", StringComparison.OrdinalIgnoreCase) 
                         ? "main.dart" 
                         : $"{pageToSave.ToLowerInvariant()}.dart";
@@ -1053,15 +1075,28 @@ namespace Snapcode.Views
                     string flutterLibPath = Path.Combine(_projectPath, ProjectService.FlutterFolderName, "lib");
                     if (Directory.Exists(flutterLibPath))
                     {
-                        string dartFile = Path.Combine(flutterLibPath, fileName);
+                        string targetDir = isDrawerPage ? Path.Combine(flutterLibPath, "models", "drawers") : flutterLibPath;
+                        Directory.CreateDirectory(targetDir);
+                        string dartFile = Path.Combine(targetDir, fileName);
                         await UserCodePreservationService.SaveDartFileWithPreservationAsync(dartFile, completeDartSource);
                     }
 
                     string legacyLibPath = Path.Combine(_projectPath, "lib");
                     if (Directory.Exists(legacyLibPath))
                     {
-                        string dartFile = Path.Combine(legacyLibPath, fileName);
+                        string targetDir = isDrawerPage ? Path.Combine(legacyLibPath, "models", "drawers") : legacyLibPath;
+                        Directory.CreateDirectory(targetDir);
+                        string dartFile = Path.Combine(targetDir, fileName);
                         await UserCodePreservationService.SaveDartFileWithPreservationAsync(dartFile, completeDartSource);
+                    }
+
+                    // If saving a normal page that has a Drawer, ensure its companion drawer exists and is compiled
+                    if (pageMeta?.HasDrawer == true && !isDrawerPage)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            await ProjectService.EnsureDrawerForPageAsync(_projectPath, pageToSave);
+                        });
                     }
 
                     // Sync assets to flutter/assets and pubspec.yaml
@@ -1643,7 +1678,20 @@ namespace Snapcode.Views
                 if (result == ContentDialogResult.Primary)
                 {
                     var updated = dialog.GetUpdatedMetadata();
+                    _currentMetadata = updated;
                     await ProjectService.SavePageMetadataAsync(_projectPath, _currentPageName, updated);
+
+                    if (updated.HasDrawer)
+                    {
+                        await ProjectService.EnsureDrawerForPageAsync(_projectPath, _currentPageName);
+                        string drawerName = $"{_currentPageName}_drawer";
+                        if (!ListPages.Items.Contains(drawerName))
+                        {
+                            ListPages.Items.Add(drawerName);
+                        }
+                        RefreshQuickPageNavigation();
+                        await PushProjectPagesToBlocklyAsync();
+                    }
 
                     // Apply to visual designer canvas immediately
                     if (NativeDesigner != null)
@@ -1789,6 +1837,7 @@ namespace Snapcode.Views
             try
             {
                 metadata = await ProjectService.LoadPageMetadataAsync(_projectPath, _currentPageName);
+                _currentMetadata = metadata;
                 targetUiJson = await ProjectService.LoadPageUIAsync(_projectPath, _currentPageName);
             }
             catch (Exception ex)
@@ -1817,6 +1866,7 @@ namespace Snapcode.Views
                     if (pageType == "custom view") pageType = "custom_view";
 
                     await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.setWorkspaceContext('{pageType}')");
+                    await PushProjectPagesToBlocklyAsync();
 
                     if (workspaceJson != "{}" && !string.IsNullOrWhiteSpace(workspaceJson))
                     {
@@ -1912,7 +1962,9 @@ namespace Snapcode.Views
                     Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent)
                 };
 
-                ToolTipService.SetToolTip(btn, $"Switch to {pageName}.dart (Ctrl+Tab)");
+                bool isDrawerTab = pageName.EndsWith("_drawer", StringComparison.OrdinalIgnoreCase);
+                string tip = isDrawerTab ? $"Switch to {pageName}.dart (Navigation Drawer)" : $"Switch to {pageName}.dart (Ctrl+Tab)";
+                ToolTipService.SetToolTip(btn, tip);
 
                 var sp = new StackPanel
                 {
@@ -1923,7 +1975,7 @@ namespace Snapcode.Views
 
                 var icon = new FontIcon
                 {
-                    Glyph = "\uE7C3",
+                    Glyph = isDrawerTab ? "\uE700" : "\uE7C3",
                     FontSize = 11
                 };
 
@@ -2148,6 +2200,16 @@ namespace Snapcode.Views
                     await ProjectService.SavePageMetadataAsync(_projectPath, newPageName, metadata);
                     await ProjectService.SavePageWorkspaceAsync(_projectPath, newPageName, "{}");
 
+                    if (dialog.AddNavDrawer)
+                    {
+                        await ProjectService.EnsureDrawerForPageAsync(_projectPath, newPageName);
+                        string drawerName = $"{newPageName}_drawer";
+                        if (!ListPages.Items.Contains(drawerName))
+                        {
+                            ListPages.Items.Add(drawerName);
+                        }
+                    }
+
                     _isSwitchingPage = true;
                     if (!ListPages.Items.Contains(newPageName))
                     {
@@ -2156,6 +2218,7 @@ namespace Snapcode.Views
                     _isSwitchingPage = false;
                     
                     RefreshQuickPageNavigation();
+                    await PushProjectPagesToBlocklyAsync();
                     await SwitchToPageAsync(newPageName);
                 }
             }
@@ -2192,6 +2255,55 @@ namespace Snapcode.Views
             events.Add(new EventListItem { WidgetId = "page", EventType = "initState", WidgetType = "Page", DisplayName = "Page: initState (on Create)", Icon = "\uE81E" });
             events.Add(new EventListItem { WidgetId = "page", EventType = "build", WidgetType = "Page", DisplayName = "Page: build (on Render)", Icon = "\uE81E" });
             events.Add(new EventListItem { WidgetId = "page", EventType = "dispose", WidgetType = "Page", DisplayName = "Page: dispose (on Destroy)", Icon = "\uE81E" });
+
+            // Scaffold, FAB, and Drawer Events for current page
+            var meta = _currentMetadata ?? NativeDesigner?.CurrentMetadata;
+            if (meta?.HasFAB == true)
+            {
+                events.Add(new EventListItem 
+                { 
+                    WidgetId = "fab", 
+                    EventType = "onClick", 
+                    WidgetType = "FloatingActionButton", 
+                    DisplayName = "Floating Action Button (onPressed)", 
+                    Icon = "\uE710" 
+                });
+            }
+
+            if (meta?.HasDrawer == true)
+            {
+                events.Add(new EventListItem 
+                { 
+                    WidgetId = "drawer", 
+                    EventType = "onOpen", 
+                    WidgetType = "Drawer", 
+                    DisplayName = "Navigation Drawer (onDrawerChanged)", 
+                    Icon = "\uE700" 
+                });
+            }
+
+            if (meta?.ShowAppBar == true && (meta.HasDrawer || meta.AppBarLeadingIcon == "menu"))
+            {
+                events.Add(new EventListItem 
+                { 
+                    WidgetId = "appbar_leading", 
+                    EventType = "onClick", 
+                    WidgetType = "AppBar", 
+                    DisplayName = "AppBar: Drawer Menu Icon (onPressed)", 
+                    Icon = "\uE700" 
+                });
+            }
+            else if (meta?.ShowAppBar == true && meta.AppBarLeadingIcon == "back")
+            {
+                events.Add(new EventListItem 
+                { 
+                    WidgetId = "appbar_leading", 
+                    EventType = "onClick", 
+                    WidgetType = "AppBar", 
+                    DisplayName = "AppBar: Back Navigation Icon (onPressed)", 
+                    Icon = "\uE72B" 
+                });
+            }
 
             if (NativeDesigner != null && NativeDesigner.AllWidgetsFlat != null)
             {

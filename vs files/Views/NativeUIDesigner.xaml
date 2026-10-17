@@ -174,13 +174,23 @@
                                     
                                     <!-- Fake Tool Bar -->
                                     <Grid x:Name="MockToolBar" Grid.Row="1" Background="#03A9F4">
-                                        <Button x:Name="BtnDrawerLeading" Content="&#xE700;" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="White" BorderThickness="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0" Width="40" Height="40" Padding="0" Visibility="Collapsed" IsHitTestVisible="False" />
+                                        <Button x:Name="BtnDrawerLeading" Content="&#xE700;" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="White" BorderThickness="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0" Width="40" Height="40" Padding="0" Visibility="Collapsed" IsHitTestVisible="True" Click="BtnDrawerLeading_Click" ToolTipService.ToolTip="Open / Edit Navigation Drawer" />
                                         <TextBlock x:Name="TxtAppTitle" Text="main.dart" FontSize="18" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" Margin="16,0,0,0" />
                                         <StackPanel x:Name="MockAppBarActions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" Visibility="Collapsed" IsHitTestVisible="False">
                                             <FontIcon x:Name="MockActionSearch" Glyph="&#xE721;" FontSize="15" Foreground="White" Margin="0,0,12,0" />
                                             <FontIcon x:Name="MockActionMore" Glyph="&#xE712;" FontSize="15" Foreground="White" />
                                         </StackPanel>
                                     </Grid>
+                                    
+                                    <!-- Drawer Mode Header Banner -->
+                                    <Border x:Name="MockDrawerHeaderBanner" Grid.Row="0" Grid.RowSpan="2" Background="#1E293B" Visibility="Collapsed" Padding="12,0,12,0">
+                                        <Grid>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xE700;" FontSize="14" Foreground="#38BDF8" />
+                                                <TextBlock Text="Navigation Drawer (lib/models/drawers)" FontSize="12" FontWeight="SemiBold" Foreground="#F8FAFC" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                     
                                     <!-- Tool Bar Elevation Shadow -->
                                     <Border x:Name="MockAppBarShadow" Grid.Row="2" VerticalAlignment="Top" Height="8" Visibility="Collapsed" IsHitTestVisible="False">

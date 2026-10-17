@@ -1015,6 +1015,43 @@ setState(() {
             Assert(multiDart.Contains("import 'package:flutter/services.dart';"),
                 "E2E Blocks: Services import included for Portrait orientation and system features");
 
+            // Verify companion drawer imported and wired in Scaffold
+            Assert(multiDart.Contains("import 'models/drawers/main_drawer.dart';"),
+                "Scaffold Drawer: models/drawers/main_drawer.dart auto-imported in main page");
+            Assert(multiDart.Contains("drawer: const MainDrawer(),"),
+                "Scaffold Drawer: drawer widget wired with const MainDrawer()");
+
+            // Test Drawer component compilation (Type = "Drawer")
+            var drawerMeta = new Snapcode.Models.PageMetadata
+            {
+                Name = "main_drawer",
+                Title = "Main Navigation Drawer",
+                Type = "Drawer",
+                ShowAppBar = false
+            };
+            string drawerDart = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart("main_drawer", multiEventUiJson, testMultiEvents, drawerMeta);
+            Assert(drawerDart.Contains("class MainDrawer extends StatefulWidget"), "Drawer Architecture: MainDrawer class generated");
+            Assert(drawerDart.Contains("return Drawer("), "Drawer Architecture: build method returns Drawer widget");
+            Assert(!drawerDart.Contains("return Scaffold("), "Drawer Architecture: Drawer does not contain Scaffold");
+
+            // Test FAB event generation
+            var fabPageMeta = new Snapcode.Models.PageMetadata
+            {
+                Name = "main",
+                HasFAB = true,
+                FabIcon = "add"
+            };
+            string fabEventCode = "// EVENT_BINDING: onClick -> fab\nprint('FAB Clicked!');";
+            string fabDart = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart("main", "[]", fabEventCode, fabPageMeta);
+            Assert(fabDart.Contains("FloatingActionButton("), "FAB: FloatingActionButton generated in Scaffold");
+            Assert(fabDart.Contains("onClickFab(context);"), "FAB: FloatingActionButton onPressed calls onClickFab(context)");
+            Assert(fabDart.Contains("void onClickFab(BuildContext context)"), "FAB: onClickFab event method generated");
+
+            // Test dynamic page navigation import
+            string navEventCode = "// EVENT_BINDING: onClick -> btn_nav\nNavigator.of(context).push(MaterialPageRoute(builder: (context) => const SettingsPage()));";
+            string navDart = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart("main", "[]", navEventCode);
+            Assert(navDart.Contains("import 'settings_page.dart';"), "Dynamic Page Navigation: settings_page.dart auto-imported from route block");
+
             // 15.2 Real Project Verification & Disk Sync
             string userProjectDir = @"C:\Users\hardi\Documents\Snapcode\repos\new_project_test";
             if (Directory.Exists(userProjectDir))

@@ -12,8 +12,12 @@ namespace Snapcode.Models
         // General Page Identification
         public string Name { get; set; } = "NewPage";
         public string Title { get; set; } = "";
-        public string Type { get; set; } = "Page"; // "Page", "DialogFragment", or "CustomView"
+        public string Type { get; set; } = "Page"; // "Page", "DialogFragment", "CustomView", or "Drawer"
         public string RoutePath { get; set; } = "";
+
+        [JsonIgnore]
+        public bool IsDrawer => string.Equals(Type, "Drawer", StringComparison.OrdinalIgnoreCase) || 
+                                (Name != null && Name.EndsWith("_drawer", StringComparison.OrdinalIgnoreCase));
 
         // AppBar / Toolbar Properties
         public bool ShowAppBar { get; set; } = true;

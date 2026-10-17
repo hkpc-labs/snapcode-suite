@@ -222,6 +222,16 @@ namespace Snapcode.Views
         }
 
         public event EventHandler<(string WidgetId, string EventType)> OpenEventWorkspaceRequested;
+        public event EventHandler<string>? OpenDrawerDesignerRequested;
+        public Snapcode.Models.PageMetadata? CurrentMetadata => _currentMetadata;
+
+        private void BtnDrawerLeading_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentMetadata?.HasDrawer == true && !string.IsNullOrEmpty(_currentPageName))
+            {
+                OpenDrawerDesignerRequested?.Invoke(this, $"{_currentPageName}_drawer");
+            }
+        }
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
         {
@@ -1621,6 +1631,30 @@ namespace Snapcode.Views
             if (MockStatusBar != null) MockStatusBar.Visibility = sbVis;
             if (SecondaryMockStatusBar != null) SecondaryMockStatusBar.Visibility = sbVis;
 
+            bool isDrawer = metadata.Type == "Drawer" || (!string.IsNullOrEmpty(_currentPageName) && _currentPageName.EndsWith("_drawer", StringComparison.OrdinalIgnoreCase));
+            if (MockDrawerHeaderBanner != null)
+            {
+                MockDrawerHeaderBanner.Visibility = isDrawer ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            if (isDrawer)
+            {
+                if (MockStatusBar != null) MockStatusBar.Visibility = Visibility.Collapsed;
+                if (PhoneFrameBorder != null)
+                {
+                    PhoneFrameBorder.Width = 304;
+                    PhoneFrameBorder.CornerRadius = new CornerRadius(0, 16, 16, 0);
+                }
+            }
+            else
+            {
+                if (PhoneFrameBorder != null)
+                {
+                    PhoneFrameBorder.Width = _isLandscape ? 844 : 390;
+                    PhoneFrameBorder.CornerRadius = new CornerRadius(16);
+                }
+            }
+
             // MockToolBar / AppBar
             var barFgBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
             if (!string.IsNullOrEmpty(metadata.AppBarForegroundColor))
@@ -1629,7 +1663,7 @@ namespace Snapcode.Views
                 barFgBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(barFg);
             }
 
-            var tbVis = metadata.ShowAppBar ? Visibility.Visible : Visibility.Collapsed;
+            var tbVis = (metadata.ShowAppBar && !isDrawer) ? Visibility.Visible : Visibility.Collapsed;
             if (MockToolBar != null)
             {
                 MockToolBar.Visibility = tbVis;

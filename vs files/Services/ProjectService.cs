@@ -384,6 +384,104 @@ namespace Snapcode.Services
         }
 
         /// <summary>
+        /// Ensures a visual drawer companion file structure exists for a page that has HasDrawer enabled.
+        /// Creates: .snapcode/pages/{parentPageName}_drawer_meta.json, _ui.json, .json, and compiles lib/models/drawers/{parentPageName}_drawer.dart.
+        /// </summary>
+        public static async Task<string> EnsureDrawerForPageAsync(string projectRoot, string parentPageName)
+        {
+            string drawerName = $"{parentPageName}_drawer";
+            try
+            {
+                string pagesDir = GetPagesDirectory(projectRoot);
+                string metaFile = Path.Combine(pagesDir, $"{drawerName}_meta.json");
+
+                if (!File.Exists(metaFile))
+                {
+                    var drawerMeta = new Snapcode.Models.PageMetadata
+                    {
+                        Name = drawerName,
+                        Title = $"{parentPageName} Navigation Drawer",
+                        Type = "Drawer",
+                        ShowAppBar = false,
+                        SafeArea = true,
+                        Orientation = "Portrait"
+                    };
+                    await SavePageMetadataAsync(projectRoot, drawerName, drawerMeta);
+
+                    // Default drawer UI: A Column with a header Container and List items
+                    string defaultDrawerUi = @"[
+  {
+    ""id"": ""drawer_header_container"",
+    ""type"": ""Container"",
+    ""height"": 140.0,
+    ""color"": ""#2196F3"",
+    ""padding"": 16.0,
+    ""children"": [
+      {
+        ""id"": ""drawer_header_title"",
+        ""type"": ""Text"",
+        ""text"": ""App Navigation"",
+        ""fontSize"": 20.0,
+        ""textColor"": ""#FFFFFF"",
+        ""isBold"": true
+      }
+    ]
+  },
+  {
+    ""id"": ""drawer_btn_home"",
+    ""type"": ""Button"",
+    ""text"": ""Home"",
+    ""backgroundColor"": ""#2196F3"",
+    ""textColor"": ""#FFFFFF""
+  },
+  {
+    ""id"": ""drawer_btn_settings"",
+    ""type"": ""Button"",
+    ""text"": ""Settings"",
+    ""backgroundColor"": ""#2196F3"",
+    ""textColor"": ""#FFFFFF""
+  }
+]";
+                    await SavePageUIAsync(projectRoot, drawerName, defaultDrawerUi);
+                    await SavePageWorkspaceAsync(projectRoot, drawerName, "{}");
+                }
+
+                // Compile/ensure the dart file in models/drawers/{drawerName}.dart
+                var meta = await LoadPageMetadataAsync(projectRoot, drawerName);
+                string uiJson = await LoadPageUIAsync(projectRoot, drawerName);
+                string eventCode = await LoadAllPageEventCodeAsync(projectRoot, drawerName);
+
+                string drawerDartSource = SnapCode.Services.FlutterCompilerService.GenerateCompletePageDart(
+                    drawerName,
+                    !string.IsNullOrWhiteSpace(uiJson) ? uiJson : "[]",
+                    eventCode,
+                    meta
+                );
+
+                string fileName = $"{drawerName.ToLowerInvariant()}.dart";
+
+                string flutterLibPath = Path.Combine(projectRoot, FlutterFolderName, "lib", "models", "drawers");
+                Directory.CreateDirectory(flutterLibPath);
+                string flutterDartFile = Path.Combine(flutterLibPath, fileName);
+                await UserCodePreservationService.SaveDartFileWithPreservationAsync(flutterDartFile, drawerDartSource);
+
+                string legacyLibBase = Path.Combine(projectRoot, "lib");
+                if (Directory.Exists(legacyLibBase))
+                {
+                    string legacyLibPath = Path.Combine(legacyLibBase, "models", "drawers");
+                    Directory.CreateDirectory(legacyLibPath);
+                    string legacyDartFile = Path.Combine(legacyLibPath, fileName);
+                    await UserCodePreservationService.SaveDartFileWithPreservationAsync(legacyDartFile, drawerDartSource);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ProjectService] EnsureDrawerForPageAsync failed: {ex.Message}");
+            }
+            return drawerName;
+        }
+
+        /// <summary>
         /// Appends a log entry to .snapcode/logs/build.log.
         /// </summary>
         public static async Task AppendBuildLogAsync(string projectRoot, string logEntry)

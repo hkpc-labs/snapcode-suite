@@ -39,6 +39,7 @@
                     <ComboBoxItem Content="Standard Page (Scaffold)" Tag="Page" IsSelected="True" />
                     <ComboBoxItem Content="Dialog Fragment (Modal Popup)" Tag="DialogFragment" />
                     <ComboBoxItem Content="Custom View (Reusable Widget)" Tag="CustomView" />
+                    <ComboBoxItem Content="Navigation Drawer (lib/models/drawers)" Tag="Drawer" />
                 </ComboBox>
 
                 <Border Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="6" Padding="12" Margin="0,8,0,0">
