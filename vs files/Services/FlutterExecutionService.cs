@@ -109,7 +109,15 @@ namespace Snapcode.Services
             try
             {
                 string flutterExe = await DeviceService.GetFlutterExePathAsync();
-                string arguments = $"run -d \"{device.Id}\"";
+                string packageConfig = Path.Combine(flutterDir, ".dart_tool", "package_config.json");
+                if (!File.Exists(packageConfig))
+                {
+                    AddLog("Resolving packages offline from local cache...", LogEntryType.Info);
+                    await EnsurePubGetAsync(flutterDir, flutterExe);
+                }
+
+                string noPubFlag = File.Exists(packageConfig) ? "--no-pub " : "";
+                string arguments = $"run {noPubFlag}-d \"{device.Id}\"";
 
                 AddLog($"Executing: {flutterExe} {arguments} in {flutterDir}", LogEntryType.System);
 
@@ -456,7 +464,7 @@ namespace Snapcode.Services
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = flutterExe,
-                    Arguments = $"create --platforms {platform} .",
+                    Arguments = $"create --platforms {platform} --offline .",
                     WorkingDirectory = flutterDir,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -473,6 +481,33 @@ namespace Snapcode.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[FlutterExecutionService] EnsurePlatformSupportAsync error: {ex.Message}");
+            }
+        }
+
+        public static async Task EnsurePubGetAsync(string flutterDir, string flutterExe)
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = flutterExe,
+                    Arguments = "pub get --offline",
+                    WorkingDirectory = flutterDir,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FlutterExecutionService] EnsurePubGetAsync error: {ex.Message}");
             }
         }
     }

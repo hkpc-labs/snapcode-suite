@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -10,14 +10,14 @@
 
   <Identity
     Name="3c90a253-a735-47b0-93ef-8d642b85a4f6"
-    Publisher="CN=hardi"
-    Version="1.0.0.0" />
+    Publisher="CN=hkpc labs"
+    Version="0.1.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="3c90a253-a735-47b0-93ef-8d642b85a4f6" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>Snapcode</DisplayName>
-    <PublisherDisplayName>hardi</PublisherDisplayName>
+    <PublisherDisplayName>hkpc labs</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 

@@ -588,27 +588,7 @@ namespace Snapcode.Views
         {
             try
             {
-                // Initialize WebView2
-                await BlocklyWebView.EnsureCoreWebView2Async();
-                
-                // Set up message handler for JS → C# communication
-                BlocklyWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
-
-                // Navigation completed handler for error catching
-                BlocklyWebView.CoreWebView2.NavigationCompleted += (s, navArgs) =>
-                {
-                    if (!navArgs.IsSuccess)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[BlockEditor] Navigation failed: {navArgs.WebErrorStatus}");
-                        DispatcherQueue.TryEnqueue(() =>
-                        {
-                            EditorLoadingPanel.Visibility = Visibility.Collapsed;
-                            BlocklyWebView.Visibility = Visibility.Visible;
-                        });
-                    }
-                };
-
-                // Determine the theme
+                // Determine the theme first so event handlers can reference it
                 string themeMode = "dark";
                 try
                 {
@@ -626,34 +606,83 @@ namespace Snapcode.Views
                 }
                 catch { /* Default to dark */ }
 
+                // Initialize WebView2
+                await BlocklyWebView.EnsureCoreWebView2Async();
+                
+                // Set up message handler for JS → C# communication
+                BlocklyWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+
+                // Navigation completed handler for error catching & waking up workspace
+                BlocklyWebView.CoreWebView2.NavigationCompleted += (s, navArgs) =>
+                {
+                    if (!navArgs.IsSuccess)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[BlockEditor] Navigation failed: {navArgs.WebErrorStatus}");
+                        string fallbackPath = Path.Combine(AppContext.BaseDirectory, "Assets", "BlockEditor", "index.html");
+                        if (!File.Exists(fallbackPath))
+                        {
+                            fallbackPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "BlockEditor", "index.html");
+                        }
+                        if (File.Exists(fallbackPath))
+                        {
+                            var fallbackUri = new Uri(fallbackPath).AbsoluteUri + $"?theme={themeMode}";
+                            if (BlocklyWebView.Source?.AbsoluteUri != fallbackUri)
+                            {
+                                DispatcherQueue.TryEnqueue(() =>
+                                {
+                                    BlocklyWebView.CoreWebView2.Navigate(fallbackUri);
+                                });
+                                return;
+                            }
+                        }
+
+                        DispatcherQueue.TryEnqueue(() =>
+                        {
+                            EditorLoadingPanel.Visibility = Visibility.Collapsed;
+                            BlocklyWebView.Visibility = Visibility.Visible;
+                        });
+                    }
+                    else
+                    {
+                        // Navigation succeeded! Ensure Blockly wakes up and resizes
+                        DispatcherQueue.TryEnqueue(async () =>
+                        {
+                            try
+                            {
+                                await Task.Delay(150);
+                                await BlocklyWebView.CoreWebView2.ExecuteScriptAsync(
+                                    "if (typeof notifyReady === 'function') notifyReady(); if (window.resizeWorkspace) window.resizeWorkspace();");
+                            }
+                            catch { }
+                        });
+                    }
+                };
+
                 if (MonacoEditor != null)
                 {
                     MonacoEditor.SetTheme(themeMode);
                 }
 
-                // Load the Blockly HTML via Virtual Host Name Mapping (ensures secure, offline HTTPS context for scripts and media)
+                // Load the Blockly HTML via direct file URI (rock-solid, zero external DNS/SSL dependency, same as Monaco Editor)
                 string blockEditorDir = Path.Combine(AppContext.BaseDirectory, "Assets", "BlockEditor");
-                if (Directory.Exists(blockEditorDir))
+                string indexPath = Path.Combine(blockEditorDir, "index.html");
+                if (!File.Exists(indexPath))
                 {
-                    try
+                    string altPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "BlockEditor", "index.html");
+                    if (File.Exists(altPath))
                     {
-                        BlocklyWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                            "blockeditor.snapcode",
-                            blockEditorDir,
-                            Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind.Allow);
+                        indexPath = altPath;
+                        blockEditorDir = Path.GetDirectoryName(altPath)!;
+                    }
+                }
 
-                        BlocklyWebView.CoreWebView2.Navigate($"https://blockeditor.snapcode/index.html?theme={themeMode}");
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[BlockEditor] Virtual host mapping failed: {ex.Message}. Falling back to file navigation.");
-                        string indexPath = Path.Combine(blockEditorDir, "index.html");
-                        BlocklyWebView.CoreWebView2.Navigate(new Uri(indexPath).AbsoluteUri);
-                    }
+                if (File.Exists(indexPath))
+                {
+                    var fileUri = new Uri(indexPath).AbsoluteUri + $"?theme={themeMode}";
+                    BlocklyWebView.CoreWebView2.Navigate(fileUri);
                 }
                 else
                 {
-                    // Fallback: Show error
                     EditorLoadingPanel.Visibility = Visibility.Collapsed;
                     BlocklyWebView.Visibility = Visibility.Visible;
                 }
@@ -1590,6 +1619,12 @@ namespace Snapcode.Views
 
                 if (tag == "event")
                 {
+                    EditorLoadingPanel.Visibility = Visibility.Collapsed;
+                    BlocklyWebView.Visibility = Visibility.Visible;
+                    if (_isWebViewReady && BlocklyWebView?.CoreWebView2 != null)
+                    {
+                        _ = BlocklyWebView.CoreWebView2.ExecuteScriptAsync("if (window.resizeWorkspace) window.resizeWorkspace();");
+                    }
                     await HandleEventTabNavigationAsync();
                 }
                 
@@ -2384,6 +2419,7 @@ namespace Snapcode.Views
                     string safeJson = JsonSerializer.Serialize(workspaceJson ?? "");
                     string safeWidgetType = JsonSerializer.Serialize(widgetType ?? "");
                     await BlocklyWebView.CoreWebView2.ExecuteScriptAsync($"window.loadEventWorkspace({safeWidgetId}, {safeEventType}, {safeJson}, {safeWidgetType})");
+                    _ = BlocklyWebView.CoreWebView2.ExecuteScriptAsync("if (window.resizeWorkspace) window.resizeWorkspace();");
                 }
 
                 _hasUnsavedChanges = false;

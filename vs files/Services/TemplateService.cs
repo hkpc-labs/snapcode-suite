@@ -75,18 +75,26 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
 ";
             await File.WriteAllTextAsync(Path.Combine(flutterDir, "pubspec.yaml"), pubspecYaml);
             await File.WriteAllTextAsync(Path.Combine(projectRoot, "pubspec.yaml"), pubspecYaml);
+
+            string analysisYaml = @"analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+";
+            await File.WriteAllTextAsync(Path.Combine(flutterDir, "analysis_options.yaml"), analysisYaml);
 
             // 4. Generate Page Metadata (.snapcode/pages/main_meta.json)
             var meta = new PageMetadata
@@ -150,7 +158,596 @@ _restartGame();
             await File.WriteAllTextAsync(Path.Combine(pagesDir, "main_btn_reset_onClick.event.dart"), resetEventDart);
             allOverviewBlocks.Add(resetBlockObj);
 
-            // 6c. Generate main overview workspace (workspace.json and main.json)
+            // 6c. Add visual Blockly blocks for state variables and core game methods to the Overview workspace
+            var stateVarsBlockObj = new
+            {
+                type = "declare_state_variable",
+                id = "block_var_board",
+                x = 1140,
+                y = 40,
+                fields = new Dictionary<string, object>
+                {
+                    ["TYPE"] = "List<String>",
+                    ["NAME"] = "_board",
+                    ["VALUE"] = "List.filled(9, '')"
+                },
+                next = new
+                {
+                    block = new
+                    {
+                        type = "declare_state_variable",
+                        id = "block_var_player",
+                        fields = new Dictionary<string, object>
+                        {
+                            ["TYPE"] = "String",
+                            ["NAME"] = "_currentPlayer",
+                            ["VALUE"] = "'X'"
+                        },
+                        next = new
+                        {
+                            block = new
+                            {
+                                type = "declare_state_variable",
+                                id = "block_var_gameover",
+                                fields = new Dictionary<string, object>
+                                {
+                                    ["TYPE"] = "bool",
+                                    ["NAME"] = "_gameOver",
+                                    ["VALUE"] = "false"
+                                },
+                                next = new
+                                {
+                                    block = new
+                                    {
+                                        type = "declare_state_variable",
+                                        id = "block_var_scorex",
+                                        fields = new Dictionary<string, object>
+                                        {
+                                            ["TYPE"] = "int",
+                                            ["NAME"] = "_scoreX",
+                                            ["VALUE"] = "0"
+                                        },
+                                        next = new
+                                        {
+                                            block = new
+                                            {
+                                                type = "declare_state_variable",
+                                                id = "block_var_scoreo",
+                                                fields = new Dictionary<string, object>
+                                                {
+                                                    ["TYPE"] = "int",
+                                                    ["NAME"] = "_scoreO",
+                                                    ["VALUE"] = "0"
+                                                },
+                                                next = new
+                                                {
+                                                    block = new
+                                                    {
+                                                        type = "declare_state_variable",
+                                                        id = "block_var_scoreties",
+                                                        fields = new Dictionary<string, object>
+                                                        {
+                                                            ["TYPE"] = "int",
+                                                            ["NAME"] = "_scoreTies",
+                                                            ["VALUE"] = "0"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            allOverviewBlocks.Add(stateVarsBlockObj);
+
+            var makeMoveBlockObj = new
+            {
+                type = "logic_function",
+                id = "block_func_makeMove",
+                x = 1140,
+                y = 220,
+                fields = new Dictionary<string, object>
+                {
+                    ["FUNC_NAME"] = "_makeMove(int index, BuildContext context)"
+                },
+                inputs = new Dictionary<string, object>
+                {
+                    ["BODY"] = new
+                    {
+                        block = new
+                        {
+                            type = "logic_if_else",
+                            id = "if_valid_move",
+                            fields = new Dictionary<string, object>
+                            {
+                                ["CONDITION"] = "!_gameOver && _board[index].isEmpty"
+                            },
+                            inputs = new Dictionary<string, object>
+                            {
+                                ["DO_IF"] = new
+                                {
+                                    block = new
+                                    {
+                                        type = "list_set_index",
+                                        id = "set_board_cell",
+                                        fields = new Dictionary<string, object>
+                                        {
+                                            ["LIST_NAME"] = "_board",
+                                            ["INDEX"] = "index",
+                                            ["VALUE"] = "_currentPlayer"
+                                        },
+                                        next = new
+                                        {
+                                            block = new
+                                            {
+                                                type = "button_set_cell_text",
+                                                id = "set_btn_cell",
+                                                fields = new Dictionary<string, object>
+                                                {
+                                                    ["INDEX"] = "index",
+                                                    ["TEXT"] = "_currentPlayer"
+                                                },
+                                                next = new
+                                                {
+                                                    block = new
+                                                    {
+                                                        type = "logic_call_function",
+                                                        id = "call_check_winner",
+                                                        fields = new Dictionary<string, object>
+                                                        {
+                                                            ["FUNC_NAME"] = "_checkWinner",
+                                                            ["ARGS"] = "context"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            allOverviewBlocks.Add(makeMoveBlockObj);
+
+            var checkWinnerBlockObj = new
+            {
+                type = "logic_function",
+                id = "block_func_checkWinner",
+                x = 1140,
+                y = 580,
+                fields = new Dictionary<string, object>
+                {
+                    ["FUNC_NAME"] = "_checkWinner(BuildContext context)"
+                },
+                inputs = new Dictionary<string, object>
+                {
+                    ["BODY"] = new
+                    {
+                        block = new
+                        {
+                            type = "logic_for_each",
+                            id = "loop_win_patterns",
+                            fields = new Dictionary<string, object>
+                            {
+                                ["ITEM_NAME"] = "pattern",
+                                ["LIST_EXPR"] = "const [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]"
+                            },
+                            inputs = new Dictionary<string, object>
+                            {
+                                ["DO"] = new
+                                {
+                                    block = new
+                                    {
+                                        type = "logic_if",
+                                        id = "if_win_pattern_matched",
+                                        fields = new Dictionary<string, object>
+                                        {
+                                            ["CONDITION"] = "_board[pattern[0]].isNotEmpty && _board[pattern[0]] == _board[pattern[1]] && _board[pattern[1]] == _board[pattern[2]]"
+                                        },
+                                        inputs = new Dictionary<string, object>
+                                        {
+                                            ["DO"] = new
+                                            {
+                                                block = new
+                                                {
+                                                    type = "set_state_wrapper",
+                                                    id = "setstate_win",
+                                                    inputs = new Dictionary<string, object>
+                                                    {
+                                                        ["DO"] = new
+                                                        {
+                                                            block = new
+                                                            {
+                                                                type = "state_variable_assign",
+                                                                id = "set_gameover_win",
+                                                                fields = new Dictionary<string, object>
+                                                                {
+                                                                    ["NAME"] = "_gameOver",
+                                                                    ["VALUE"] = "true"
+                                                                },
+                                                                next = new
+                                                                {
+                                                                    block = new
+                                                                    {
+                                                                        type = "state_variable_assign",
+                                                                        id = "set_status_win",
+                                                                        fields = new Dictionary<string, object>
+                                                                        {
+                                                                            ["NAME"] = "_txtStatusText",
+                                                                            ["VALUE"] = "\"Player ${_board[pattern[0]]} Wins!\""
+                                                                        },
+                                                                        next = new
+                                                                        {
+                                                                            block = new
+                                                                            {
+                                                                                type = "logic_if_else",
+                                                                                id = "if_winner_x",
+                                                                                fields = new Dictionary<string, object>
+                                                                                {
+                                                                                    ["CONDITION"] = "_board[pattern[0]] == 'X'"
+                                                                                },
+                                                                                inputs = new Dictionary<string, object>
+                                                                                {
+                                                                                    ["DO_IF"] = new
+                                                                                    {
+                                                                                        block = new
+                                                                                        {
+                                                                                            type = "state_variable_assign",
+                                                                                            id = "inc_score_x",
+                                                                                            fields = new Dictionary<string, object>
+                                                                                            {
+                                                                                                ["NAME"] = "_scoreX",
+                                                                                                ["VALUE"] = "_scoreX + 1"
+                                                                                            },
+                                                                                            next = new
+                                                                                            {
+                                                                                                block = new
+                                                                                                {
+                                                                                                    type = "state_variable_assign",
+                                                                                                    id = "set_score_x_text",
+                                                                                                    fields = new Dictionary<string, object>
+                                                                                                    {
+                                                                                                        ["NAME"] = "_txtScoreXText",
+                                                                                                        ["VALUE"] = "\"Player X: $_scoreX\""
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    },
+                                                                                    ["DO_ELSE"] = new
+                                                                                    {
+                                                                                        block = new
+                                                                                        {
+                                                                                            type = "state_variable_assign",
+                                                                                            id = "inc_score_o",
+                                                                                            fields = new Dictionary<string, object>
+                                                                                            {
+                                                                                                ["NAME"] = "_scoreO",
+                                                                                                ["VALUE"] = "_scoreO + 1"
+                                                                                            },
+                                                                                            next = new
+                                                                                            {
+                                                                                                block = new
+                                                                                                {
+                                                                                                    type = "state_variable_assign",
+                                                                                                    id = "set_score_o_text",
+                                                                                                    fields = new Dictionary<string, object>
+                                                                                                    {
+                                                                                                        ["NAME"] = "_txtScoreOText",
+                                                                                                        ["VALUE"] = "\"Player O: $_scoreO\""
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    next = new
+                                                    {
+                                                        block = new
+                                                        {
+                                                            type = "dialog_action_modal",
+                                                            id = "dlg_win",
+                                                            fields = new Dictionary<string, object>
+                                                            {
+                                                                ["TITLE"] = "🎉 Winner!",
+                                                                ["MESSAGE"] = "Player has won the game!",
+                                                                ["BTN_TEXT"] = "Play Again"
+                                                            },
+                                                            inputs = new Dictionary<string, object>
+                                                            {
+                                                                ["DO"] = new
+                                                                {
+                                                                    block = new
+                                                                    {
+                                                                        type = "logic_call_function",
+                                                                        id = "call_restart_win",
+                                                                        fields = new Dictionary<string, object>
+                                                                        {
+                                                                            ["FUNC_NAME"] = "_restartGame",
+                                                                            ["ARGS"] = ""
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            next = new
+                                                            {
+                                                                block = new
+                                                                {
+                                                                    type = "logic_return",
+                                                                    id = "ret_win",
+                                                                    fields = new Dictionary<string, object>()
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            next = new
+                            {
+                                block = new
+                                {
+                                    type = "logic_if_else",
+                                    id = "if_board_full_draw",
+                                    fields = new Dictionary<string, object>
+                                    {
+                                        ["CONDITION"] = "!_board.contains('')"
+                                    },
+                                    inputs = new Dictionary<string, object>
+                                    {
+                                        ["DO_IF"] = new
+                                        {
+                                            block = new
+                                            {
+                                                type = "set_state_wrapper",
+                                                id = "setstate_draw",
+                                                inputs = new Dictionary<string, object>
+                                                {
+                                                    ["DO"] = new
+                                                    {
+                                                        block = new
+                                                        {
+                                                            type = "state_variable_assign",
+                                                            id = "set_gameover_draw",
+                                                            fields = new Dictionary<string, object>
+                                                            {
+                                                                ["NAME"] = "_gameOver",
+                                                                ["VALUE"] = "true"
+                                                            },
+                                                            next = new
+                                                            {
+                                                                block = new
+                                                                {
+                                                                    type = "state_variable_assign",
+                                                                    id = "inc_score_ties",
+                                                                    fields = new Dictionary<string, object>
+                                                                    {
+                                                                        ["NAME"] = "_scoreTies",
+                                                                        ["VALUE"] = "_scoreTies + 1"
+                                                                    },
+                                                                    next = new
+                                                                    {
+                                                                        block = new
+                                                                        {
+                                                                            type = "state_variable_assign",
+                                                                            id = "set_status_draw",
+                                                                            fields = new Dictionary<string, object>
+                                                                            {
+                                                                                ["NAME"] = "_txtStatusText",
+                                                                                ["VALUE"] = "\"Game Drawn!\""
+                                                                            },
+                                                                            next = new
+                                                                            {
+                                                                                block = new
+                                                                                {
+                                                                                    type = "state_variable_assign",
+                                                                                    id = "set_score_ties_text",
+                                                                                    fields = new Dictionary<string, object>
+                                                                                    {
+                                                                                        ["NAME"] = "_txtScoreTiesText",
+                                                                                        ["VALUE"] = "\"Ties: $_scoreTies\""
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                next = new
+                                                {
+                                                    block = new
+                                                    {
+                                                        type = "dialog_action_modal",
+                                                        id = "dlg_draw",
+                                                        fields = new Dictionary<string, object>
+                                                        {
+                                                            ["TITLE"] = "🤝 Draw!",
+                                                            ["MESSAGE"] = "The game ended in a draw!",
+                                                            ["BTN_TEXT"] = "Play Again"
+                                                        },
+                                                        inputs = new Dictionary<string, object>
+                                                        {
+                                                            ["DO"] = new
+                                                            {
+                                                                block = new
+                                                                {
+                                                                    type = "logic_call_function",
+                                                                    id = "call_restart_draw",
+                                                                    fields = new Dictionary<string, object>
+                                                                    {
+                                                                        ["FUNC_NAME"] = "_restartGame",
+                                                                        ["ARGS"] = ""
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        next = new
+                                                        {
+                                                            block = new
+                                                            {
+                                                                type = "logic_return",
+                                                                id = "ret_draw",
+                                                                fields = new Dictionary<string, object>()
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        ["DO_ELSE"] = new
+                                        {
+                                            block = new
+                                            {
+                                                type = "set_state_wrapper",
+                                                id = "setstate_toggle_turn",
+                                                inputs = new Dictionary<string, object>
+                                                {
+                                                    ["DO"] = new
+                                                    {
+                                                        block = new
+                                                        {
+                                                            type = "state_variable_assign",
+                                                            id = "assign_toggle_player",
+                                                            fields = new Dictionary<string, object>
+                                                            {
+                                                                ["NAME"] = "_currentPlayer",
+                                                                ["VALUE"] = "_currentPlayer == 'X' ? 'O' : 'X'"
+                                                            },
+                                                            next = new
+                                                            {
+                                                                block = new
+                                                                {
+                                                                    type = "state_variable_assign",
+                                                                    id = "assign_toggle_status",
+                                                                    fields = new Dictionary<string, object>
+                                                                    {
+                                                                        ["NAME"] = "_txtStatusText",
+                                                                        ["VALUE"] = "\"Player $_currentPlayer's Turn\""
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            allOverviewBlocks.Add(checkWinnerBlockObj);
+
+            var restartGameBlockObj = new
+            {
+                type = "logic_function",
+                id = "block_func_restartGame",
+                x = 1140,
+                y = 1200,
+                fields = new Dictionary<string, object>
+                {
+                    ["FUNC_NAME"] = "_restartGame()"
+                },
+                inputs = new Dictionary<string, object>
+                {
+                    ["BODY"] = new
+                    {
+                        block = new
+                        {
+                            type = "set_state_wrapper",
+                            id = "setstate_restart",
+                            inputs = new Dictionary<string, object>
+                            {
+                                ["DO"] = new
+                                {
+                                    block = new
+                                    {
+                                        type = "state_variable_assign",
+                                        id = "assign_board_reset",
+                                        fields = new Dictionary<string, object>
+                                        {
+                                            ["NAME"] = "_board",
+                                            ["VALUE"] = "List.filled(9, '')"
+                                        },
+                                        next = new
+                                        {
+                                            block = new
+                                            {
+                                                type = "state_variable_assign",
+                                                id = "assign_player_reset",
+                                                fields = new Dictionary<string, object>
+                                                {
+                                                    ["NAME"] = "_currentPlayer",
+                                                    ["VALUE"] = "'X'"
+                                                },
+                                                next = new
+                                                {
+                                                    block = new
+                                                    {
+                                                        type = "state_variable_assign",
+                                                        id = "assign_gameover_reset",
+                                                        fields = new Dictionary<string, object>
+                                                        {
+                                                            ["NAME"] = "_gameOver",
+                                                            ["VALUE"] = "false"
+                                                        },
+                                                        next = new
+                                                        {
+                                                            block = new
+                                                            {
+                                                                type = "textview_set_text",
+                                                                id = "set_status_reset_turn",
+                                                                fields = new Dictionary<string, object>
+                                                                {
+                                                                    ["WIDGET_ID"] = "txt_status",
+                                                                    ["TEXT"] = "Player X's Turn"
+                                                                },
+                                                                next = new
+                                                                {
+                                                                    block = new
+                                                                    {
+                                                                        type = "button_clear_all_cells",
+                                                                        id = "clear_cells_reset",
+                                                                        fields = new Dictionary<string, object>()
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            allOverviewBlocks.Add(restartGameBlockObj);
+
+            // 6d. Generate main overview workspace (workspace.json and main.json)
             var overviewRoot = new
             {
                 blocks = new
@@ -163,9 +760,10 @@ _restartGame();
             await File.WriteAllTextAsync(Path.Combine(metaPath, "workspace.json"), overviewJson);
             await File.WriteAllTextAsync(Path.Combine(pagesDir, "main.json"), overviewJson);
 
-            // 6d. Generate main.event.dart containing state variables and game logic methods
-            string mainEventDart = GetTicTacToeLogicDart();
-            await File.WriteAllTextAsync(Path.Combine(pagesDir, "main.event.dart"), mainEventDart);
+            // 6e. Generate dedicated main_logic.event.dart and main.event.dart
+            string mainLogicDart = GetTicTacToeLogicDart();
+            await File.WriteAllTextAsync(Path.Combine(pagesDir, "main_logic.event.dart"), mainLogicDart);
+            await File.WriteAllTextAsync(Path.Combine(pagesDir, "main.event.dart"), mainLogicDart);
 
             // 7. Compile the Flutter Dart code
             string combinedEventCode = await ProjectService.LoadAllPageEventCodeAsync(projectRoot, "main");
@@ -196,11 +794,11 @@ _restartGame();
                         id = "card_header",
                         name = "Scoreboard Card",
                         type = "Card",
-                        width = "340",
+                        width = "300",
                         height = "Auto",
                         backgroundColor = "#1E293B",
                         cornerRadius = "16",
-                        padding = "16",
+                        padding = "12",
                         margin = "8",
                         hasShadow = true,
                         children = new object[]
@@ -211,6 +809,9 @@ _restartGame();
                                 name = "Header Content",
                                 type = "Column",
                                 width = "Match Parent",
+                                height = "Auto",
+                                padding = "0",
+                                margin = "0",
                                 crossAxisAlignment = "Center",
                                 children = new object[]
                                 {
@@ -224,7 +825,8 @@ _restartGame();
                                         textSize = "20",
                                         fontWeight = "Bold",
                                         textAlign = "Center",
-                                        margin = "0,0,0,12"
+                                        padding = "0",
+                                        margin = "0,0,0,8"
                                     },
                                     new
                                     {
@@ -232,30 +834,33 @@ _restartGame();
                                         name = "Scores Row",
                                         type = "Row",
                                         width = "Match Parent",
+                                        height = "Auto",
+                                        padding = "0",
+                                        margin = "0",
                                         mainAxisAlignment = "SpaceEvenly",
                                         children = new object[]
                                         {
-                                            new { id = "txt_score_x", name = "Player X Score", type = "Text", text = "Player X: 0", textColor = "#F43F5E", textSize = "14", fontWeight = "Bold" },
-                                            new { id = "txt_score_o", name = "Player O Score", type = "Text", text = "Player O: 0", textColor = "#10B981", textSize = "14", fontWeight = "Bold" },
-                                            new { id = "txt_score_ties", name = "Ties Score", type = "Text", text = "Ties: 0", textColor = "#94A3B8", textSize = "14", fontWeight = "Bold" }
+                                            new { id = "txt_score_x", name = "Player X Score", type = "Text", text = "Player X: 0", textColor = "#F43F5E", textSize = "14", fontWeight = "Bold", padding = "0", margin = "0" },
+                                            new { id = "txt_score_o", name = "Player O Score", type = "Text", text = "Player O: 0", textColor = "#10B981", textSize = "14", fontWeight = "Bold", padding = "0", margin = "0" },
+                                            new { id = "txt_score_ties", name = "Ties Score", type = "Text", text = "Ties: 0", textColor = "#94A3B8", textSize = "14", fontWeight = "Bold", padding = "0", margin = "0" }
                                         }
                                     }
                                 }
                             }
                         }
                     },
-                    // 2. Board Container (320x320)
+                    // 2. Board Container (300x300)
                     new
                     {
                         id = "board_container",
                         name = "Board Container",
                         type = "Container",
-                        width = "320",
-                        height = "320",
+                        width = "300",
+                        height = "300",
                         backgroundColor = "#1E293B",
                         cornerRadius = "16",
-                        padding = "12",
-                        margin = "16",
+                        padding = "8",
+                        margin = "12",
                         hasShadow = true,
                         children = new object[]
                         {
@@ -266,6 +871,8 @@ _restartGame();
                                 type = "Column",
                                 width = "Match Parent",
                                 height = "Match Parent",
+                                padding = "0",
+                                margin = "0",
                                 mainAxisAlignment = "SpaceEvenly",
                                 crossAxisAlignment = "Center",
                                 children = new object[]
@@ -277,6 +884,9 @@ _restartGame();
                                         name = "Board Row 0",
                                         type = "Row",
                                         width = "Match Parent",
+                                        height = "Auto",
+                                        padding = "0",
+                                        margin = "0",
                                         mainAxisAlignment = "SpaceEvenly",
                                         children = new object[]
                                         {
@@ -292,6 +902,9 @@ _restartGame();
                                         name = "Board Row 1",
                                         type = "Row",
                                         width = "Match Parent",
+                                        height = "Auto",
+                                        padding = "0",
+                                        margin = "0",
                                         mainAxisAlignment = "SpaceEvenly",
                                         children = new object[]
                                         {
@@ -307,6 +920,9 @@ _restartGame();
                                         name = "Board Row 2",
                                         type = "Row",
                                         width = "Match Parent",
+                                        height = "Auto",
+                                        padding = "0",
+                                        margin = "0",
                                         mainAxisAlignment = "SpaceEvenly",
                                         children = new object[]
                                         {
@@ -333,7 +949,8 @@ _restartGame();
                         textSize = "16",
                         fontWeight = "Bold",
                         cornerRadius = "24",
-                        margin = "12"
+                        margin = "12",
+                        padding = "0"
                     }
                 }
             };
@@ -349,14 +966,15 @@ _restartGame();
                 name = name,
                 type = "Button",
                 text = " ",
-                width = "84",
-                height = "84",
+                width = "80",
+                height = "80",
                 cornerRadius = "12",
                 backgroundColor = "#334155",
                 textColor = "#FFFFFF",
                 textSize = "32",
                 fontWeight = "Bold",
-                margin = "4"
+                margin = "4",
+                padding = "0"
             };
         }
 
@@ -392,34 +1010,22 @@ _restartGame();
                                 {
                                     block = new
                                     {
-                                        type = "button_set_text",
-                                        id = $"set_{cellId}_text",
+                                        type = "ui_haptic_feedback",
+                                        id = $"haptic_{cellId}",
                                         fields = new Dictionary<string, object>
                                         {
-                                            ["WIDGET_ID"] = cellId,
-                                            ["TEXT"] = "X"
+                                            ["TYPE"] = "lightImpact"
                                         },
                                         next = new
                                         {
                                             block = new
                                             {
-                                                type = "ui_haptic_feedback",
-                                                id = $"haptic_{cellId}",
+                                                type = "logic_call_function",
+                                                id = $"call_move_{index}",
                                                 fields = new Dictionary<string, object>
                                                 {
-                                                    ["TYPE"] = "lightImpact"
-                                                },
-                                                next = new
-                                                {
-                                                    block = new
-                                                    {
-                                                        type = "dart_raw_statement",
-                                                        id = $"call_move_{index}",
-                                                        fields = new Dictionary<string, object>
-                                                        {
-                                                            ["CODE"] = $"_makeMove({index}, context);"
-                                                        }
-                                                    }
+                                                    ["FUNC_NAME"] = "_makeMove",
+                                                    ["ARGS"] = $"{index}, context"
                                                 }
                                             }
                                         }
@@ -448,9 +1054,6 @@ _restartGame();
             string camelCell = FlutterCompilerService.ToCamelCase(cellId);
             return $@"// EVENT_BINDING: onClick -> {cellId}
 if (!_gameOver && (_{camelCell}Text == null || _{camelCell}Text == ' ' || _{camelCell}Text == '')) {{
-  setState(() {{
-    _{camelCell}Text = _currentPlayer;
-  }});
   HapticFeedback.lightImpact();
   _makeMove({index}, context);
 }}
@@ -497,11 +1100,12 @@ if (!_gameOver && (_{camelCell}Text == null || _{camelCell}Text == ' ' || _{came
                                     {
                                         block = new
                                         {
-                                            type = "dart_raw_statement",
+                                            type = "logic_call_function",
                                             id = "call_reset",
                                             fields = new Dictionary<string, object>
                                             {
-                                                ["CODE"] = "_restartGame();"
+                                                ["FUNC_NAME"] = "_restartGame",
+                                                ["ARGS"] = ""
                                             }
                                         }
                                     }
@@ -553,39 +1157,32 @@ void _makeMove(int index, BuildContext context) {
 
 // RAW_METHOD: _checkWinner
 void _checkWinner(BuildContext context) {
-  const winPatterns = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [0, 4, 8], [2, 4, 6]
-  ];
-  for (var pattern in winPatterns) {
-    String a = _board[pattern[0]];
-    String b = _board[pattern[1]];
-    String c = _board[pattern[2]];
-    if (a.isNotEmpty && a == b && b == c) {
+  for (var pattern in const [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]) {
+    if (_board[pattern[0]].isNotEmpty && _board[pattern[0]] == _board[pattern[1]] && _board[pattern[1]] == _board[pattern[2]]) {
       setState(() {
         _gameOver = true;
-        _txtStatusText = 'Player $a Wins!';
-        if (a == 'X') {
-          _scoreX++;
+        _txtStatusText = 'Player ${_board[pattern[0]]} Wins!';
+        if (_board[pattern[0]] == 'X') {
+          _scoreX = _scoreX + 1;
           _txtScoreXText = 'Player X: $_scoreX';
         } else {
-          _scoreO++;
+          _scoreO = _scoreO + 1;
           _txtScoreOText = 'Player O: $_scoreO';
         }
       });
       showDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('🎉 Winner!'),
-          content: Text('Player $a has won the game!'),
+        barrierDismissible: false,
+        builder: (dialogCtx) => AlertDialog(
+          title: Text('🎉 Winner!'),
+          content: Text('Player ${_board[pattern[0]]} has won the game!'),
           actions: [
-            TextButton(
+            ElevatedButton(
               onPressed: () {
-                Navigator.of(ctx).pop();
+                Navigator.of(dialogCtx).pop();
                 _restartGame();
               },
-              child: const Text('Play Again'),
+              child: Text('Play Again'),
             ),
           ],
         ),
@@ -596,32 +1193,34 @@ void _checkWinner(BuildContext context) {
   if (!_board.contains('')) {
     setState(() {
       _gameOver = true;
-      _scoreTies++;
+      _scoreTies = _scoreTies + 1;
       _txtStatusText = 'Game Drawn!';
       _txtScoreTiesText = 'Ties: $_scoreTies';
     });
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('🤝 Draw!'),
-        content: const Text('The game ended in a draw!'),
+      barrierDismissible: false,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text('🤝 Draw!'),
+        content: Text('The game ended in a draw!'),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () {
-              Navigator.of(ctx).pop();
+              Navigator.of(dialogCtx).pop();
               _restartGame();
             },
-            child: const Text('Play Again'),
+            child: Text('Play Again'),
           ),
         ],
       ),
     );
     return;
+  } else {
+    setState(() {
+      _currentPlayer = _currentPlayer == 'X' ? 'O' : 'X';
+      _txtStatusText = ""Player $_currentPlayer's Turn"";
+    });
   }
-  setState(() {
-    _currentPlayer = _currentPlayer == 'X' ? 'O' : 'X';
-    _txtStatusText = ""Player $_currentPlayer's Turn"";
-  });
 }
 
 // RAW_METHOD: _restartGame

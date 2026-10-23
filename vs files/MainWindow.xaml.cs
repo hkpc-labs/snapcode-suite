@@ -43,6 +43,13 @@ namespace Snapcode
             // Set title
             AppWindow.Title = "SnapCode — Setup";
 
+            // Set window and taskbar icon
+            string iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+            if (File.Exists(iconPath))
+            {
+                AppWindow.SetIcon(iconPath);
+            }
+
             // Center the window on screen
             CenterWindow();
 

@@ -251,25 +251,52 @@ namespace SnapCode.Services
                     }
 
                     // Auto-declare boolean flags or getters if directly assigned in event code
-                    var bareBoolMatches = Regex.Matches(eventCode, @"\b([a-zA-Z][a-zA-Z0-9_]*?)\s*=\s*(?:true|false)\b");
+                    var bareBoolMatches = Regex.Matches(eventCode, @"\b([a-zA-Z_][a-zA-Z0-9_]*?)\s*=\s*(?:true|false)\b");
                     foreach (Match m in bareBoolMatches)
                     {
                         string varName = m.Groups[1].Value;
-                        if (!varName.StartsWith("_") && seenVars.Add(varName))
+                        if (seenVars.Add(varName))
                         {
                             declarations.Add($"bool {varName} = false;");
                         }
                     }
 
                     // Auto-declare numeric values if directly assigned
-                    var bareNumMatches = Regex.Matches(eventCode, @"\b([a-zA-Z][a-zA-Z0-9_]*?Value)\s*=\s*[\d\.]+;");
+                    var bareNumMatches = Regex.Matches(eventCode, @"\b([a-zA-Z_][a-zA-Z0-9_]*?Value)\s*=\s*[\d\.]+;");
                     foreach (Match m in bareNumMatches)
                     {
                         string varName = m.Groups[1].Value;
-                        if (!varName.StartsWith("_") && seenVars.Add(varName))
+                        if (seenVars.Add(varName))
                         {
                             declarations.Add($"double {varName} = 0.0;");
                         }
+                    }
+
+
+                    // Standard game state variable fallbacks if referenced in code
+                    if (Regex.IsMatch(eventCode, @"\b_?gameOver\b") && seenVars.Add("_gameOver"))
+                    {
+                        declarations.Add("bool _gameOver = false;");
+                    }
+                    if (Regex.IsMatch(eventCode, @"\b_?currentPlayer\b") && seenVars.Add("_currentPlayer"))
+                    {
+                        declarations.Add("String _currentPlayer = 'X';");
+                    }
+                    if (Regex.IsMatch(eventCode, @"\b_?board\b") && seenVars.Add("_board"))
+                    {
+                        declarations.Add("List<String> _board = List.filled(9, '');");
+                    }
+                    if (Regex.IsMatch(eventCode, @"\b_?scoreX\b") && seenVars.Add("_scoreX"))
+                    {
+                        declarations.Add("int _scoreX = 0;");
+                    }
+                    if (Regex.IsMatch(eventCode, @"\b_?scoreO\b") && seenVars.Add("_scoreO"))
+                    {
+                        declarations.Add("int _scoreO = 0;");
+                    }
+                    if (Regex.IsMatch(eventCode, @"\b_?scoreTies\b") && seenVars.Add("_scoreTies"))
+                    {
+                        declarations.Add("int _scoreTies = 0;");
                     }
 
                     _activeDynamicVars = seenVars;
@@ -340,11 +367,49 @@ namespace SnapCode.Services
                 }
             }
 
+            int currentBraceDepth = 0;
+            int CountBraceDelta(string s)
+            {
+                int delta = 0;
+                bool inStr = false;
+                char quote = '\0';
+                for (int i = 0; i < s.Length; i++)
+                {
+                    char c = s[i];
+                    if (inStr)
+                    {
+                        if (c == '\\' && i + 1 < s.Length) { i++; continue; }
+                        if (c == quote) inStr = false;
+                    }
+                    else
+                    {
+                        if (c == '\'' || c == '"') { inStr = true; quote = c; }
+                        else if (c == '/' && i + 1 < s.Length && s[i + 1] == '/') break;
+                        else if (c == '{') delta++;
+                        else if (c == '}') delta--;
+                    }
+                }
+                return delta;
+            }
+
             foreach (var rawLine in lines)
             {
                 string line = rawLine;
+
+                // Skip standalone STATE_VAR comments from creating dummy custom blocks
+                if (Regex.IsMatch(line, @"^\s*//\s*STATE_VAR:", RegexOptions.IgnoreCase))
+                {
+                    if (inBlock)
+                    {
+                        currentBodyLines.Add(line);
+                    }
+                    continue;
+                }
+
                 var rawMethodMatch = Regex.Match(line, @"^//\s*(?:RAW_METHOD|HELPER_METHOD)(?::\s*([a-zA-Z0-9_]+))?\s*$", RegexOptions.IgnoreCase);
                 var match = Regex.Match(line, @"^//\s*EVENT_BINDING:\s*(.+?)\s*->\s*(.+?)\s*$", RegexOptions.IgnoreCase);
+                var funcSigMatch = Regex.Match(line, @"^\s*(?:void|Future(?:<[^>]*>)?|int|double|String|bool|dynamic)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\([^)]*\)\s*(?:async\s*)?\{?");
+
                 if (rawMethodMatch.Success)
                 {
                     if (inBlock || currentBodyLines.Count > 0)
@@ -356,6 +421,7 @@ namespace SnapCode.Services
                         ? rawMethodMatch.Groups[1].Value
                         : Guid.NewGuid().ToString("N");
                     inBlock = true;
+                    currentBraceDepth = 0;
                 }
                 else if (match.Success)
                 {
@@ -366,6 +432,19 @@ namespace SnapCode.Services
                     currentEventType = match.Groups[1].Value.Trim();
                     currentTarget = match.Groups[2].Value.Trim();
                     inBlock = true;
+                    currentBraceDepth = 0;
+                }
+                else if (funcSigMatch.Success && (!inBlock || currentBraceDepth <= 0 || string.Equals(currentEventType, "RAW_METHOD", StringComparison.OrdinalIgnoreCase)))
+                {
+                    if (inBlock || currentBodyLines.Count > 0)
+                    {
+                        SaveCurrentBlock();
+                    }
+                    currentEventType = "RAW_METHOD";
+                    currentTarget = funcSigMatch.Groups[1].Value;
+                    inBlock = true;
+                    currentBodyLines.Add(line);
+                    currentBraceDepth = Math.Max(0, CountBraceDelta(line));
                 }
                 else
                 {
@@ -373,15 +452,23 @@ namespace SnapCode.Services
                     {
                         if (!string.IsNullOrWhiteSpace(line))
                         {
+                            // Skip standalone single-line comments outside any block
+                            if (line.TrimStart().StartsWith("//"))
+                            {
+                                continue;
+                            }
                             currentEventType = "Event";
                             currentTarget = "custom";
                             inBlock = true;
                             currentBodyLines.Add(line);
+                            currentBraceDepth = Math.Max(0, CountBraceDelta(line));
                         }
                     }
                     else
                     {
                         currentBodyLines.Add(line);
+                        currentBraceDepth += CountBraceDelta(line);
+                        if (currentBraceDepth < 0) currentBraceDepth = 0;
                     }
                 }
             }
@@ -397,7 +484,20 @@ namespace SnapCode.Services
             {
                 if (string.Equals(b.eventType, "RAW_METHOD", StringComparison.OrdinalIgnoreCase))
                 {
-                    string rawKey = $"RAW_METHOD_{b.target}";
+                    string methodName = b.target;
+                    if (string.IsNullOrWhiteSpace(methodName) || Guid.TryParse(methodName, out _))
+                    {
+                        foreach (var l in b.body)
+                        {
+                            var fnM = Regex.Match(l, @"\b(?:void|Future(?:<[^>]*>)?|[a-zA-Z_][a-zA-Z0-9_<>]*)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(");
+                            if (fnM.Success)
+                            {
+                                methodName = fnM.Groups[1].Value;
+                                break;
+                            }
+                        }
+                    }
+                    string rawKey = $"RAW_METHOD_{methodName}";
                     dedupMap[rawKey] = b;
                     continue;
                 }
@@ -1245,7 +1345,7 @@ class _{className}State extends State<{className}> {{
             string type = typeProp.GetString() ?? string.Empty;
             string widgetCode = "SizedBox()";
 
-            if (type == "Row" || type == "Column" || type == "Container" || 
+            if (type == "Row" || type == "Column" || type == "Container" || type == "Card" ||
                 type == "ListView" || type == "ScrollView" || type == "HorizontalScrollView" || type == "Expanded")
             {
                 widgetCode = CompileLayoutWidget(node);
@@ -1267,7 +1367,7 @@ class _{className}State extends State<{className}> {{
                 widgetCode = $"Container(decoration: BoxDecoration(image: DecorationImage(image: AssetImage(\"{assetSource}\"), fit: BoxFit.cover)), child: {widgetCode})";
             }
 
-            if (type != "Container" && type != "Expanded" && 
+            if (type != "Container" && type != "Card" && type != "Expanded" && 
                 type != "Row" && type != "Column" && 
                 type != "ScrollView" && type != "HorizontalScrollView" && type != "ListView")
             {
@@ -1639,6 +1739,7 @@ class _{className}State extends State<{className}> {{
                 }
 
                 case "Container":
+                case "Card":
                 {
                     string widgetId = node.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
                     string camelId = ToCamelCase(widgetId);
@@ -1808,7 +1909,19 @@ class _{className}State extends State<{className}> {{
                     // Child
                     if (node.TryGetProperty("children", out var childrenProp) && childrenProp.ValueKind == JsonValueKind.Array && childrenProp.GetArrayLength() > 0)
                     {
-                        props.Add($"child: {CompileWidget(childrenProp[0])}");
+                        if (childrenProp.GetArrayLength() == 1)
+                        {
+                            props.Add($"child: {CompileWidget(childrenProp[0])}");
+                        }
+                        else
+                        {
+                            var childList = new List<string>();
+                            foreach (var ch in childrenProp.EnumerateArray())
+                            {
+                                childList.Add(CompileWidget(ch));
+                            }
+                            props.Add($"child: Column(mainAxisSize: MainAxisSize.min, children: [{string.Join(", ", childList)}])");
+                        }
                     }
 
                     string containerResult = props.Count > 0 ? $"Container({string.Join(", ", props)})" : "Container()";

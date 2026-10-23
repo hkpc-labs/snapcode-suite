@@ -96,6 +96,8 @@ window.onerror = function(msg, url, line, col, error) {
     <block type="button_set_visibility"></block>
     <block type="button_set_corner_radius"></block>
     <block type="button_set_elevation"></block>
+    <block type="button_set_cell_text"></block>
+    <block type="button_clear_all_cells"></block>
   </category>
   <category name="EditText / TextField" colour="#d97706">
     <block type="edittext_set_text"></block>
@@ -136,6 +138,7 @@ window.onerror = function(msg, url, line, col, error) {
   </category>
   <category name="Dialogs &amp; Alerts" colour="#0ea5e9">
     <block type="ui_show_dialog"></block>
+    <block type="dialog_action_modal"></block>
     <block type="flutter_alert_dialog"></block>
     <block type="ui_show_confirm_dialog"></block>
     <block type="ui_show_snackbar"></block>
@@ -150,19 +153,36 @@ window.onerror = function(msg, url, line, col, error) {
     <block type="ui_close_drawer"></block>
   </category>
   <category name="Logic" colour="#e11d48">
+    <block type="logic_if"></block>
     <block type="logic_if_else"></block>
+    <block type="logic_return"></block>
     <block type="logic_for_loop"></block>
+    <block type="logic_for_each"></block>
     <block type="logic_while_loop"></block>
+    <block type="logic_boolean_and"></block>
+    <block type="logic_boolean_or"></block>
+    <block type="logic_player_toggle"></block>
     <block type="logic_function"></block>
+    <block type="logic_call_function"></block>
     <block type="logic_print"></block>
   </category>
   <category name="Variables &amp; Math" colour="#0891b2">
+    <block type="declare_state_variable"></block>
+    <block type="state_variable_assign"></block>
+    <block type="set_state_wrapper"></block>
     <block type="variable_set"></block>
     <block type="variable_get"></block>
     <block type="math_number"></block>
     <block type="math_arithmetic"></block>
     <block type="text_literal"></block>
     <block type="text_join"></block>
+  </category>
+  <category name="Lists &amp; Collections" colour="#7c3aed">
+    <block type="list_create_filled"></block>
+    <block type="list_get_index"></block>
+    <block type="list_set_index"></block>
+    <block type="list_matrix_patterns"></block>
+    <block type="list_is_full"></block>
   </category>
   <category name="Components &amp; Storage" colour="#0284c7">
     <block type="pref_set_string"></block>
@@ -769,6 +789,24 @@ Blockly.defineBlocksWithJsonArray([
   },
 
   // ── Logic Blocks ─────────────────────────────────────
+  {
+    type: 'logic_if',
+    message0: 'if %1 %2 then %3',
+    args0: [
+      { type: 'field_input', name: 'CONDITION', text: 'true' },
+      { type: 'input_dummy' },
+      { type: 'input_statement', name: 'DO' },
+    ],
+    previousStatement: null, nextStatement: null, colour: '#e11d48',
+    tooltip: 'Executes inner statements if condition evaluates to true',
+  },
+  {
+    type: 'logic_return',
+    message0: 'return',
+    args0: [],
+    previousStatement: null, colour: '#e11d48',
+    tooltip: 'Exits early from the current function or event handler',
+  },
   {
     type: 'logic_if_else',
     message0: 'if %1 %2 then %3 else %4',
@@ -1971,6 +2009,210 @@ Blockly.defineBlocksWithJsonArray([
     ],
     previousStatement: null, nextStatement: null, colour: '#0ea5e9',
     tooltip: 'Displays a modal confirmation dialog with OK and Cancel callbacks',
+  },
+
+  // ── Lists & Collections Blocks ─────────────────────────
+  {
+    type: 'list_create_filled',
+    message0: 'create List<String> of size %1 with default %2',
+    args0: [
+      { type: 'field_number', name: 'SIZE', value: 9 },
+      { type: 'field_input', name: 'DEFAULT', text: "''" },
+    ],
+    output: 'Array',
+    colour: '#7c3aed',
+    tooltip: 'Creates a List<String> of specified size filled with a default value',
+  },
+  {
+    type: 'list_get_index',
+    message0: 'get item at index %1 from list %2',
+    args0: [
+      { type: 'field_input', name: 'INDEX', text: '0' },
+      { type: 'field_input', name: 'LIST_NAME', text: '_board' },
+    ],
+    output: 'String',
+    colour: '#7c3aed',
+    tooltip: 'Gets an item from a list by index',
+  },
+  {
+    type: 'list_set_index',
+    message0: 'in list %1 set item at index %2 to %3',
+    args0: [
+      { type: 'field_input', name: 'LIST_NAME', text: '_board' },
+      { type: 'field_input', name: 'INDEX', text: '0' },
+      { type: 'field_input', name: 'VALUE', text: '_currentPlayer' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#7c3aed',
+    tooltip: 'Sets an item at index in a list',
+  },
+  {
+    type: 'list_matrix_patterns',
+    message0: 'winning patterns list (3x3)',
+    args0: [],
+    output: 'Array',
+    colour: '#7c3aed',
+    tooltip: 'Returns standard 3x3 winning patterns list for Tic-Tac-Toe',
+  },
+  {
+    type: 'list_is_full',
+    message0: 'list %1 is full (no empty slots)',
+    args0: [
+      { type: 'field_input', name: 'LIST_NAME', text: '_board' },
+    ],
+    output: 'Boolean',
+    colour: '#7c3aed',
+    tooltip: 'Checks if a list contains no empty string slots',
+  },
+
+  // ── Additional Logic Blocks ───────────────────────────
+  {
+    type: 'logic_for_each',
+    message0: 'for each %1 in list %2 do: %3',
+    args0: [
+      { type: 'field_input', name: 'ITEM_NAME', text: 'pattern' },
+      { type: 'field_input', name: 'LIST_EXPR', text: 'winPatterns' },
+      { type: 'input_statement', name: 'DO' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#e11d48',
+    tooltip: 'Iterates through each item in a list collection',
+  },
+  {
+    type: 'logic_boolean_and',
+    message0: '%1 AND %2',
+    args0: [
+      { type: 'field_input', name: 'LEFT', text: 'true' },
+      { type: 'field_input', name: 'RIGHT', text: 'true' },
+    ],
+    output: 'Boolean',
+    colour: '#e11d48',
+    tooltip: 'Logical AND condition',
+  },
+  {
+    type: 'logic_boolean_or',
+    message0: '%1 OR %2',
+    args0: [
+      { type: 'field_input', name: 'LEFT', text: 'false' },
+      { type: 'field_input', name: 'RIGHT', text: 'false' },
+    ],
+    output: 'Boolean',
+    colour: '#e11d48',
+    tooltip: 'Logical OR condition',
+  },
+  {
+    type: 'logic_player_toggle',
+    message0: "switch player %1 between 'X' and 'O'",
+    args0: [
+      { type: 'field_input', name: 'PLAYER', text: '_currentPlayer' },
+    ],
+    output: 'String',
+    colour: '#e11d48',
+    tooltip: "Toggles player value between 'X' and 'O'",
+  },
+  {
+    type: 'logic_call_function',
+    message0: 'call function %1 with args %2',
+    args0: [
+      { type: 'field_input', name: 'FUNC_NAME', text: '_makeMove' },
+      { type: 'field_input', name: 'ARGS', text: '0, context' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#e11d48',
+    tooltip: 'Calls a custom function with arguments',
+  },
+
+  // ── Additional Variable Blocks ────────────────────────
+  {
+    type: 'declare_state_variable',
+    message0: 'declare state %1 %2 = %3',
+    args0: [
+      {
+        type: 'field_dropdown',
+        name: 'TYPE',
+        options: [
+          ['String', 'String'],
+          ['int', 'int'],
+          ['bool', 'bool'],
+          ['List<String>', 'List<String>'],
+          ['double', 'double'],
+          ['List<dynamic>', 'List<dynamic>'],
+          ['Map<String, dynamic>', 'Map<String, dynamic>'],
+        ],
+      },
+      { type: 'field_input', name: 'NAME', text: '_board' },
+      { type: 'field_input', name: 'VALUE', text: "List.filled(9, '')" },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#0891b2',
+    tooltip: 'Declares a persistent reactive state variable',
+  },
+  {
+    type: 'state_variable_assign',
+    message0: 'set state %1 = %2',
+    args0: [
+      { type: 'field_input', name: 'NAME', text: '_gameOver' },
+      { type: 'field_input', name: 'VALUE', text: 'true' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#0891b2',
+    tooltip: 'Reassigns a reactive state variable',
+  },
+  {
+    type: 'set_state_wrapper',
+    message0: 'update UI (setState) %1 %2',
+    args0: [
+      { type: 'input_dummy' },
+      { type: 'input_statement', name: 'DO' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#0891b2',
+    tooltip: 'Wraps variable updates in a Flutter setState call to trigger UI rebuild',
+  },
+
+  // ── Additional Button Blocks ──────────────────────────
+  {
+    type: 'button_set_cell_text',
+    message0: 'set cell button at index %1 text to %2',
+    args0: [
+      { type: 'field_input', name: 'INDEX', text: 'index' },
+      { type: 'field_input', name: 'TEXT', text: '_currentPlayer' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#7c3aed',
+    tooltip: 'Sets the text of a Tic-Tac-Toe grid cell button (0 to 8)',
+  },
+  {
+    type: 'button_clear_all_cells',
+    message0: 'clear all grid cell buttons (0 to 8)',
+    args0: [],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#7c3aed',
+    tooltip: 'Clears text on all 9 cell buttons',
+  },
+
+  // ── Additional Dialogs & Alerts Blocks ────────────────
+  {
+    type: 'dialog_action_modal',
+    message0: 'show alert dialog title %1 message %2 button %3 on action: %4',
+    args0: [
+      { type: 'field_input', name: 'TITLE', text: '🎉 Winner!' },
+      { type: 'field_input', name: 'MESSAGE', text: 'Player has won the game!' },
+      { type: 'field_input', name: 'BTN_TEXT', text: 'Play Again' },
+      { type: 'input_statement', name: 'DO' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: '#0ea5e9',
+    tooltip: 'Shows an alert dialog with an action button that triggers custom code',
   }
 ]);
 
@@ -2122,6 +2364,9 @@ const dartGenerator = new Blockly.CodeGenerator('Dart');
 
 dartGenerator.ORDER_ATOMIC = 0;
 dartGenerator.ORDER_ADDITIVE = 4;
+dartGenerator.ORDER_LOGICAL_AND = 13;
+dartGenerator.ORDER_LOGICAL_OR = 14;
+dartGenerator.ORDER_CONDITIONAL = 15;
 dartGenerator.ORDER_NONE = 99;
 dartGenerator.INDENT = '  ';
 
@@ -2174,11 +2419,11 @@ dartGenerator.finish = function(code) {
   const customImports = importBlocks.map(b => b.getFieldValue('IMPORT').trim()).filter(Boolean);
 
   // Collect declared state variables
-  const stateVarBlocks = ws.getAllBlocks(false).filter(b => b.type === 'state_declare_variable');
+  const stateVarBlocks = ws.getAllBlocks(false).filter(b => b.type === 'state_declare_variable' || b.type === 'declare_state_variable');
   const stateVars = stateVarBlocks.map(b => {
     const type = b.getFieldValue('TYPE') || 'String';
     const name = b.getFieldValue('NAME') || 'myStateVar';
-    const init = b.getFieldValue('INIT_VAL') || "''";
+    const init = b.getFieldValue('VALUE') || b.getFieldValue('INIT_VAL') || "''";
     return `${type} ${name} = ${init};`;
   });
 
@@ -2204,7 +2449,8 @@ dartGenerator.finish = function(code) {
   funcBlocks.forEach(b => {
     const fnName = b.getFieldValue('FUNC_NAME') || 'myFunction';
     const fBody = dartGenerator.statementToCode(b, 'BODY') || '  // function body';
-    funcCodes.push(`void ${fnName}() {\n${indentCode(fBody)}\n}`);
+    const sig = fnName.includes('(') ? fnName : `${fnName}()`;
+    funcCodes.push(`void ${sig} {\n${indentCode(fBody)}\n}`);
   });
 
   // Collect all block types to auto-import Flutter packages
@@ -2593,11 +2839,24 @@ dartGenerator.forBlock['flutter_dropdown'] = function(block) {
 };
 
 // ── Logic Generators ───────────────────────────────────
+dartGenerator.forBlock['logic_if'] = function(block, gen) {
+  const condition = block.getFieldValue('CONDITION') || 'true';
+  const body = gen.statementToCode(block, 'DO') || '';
+  return `if (${condition}) {\n${indentCode(body)}\n}\n`;
+};
+
+dartGenerator.forBlock['logic_return'] = function(block) {
+  return 'return;\n';
+};
+
 dartGenerator.forBlock['logic_if_else'] = function(block, gen) {
   const condition = block.getFieldValue('CONDITION') || 'true';
-  const doIf = gen.statementToCode(block, 'DO_IF') || '  // then\n';
-  const doElse = gen.statementToCode(block, 'DO_ELSE') || '  // else\n';
-  return `if (${condition}) {\n${indentCode(doIf)}\n} else {\n${indentCode(doElse)}\n}\n`;
+  const doIf = gen.statementToCode(block, 'DO_IF') || '';
+  const doElse = gen.statementToCode(block, 'DO_ELSE') || '';
+  if (doElse.trim()) {
+    return `if (${condition}) {\n${indentCode(doIf)}\n} else {\n${indentCode(doElse)}\n}\n`;
+  }
+  return `if (${condition}) {\n${indentCode(doIf)}\n}\n`;
 };
 
 dartGenerator.forBlock['logic_for_loop'] = function(block, gen) {
@@ -2621,7 +2880,9 @@ dartGenerator.forBlock['logic_print'] = function(block) {
 dartGenerator.forBlock['logic_function'] = function(block, gen) {
   const funcName = block.getFieldValue('FUNC_NAME') || 'myFunction';
   const body = gen.statementToCode(block, 'BODY') || '  // function body\n';
-  return `void ${funcName}() {\n${indentCode(body)}\n}\n`;
+  const sig = funcName.includes('(') ? funcName : `${funcName}()`;
+  const cleanName = funcName.split('(')[0].trim();
+  return `// RAW_METHOD: ${cleanName}\nvoid ${sig} {\n${indentCode(body)}\n}\n`;
 };
 
 // ── Variable Generators ────────────────────────────────
@@ -3275,6 +3536,110 @@ ${onOk}        },
 );\n`;
 };
 
+// ── Lists & Collections Generators ─────────────────────
+dartGenerator.forBlock['list_create_filled'] = function(block) {
+  const size = block.getFieldValue('SIZE') ?? 9;
+  let defVal = block.getFieldValue('DEFAULT');
+  if (defVal === null || defVal === undefined) defVal = '';
+  defVal = String(defVal).trim();
+  if ((defVal.startsWith("'") && defVal.endsWith("'")) || (defVal.startsWith('"') && defVal.endsWith('"'))) {
+    defVal = defVal.slice(1, -1);
+  }
+  return [`List.filled(${size}, '${esc(defVal)}')`, dartGenerator.ORDER_ATOMIC];
+};
+
+dartGenerator.forBlock['list_get_index'] = function(block) {
+  const index = block.getFieldValue('INDEX') || '0';
+  const listName = block.getFieldValue('LIST_NAME') || '_board';
+  return [`${listName}[${index}]`, dartGenerator.ORDER_ATOMIC];
+};
+
+dartGenerator.forBlock['list_set_index'] = function(block) {
+  const listName = block.getFieldValue('LIST_NAME') || '_board';
+  const index = block.getFieldValue('INDEX') || '0';
+  const value = block.getFieldValue('VALUE') || "''";
+  return `${listName}[${index}] = ${value};\n`;
+};
+
+dartGenerator.forBlock['list_matrix_patterns'] = function(block) {
+  return ['const [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]', dartGenerator.ORDER_ATOMIC];
+};
+
+dartGenerator.forBlock['list_is_full'] = function(block) {
+  const listName = block.getFieldValue('LIST_NAME') || '_board';
+  return [`!${listName}.contains('')`, dartGenerator.ORDER_ATOMIC];
+};
+
+// ── Additional Logic Generators ────────────────────────
+dartGenerator.forBlock['logic_for_each'] = function(block, gen) {
+  const itemName = block.getFieldValue('ITEM_NAME') || 'pattern';
+  const listExpr = block.getFieldValue('LIST_EXPR') || 'winPatterns';
+  const body = gen.statementToCode(block, 'DO') || '';
+  return `for (var ${itemName} in ${listExpr}) {\n${indentCode(body)}\n}\n`;
+};
+
+dartGenerator.forBlock['logic_boolean_and'] = function(block) {
+  const left = block.getFieldValue('LEFT') || 'true';
+  const right = block.getFieldValue('RIGHT') || 'true';
+  return [`(${left}) && (${right})`, dartGenerator.ORDER_LOGICAL_AND];
+};
+
+dartGenerator.forBlock['logic_boolean_or'] = function(block) {
+  const left = block.getFieldValue('LEFT') || 'false';
+  const right = block.getFieldValue('RIGHT') || 'false';
+  return [`(${left}) || (${right})`, dartGenerator.ORDER_LOGICAL_OR];
+};
+
+dartGenerator.forBlock['logic_player_toggle'] = function(block) {
+  const player = block.getFieldValue('PLAYER') || '_currentPlayer';
+  return [`(${player} == 'X' ? 'O' : 'X')`, dartGenerator.ORDER_CONDITIONAL];
+};
+
+dartGenerator.forBlock['logic_call_function'] = function(block) {
+  const funcName = block.getFieldValue('FUNC_NAME') || '_makeMove';
+  const args = block.getFieldValue('ARGS') || '';
+  return `${funcName}(${args});\n`;
+};
+
+// ── Additional Variable Generators ─────────────────────
+dartGenerator.forBlock['declare_state_variable'] = function(block) {
+  const type = block.getFieldValue('TYPE') || 'String';
+  const name = block.getFieldValue('NAME') || 'myVar';
+  const value = block.getFieldValue('VALUE') || "''";
+  return `// STATE_VAR: ${type} ${name} = ${value};\n`;
+};
+
+dartGenerator.forBlock['state_variable_assign'] = function(block) {
+  const name = block.getFieldValue('NAME') || 'myVar';
+  const value = block.getFieldValue('VALUE') || "''";
+  return `${name} = ${value};\n`;
+};
+
+dartGenerator.forBlock['set_state_wrapper'] = function(block, gen) {
+  const body = gen.statementToCode(block, 'DO') || '';
+  return `setState(() {\n${indentCode(body)}\n});\n`;
+};
+
+// ── Additional Button Generators ───────────────────────
+dartGenerator.forBlock['button_set_cell_text'] = function(block) {
+  const idx = block.getFieldValue('INDEX') || '0';
+  const txt = block.getFieldValue('TEXT') || "''";
+  return `setState(() {\n  if (${idx} == 0) _btnCell0Text = ${txt};\n  else if (${idx} == 1) _btnCell1Text = ${txt};\n  else if (${idx} == 2) _btnCell2Text = ${txt};\n  else if (${idx} == 3) _btnCell3Text = ${txt};\n  else if (${idx} == 4) _btnCell4Text = ${txt};\n  else if (${idx} == 5) _btnCell5Text = ${txt};\n  else if (${idx} == 6) _btnCell6Text = ${txt};\n  else if (${idx} == 7) _btnCell7Text = ${txt};\n  else if (${idx} == 8) _btnCell8Text = ${txt};\n});\n`;
+};
+
+dartGenerator.forBlock['button_clear_all_cells'] = function(block) {
+  return `setState(() {\n  _btnCell0Text = ' ';\n  _btnCell1Text = ' ';\n  _btnCell2Text = ' ';\n  _btnCell3Text = ' ';\n  _btnCell4Text = ' ';\n  _btnCell5Text = ' ';\n  _btnCell6Text = ' ';\n  _btnCell7Text = ' ';\n  _btnCell8Text = ' ';\n});\n`;
+};
+
+// ── Additional Dialogs & Alerts Generators ─────────────
+dartGenerator.forBlock['dialog_action_modal'] = function(block, gen) {
+  const title = block.getFieldValue('TITLE') || '';
+  const message = block.getFieldValue('MESSAGE') || '';
+  const btnText = block.getFieldValue('BTN_TEXT') || 'OK';
+  const action = gen.statementToCode(block, 'DO') || '';
+  return `showDialog(\n  context: context,\n  barrierDismissible: false,\n  builder: (dialogCtx) => AlertDialog(\n    title: Text('${esc(title)}'),\n    content: Text('${esc(message)}'),\n    actions: [\n      ElevatedButton(\n        onPressed: () {\n          Navigator.of(dialogCtx).pop();\n${indentCode(action)}\n        },\n        child: Text('${esc(btnText)}'),\n      ),\n    ],\n  ),\n);\n`;
+};
+
 
 // ============================================================
 // Theme Definitions
@@ -3392,6 +3757,34 @@ function initWorkspace(themeMode) {
       sounds: false,
     });
 
+    // Ensure Blockly SVG layout calculates immediately
+    try {
+      Blockly.svgResize(workspace);
+    } catch(e) {}
+
+    // Resize handler bridge for C# and browser window
+    window.resizeWorkspace = function() {
+      try {
+        if (workspace) {
+          Blockly.svgResize(workspace);
+        }
+      } catch(e) {}
+    };
+    window.addEventListener('resize', window.resizeWorkspace);
+
+    // Observe container resizing (crucial when WebView becomes visible from collapsed state)
+    if (typeof ResizeObserver !== 'undefined') {
+      try {
+        const ro = new ResizeObserver(() => {
+          if (workspace) {
+            Blockly.svgResize(workspace);
+          }
+        });
+        const container = document.getElementById('blocklyDiv');
+        if (container) ro.observe(container);
+      } catch(e) {}
+    }
+
     // Auto-generate code on workspace change
     workspace.addChangeListener(function(event) {
       if (event.isUiEvent) return;
@@ -3409,10 +3802,29 @@ function initWorkspace(themeMode) {
       }
     });
 
-    // Notify host that workspace is ready
-    if (window.chrome && window.chrome.webview) {
-      window.chrome.webview.postMessage(JSON.stringify({ type: 'ready' }));
+    // Notify host that workspace is ready with retry loop
+    function notifyReady() {
+      function tryPost() {
+        if (window.chrome && window.chrome.webview) {
+          try {
+            window.chrome.webview.postMessage(JSON.stringify({ type: 'ready' }));
+            return true;
+          } catch(e) {}
+        }
+        return false;
+      }
+      if (!tryPost()) {
+        let attempts = 0;
+        const timer = setInterval(() => {
+          attempts++;
+          if (tryPost() || attempts > 50) {
+            clearInterval(timer);
+          }
+        }, 100);
+      }
     }
+    window.notifyReady = notifyReady;
+    notifyReady();
   } catch(e) {
     console.error('initWorkspace error:', e);
     if (window.chrome && window.chrome.webview) {
@@ -3442,6 +3854,7 @@ window.loadWorkspace = function(jsonString) {
         Blockly.serialization.workspaces.load(parsed, workspace);
       }
     }
+    try { Blockly.svgResize(workspace); } catch(e) {}
   } catch(e) {
     console.error('Failed to load workspace:', e);
   }
@@ -3678,9 +4091,14 @@ window.setWorkspaceContext = function(type) {
 };
 
 // Auto-initialize with dark theme on load
-window.addEventListener('load', function() {
+function bootstrapBlockly() {
+  if (window._hasBootstrapped) return;
+  window._hasBootstrapped = true;
   try {
-    originalToolbox = document.getElementById('toolbox').cloneNode(true);
+    const tb = document.getElementById('toolbox');
+    if (tb) {
+      originalToolbox = tb.cloneNode(true);
+    }
     const params = new URLSearchParams(window.location.search);
     const theme = params.get('theme') || 'dark';
     initWorkspace(theme);
@@ -3693,7 +4111,14 @@ window.addEventListener('load', function() {
       }));
     }
   }
-});
+}
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(bootstrapBlockly, 1);
+} else {
+  window.addEventListener('DOMContentLoaded', bootstrapBlockly);
+  window.addEventListener('load', bootstrapBlockly);
+}
 </script>
 </body>
 </html>
