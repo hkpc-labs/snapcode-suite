@@ -137,5 +137,12 @@ We welcome contributions! Please review our [**Contributing Guide**](CONTRIBUTIN
 
 ## 📄 License & Publisher
 
-Developed and maintained with ❤️ by **hkpc labs**.  
-For inquiries, bug reports, and suggestions, please open a GitHub Issue or Pull Request.
+## 📄 License & Publisher
+
+Snapcode is published by **hkpc labs** under the **[Business Source License 1.1 (BSL 1.1)](LICENSE)**.
+
+- **Free for Non-Commercial & Educational Use:** Anyone may inspect the source, build, run, and develop Flutter applications with Snapcode for personal, hobbyist, and educational use.
+- **Commercial Restrictions:** Commercial use, reselling, or hosting Snapcode as a paid SaaS/cloud service requires a commercial license from **hkpc labs**.
+- **Open Source Transition:** Automatically converts to the **Apache 2.0 License** on October 23, 2030.
+
+For commercial licensing or enterprise inquiries, contact **hkpc labs**.

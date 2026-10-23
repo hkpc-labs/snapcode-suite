@@ -1,0 +1,51 @@
+Business Source License 1.1
+
+Parameters
+
+Licensor:             hkpc labs
+Licensed Work:        Snapcode (including all source code, compilers, tools, and assets)
+Change Date:          October 23, 2030
+Change License:       Apache License, Version 2.0
+Additional Use Grant: You may make use of the Licensed Work for non-commercial, personal,
+                      educational, research, evaluation, and testing purposes. You are
+                      expressly permitted to use Snapcode to design, build, and compile your
+                      own Flutter applications. Any commercial use—including, without
+                      limitation, selling, licensing, sublicensing, hosting Snapcode as a
+                      commercial cloud or SaaS service, or incorporating Snapcode into a
+                      commercial product—requires an express commercial license from Licensor.
+
+---
+
+Terms and Conditions
+
+1. Grant of License
+Subject to the terms and conditions of this License and the Use Limitation set forth in the
+Parameters above, the Licensor hereby grants to you a worldwide, non-exclusive, royalty-free,
+revocable copyright license to:
+  (a) Reproduce and inspect the Licensed Work;
+  (b) Prepare derivative works based upon the Licensed Work;
+  (c) Distribute copies of the Licensed Work and derivative works thereof solely for
+      purposes permitted by the Additional Use Grant; and
+  (d) Display and run the Licensed Work publicly or privately for permitted purposes.
+
+2. Commercial Use Restriction
+Any use, reproduction, distribution, or exploitation of the Licensed Work for commercial
+advantage, monetary compensation, or incorporation into paid or proprietary commercial services
+is strictly prohibited without obtaining a separate written commercial license from hkpc labs.
+
+3. Change to Open Source License
+Effective on the Change Date specified above, this License shall automatically convert to,
+and the Licensor hereby grants you rights under the terms of, the Change License specified
+above (Apache License, Version 2.0). As of the Change Date, the Use Limitation and Commercial
+Use Restrictions shall terminate.
+
+4. Notice and Attribution
+In all copies or substantial portions of the Licensed Work or derivative works thereof, you
+must retain all copyright, trademark, and attribution notices, including this License text.
+
+5. Disclaimer of Warranty
+THE LICENSED WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES,
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF,
+OR IN CONNECTION WITH THE LICENSED WORK OR THE USE OR OTHER DEALINGS IN THE LICENSED WORK.
