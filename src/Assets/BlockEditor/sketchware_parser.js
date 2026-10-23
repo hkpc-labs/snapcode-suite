@@ -1,5 +1,5 @@
-// Sketchware Pro JSON to Blockly Converter
-// This allows SnapCode to dynamically load blocks in the exact same format as Sketchware Pro's block.json and palette.json
+// Visual Block JSON to Blockly Converter
+// This allows SnapCode to dynamically load custom blocks from block.json and palette.json
 
 function parseSketchwareBlocks(paletteJson, blockJson) {
     try {
@@ -21,7 +21,7 @@ function parseSketchwareBlocks(paletteJson, blockJson) {
         blocks.forEach(skBlock => {
             const blockName = "sk_" + skBlock.name;
             
-            // 1. Determine Block Shape & Returns based on Sketchware 'type'
+            // 1. Determine Block Shape & Returns based on block 'type'
             const def = {
                 type: blockName,
                 colour: skBlock.color || (toolboxCategories[skBlock.palette] ? toolboxCategories[skBlock.palette].color : '#999999'),
@@ -53,7 +53,7 @@ function parseSketchwareBlocks(paletteJson, blockJson) {
             let args0 = [];
             let messageParts = [];
             
-            // Match Sketchware parameters like %s, %d, %b, %m.view, %s.inputOnly
+            // Match block parameters like %s, %d, %b, %m.view, %s.inputOnly
             const regex = /(%s\.inputOnly|%m\.[a-zA-Z0-9_]+|%s|%d|%b)/g;
             let paramIndex = 1;
             let lastIdx = 0;

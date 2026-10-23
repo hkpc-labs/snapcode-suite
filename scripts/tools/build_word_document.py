@@ -303,8 +303,8 @@ add_h1(doc, "1. Executive Summary & Verification of Code Generation")
 add_p(doc, 
     "This document provides the exhaustive architectural and algorithmic specification for Flutter code generation, "
     "visual widget compilation, block-based event logic synthesis, and user code preservation in the Snapcode application platform. "
-    "Snapcode bridges visual drag-and-drop design (WinUI 3 Native Canvas), visual event programming (Google Blockly with Sketchware Pro "
-    "block extensions), and advanced developer manual coding (VS Code-grade Monaco Editor) into a singular, unified workspace without code loss or compiler collisions."
+    "Snapcode bridges visual drag-and-drop design (WinUI 3 Native Canvas), visual event programming (Google Blockly "
+    "custom block extensions), and advanced developer manual coding (VS Code-grade Monaco Editor) into a singular, unified workspace without code loss or compiler collisions."
 )
 
 add_callout(doc, 
@@ -492,7 +492,7 @@ add_h1(doc, "4. Block-Based Logic Generation Pipeline (Event Manager)")
 
 add_p(doc, 
     "The Event Manager hosts Google Blockly inside a WinUI 3 CoreWebView2 container (src/Assets/BlockEditor/index.html). "
-    "Blockly operates in an isolated JavaScript context loaded with custom Sketchware Pro-inspired Flutter blocks. "
+    "Blockly operates in an isolated JavaScript context loaded with custom visual Flutter blocks. "
     "The workspace auto-compiles logic into Dart in real time as blocks are manipulated."
 )
 

@@ -22,7 +22,7 @@ Version 0.1 establishes the unified visual IDE bridging Flutter application deve
   - Complete selection retention and active focus stability.
 - **Bi-Directional Compiler & Workspace**:
   - Real-time Dart code generator (`FlutterCompilerService`) outputting idiomatic Flutter widgets and asynchronous event handlers.
-  - Blockly WebView2 integration with Sketchware Pro custom blocks mapping.
+  - Blockly WebView2 integration with custom blocks mapping.
   - Project lifecycle and asset management (`SnapcodeAssets/`).
 - **Automated Verification**:
   - Built-in test suite (`ViewDesignerTestService`) passing **87/87 tests (100%)**.
@@ -31,9 +31,9 @@ Version 0.1 establishes the unified visual IDE bridging Flutter application deve
 
 ## 2. Included Directories & Assets
 - `src/`: Complete C# / WinUI 3 desktop client application, view designer controls, test services, dialogs, and project configurations.
-- `helpers/`: Sketchware custom blocks database, conversion scripts, and palette schemas.
+- `helpers/`: Custom blocks database, conversion scripts, and palette schemas.
 - `Docs/`: Project architecture, block specification guides, and engineering documentation.
 - `snapcode-compiler/`: Standalone compilation tools and Flutter AST processors.
 - `snapcode-frontend/`: Web-based Blockly visual programming workspace assets and scripts.
 - `snapcode-workers/`: Background task processors and execution services.
-- `view_designer_test_report.md`: Automated test execution report validating all widgets, properties, and edge cases.
+- `Docs/reports/view_designer_test_report.md`: Automated test execution report validating all widgets, properties, and edge cases.

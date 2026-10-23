@@ -7,15 +7,15 @@
 
 ---
 
-## 🚀 Overview
+## Overview
 
-We are excited to announce the initial release preview of **Snapcode v0.1.0**, a visual, block-driven Flutter application builder designed for rapid cross-platform app development on Windows.
+We are pleased to announce the release preview of **Snapcode v0.1.0**, a visual, block-driven Flutter application builder designed for rapid cross-platform app development on Windows.
 
-Snapcode merges intuitive drag-and-drop UI composition with Sketchware Pro-inspired visual logic blocks (Google Blockly), automatically compiling real-time AST-level Flutter Dart code with full bi-directional code preservation.
+Snapcode merges intuitive drag-and-drop UI composition with visual logic blocks powered by Google Blockly, automatically compiling real-time AST-level Flutter Dart code with full bi-directional code preservation.
 
 ---
 
-## ✨ Key Highlights & Features in v0.1.0
+## Key Highlights & Features in v0.1.0
 
 ### 1. Visual Drag-and-Drop Native UI Designer
 - **Interactive Canvas:** Visual layout editor with intuitive drag-and-drop tree hierarchy.
@@ -23,7 +23,7 @@ Snapcode merges intuitive drag-and-drop UI composition with Sketchware Pro-inspi
 - **Live Properties Panel:** Real-time property inspector supporting colors, dimensions, margins, paddings, typography, and flex alignments.
 - **Responsive Layout Geometry:** Compiles visual nodes into clean, idiomatic Flutter widget trees (`build(BuildContext context)`).
 
-### 2. Sketchware Pro-Inspired Visual Event Logic (Blockly)
+### 2. Visual Event Logic (Google Blockly)
 - **High-Performance WebView2 Bridge:** Integrated Google Blockly engine with dynamic theme-aware styling and responsive `ResizeObserver` canvas resizing.
 - **Direct Protocol Integration:** Replaced virtual host mappings with direct, secure local `file:///` protocols for zero-delay workspace loading.
 - **Rich Visual Logic Toolbox:**
@@ -32,7 +32,7 @@ Snapcode merges intuitive drag-and-drop UI composition with Sketchware Pro-inspi
   - **Dynamic State Declarations:** Strongly typed state variables (`List<String>`, `String`, `int`, `bool`) that automatically declare inside `_MainPageState`.
   - **Interactive Dialogs & Modals:** `showDialog` with barrier control, alert content, and customizable callback actions.
   - **Dynamic Button Text Bindings:** Visual blocks to dynamically update individual cell buttons (`_btnCell0Text` through `_btnCell8Text`) via automatic `setState()` triggers.
-- **Zero Raw-Code Requirement:** Full games (such as interactive Tic-Tac-Toe with AI/turns, winning detection, and reset dialogs) can now be authored entirely with visual blocks without raw Dart injection blocks.
+- **Zero Raw-Code Requirement:** Full games (such as interactive Tic-Tac-Toe with turns, winning detection, and reset dialogs) can now be authored entirely with visual blocks without raw Dart injection blocks.
 
 ### 3. Bi-Directional Code Preservation Service
 - **Intelligent Marker Tokenization:** User code written in custom methods (`CUSTOM_METHODS`), imports (`CUSTOM_IMPORTS`), and lifecycle hooks (`INIT_STATE`, `DISPOSE`) is automatically preserved when visual UI is regenerated.
@@ -44,7 +44,7 @@ Snapcode merges intuitive drag-and-drop UI composition with Sketchware Pro-inspi
 
 ---
 
-## 📦 Release Artifacts & Distribution
+## Release Artifacts & Distribution
 
 All release packages are built with self-contained runtimes (no separate .NET runtime installation required).
 
@@ -57,7 +57,7 @@ All release packages are built with self-contained runtimes (no separate .NET ru
 
 ---
 
-## 💻 System Requirements
+## System Requirements
 
 - **Operating System:** Windows 10 (Build 19041+) or Windows 11 (x64)
 - **Runtime:** Included (Self-Contained .NET 8 + WinUI 3 Windows App SDK 1.5)
@@ -68,7 +68,7 @@ All release packages are built with self-contained runtimes (no separate .NET ru
 
 ---
 
-## 🛠️ Installation Instructions
+## Installation Instructions
 
 ### Option 1: Standard Setup Wizard (Recommended)
 1. Download **`Snapcode-Setup-v0.1.0.exe`**.
@@ -82,11 +82,11 @@ All release packages are built with self-contained runtimes (no separate .NET ru
 
 ### Option 3: Thin Installer
 1. Download **`Snapcode-ThinInstaller.exe`**.
-2. Run the modern lightweight installer to install Snapcode into your `%LOCALAPPDATA%\Programs\Snapcode` folder with zero admin prompts.
+2. Run the lightweight installer to install Snapcode into your `%LOCALAPPDATA%\Programs\Snapcode` folder with zero admin prompts.
 
 ---
 
-## 🛣️ Roadmap (v0.2.0)
+## Roadmap (v0.2.0)
 - Visual asset management dialog with image bundling into `pubspec.yaml`
 - REST API / HTTP client visual block categories
 - Multi-page navigation router blocks (`Navigator.push`, `Navigator.pop`)

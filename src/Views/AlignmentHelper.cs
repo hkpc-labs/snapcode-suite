@@ -10,12 +10,12 @@ namespace Snapcode.Views
 {
     /// <summary>
     /// Utility for resolving alignment, gravity mesh, and Flutter alignment parity.
-    /// Bridges Sketchware/Android gravity flags, Flutter Alignment points, and WinUI 3 layout alignments.
+    /// Bridges Android gravity flags, Flutter Alignment points, and WinUI 3 layout alignments.
     /// </summary>
     public static class AlignmentHelper
     {
         /// <summary>
-        /// Parses an Android/Sketchware gravity string or Flutter alignment string into WinUI 3 alignments.
+        /// Parses an Android gravity string or Flutter alignment string into WinUI 3 alignments.
         /// Supports standard flags: center, center_horizontal, center_vertical, top, bottom, left, right,
         /// piped combinations (e.g. center_horizontal|bottom), and named points (e.g. TopCenter, BottomRight).
         /// </summary>

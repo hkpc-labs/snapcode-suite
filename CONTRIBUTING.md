@@ -1,12 +1,12 @@
 # Contributing to Snapcode
 
-Thank you for your interest in contributing to **Snapcode**! Snapcode is built and maintained by **hkpc labs** as an open-source visual Flutter application builder.
+Thank you for your interest in contributing to **Snapcode**! Snapcode is built and maintained by **hkpc labs** as a visual Flutter application builder.
 
 We welcome contributions from developers, designers, and documentation writers. This document provides clear guidelines for setting up your environment, submitting pull requests, and following our development standards.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 1. [Code of Conduct](#code-of-conduct)
 2. [Development Environment Setup](#development-environment-setup)
 3. [Repository Layout](#repository-layout)
@@ -18,13 +18,13 @@ We welcome contributions from developers, designers, and documentation writers. 
 
 ---
 
-## 🤝 Code of Conduct
+## Code of Conduct
 
 We are committed to providing a welcoming, inclusive, and harassment-free experience for everyone. Please be respectful, constructive, and collaborative in all discussions and pull requests.
 
 ---
 
-## 💻 Development Environment Setup
+## Development Environment Setup
 
 ### Prerequisites
 - **Operating System:** Windows 10 (Build 19041+) or Windows 11 (x64)
@@ -37,8 +37,8 @@ We are committed to providing a welcoming, inclusive, and harassment-free experi
 
 ### Cloning and Opening
 ```bash
-git clone https://github.com/hkpc-labs/snapcode.git
-cd snapcode
+git clone https://github.com/hkpc-labs/snapcode-suite.git
+cd snapcode-suite
 ```
 
 1. Open **Visual Studio 2022**.
@@ -49,7 +49,7 @@ cd snapcode
 
 ---
 
-## 📁 Repository Layout
+## Repository Layout
 
 ```
 ├── Docs/                     # Architecture specifications & system verification reports
@@ -76,7 +76,7 @@ cd snapcode
 
 ---
 
-## 🔄 Contribution Workflow
+## Contribution Workflow
 
 1. **Fork and Branch:**
    Create a descriptive branch for your work:
@@ -94,7 +94,7 @@ cd snapcode
 
 ---
 
-## 📝 Commit Message Conventions
+## Commit Message Conventions
 
 We adhere to the [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
@@ -109,7 +109,7 @@ We adhere to the [Conventional Commits](https://www.conventionalcommits.org/) sp
 
 ---
 
-## 🎨 Coding Standards
+## Coding Standards
 
 ### C# & WinUI 3
 - Enable nullable reference types (`<Nullable>enable</Nullable>`).
@@ -124,7 +124,7 @@ We adhere to the [Conventional Commits](https://www.conventionalcommits.org/) sp
 
 ---
 
-## 🧪 Testing & Verification
+## Testing & Verification
 
 Before submitting any Pull Request, ensure that:
 
@@ -146,7 +146,7 @@ Before submitting any Pull Request, ensure that:
 
 ---
 
-## 🚀 Submitting Pull Requests
+## Submitting Pull Requests
 
 - Provide a concise title summarizing the change.
 - Describe the motivation, problem solved, and any breaking changes.

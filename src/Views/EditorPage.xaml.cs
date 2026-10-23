@@ -735,7 +735,7 @@ namespace Snapcode.Views
                             // Load saved workspace if it exists
                             await LoadSavedWorkspaceAsync();
                             
-                            // Load custom blocks from Sketchware JSON
+                            // Load custom blocks from JSON
                             await LoadSketchwareBlocksAsync();
                         });
                         break;
