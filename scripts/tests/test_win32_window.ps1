@@ -44,7 +44,7 @@ public class Win32 {
 }
 "@
 
-$exe = Resolve-Path ".\vs files\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\Snapcode.exe"
+$exe = Resolve-Path ".\src\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\Snapcode.exe"
 $project = Resolve-Path "$HOME\Documents\Snapcode\repos\newapp"
 $p = Start-Process -FilePath $exe -ArgumentList "--project `"$project`"" -PassThru
 

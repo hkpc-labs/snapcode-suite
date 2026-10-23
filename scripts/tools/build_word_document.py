@@ -351,31 +351,31 @@ comp_widths = [1.8, 1.9, 1.8, 1.3]
 comp_data = [
     [
         "FlutterCompilerService",
-        "vs files/Services/FlutterCompilerService.cs",
+        "src/Services/FlutterCompilerService.cs",
         "Parses the visual widget tree JSON and generates Flutter build(BuildContext context) methods with complete styling and layout geometry.",
         "Input: UI JSON\nOutput: Dart build() code"
     ],
     [
         "Blockly Host & Dart Generator",
-        "vs files/Assets/BlockEditor/index.html",
+        "src/Assets/BlockEditor/index.html",
         "Hosts Google Blockly inside WebView2. Translates event blocks into Dart code via dartGenerator and posts messages over the IPC channel.",
         "Input: Block workspace\nOutput: Dart statements"
     ],
     [
         "EditorPage Orchestrator",
-        "vs files/Views/EditorPage.xaml.cs",
+        "src/Views/EditorPage.xaml.cs",
         "Coordinates between UI canvas, Blockly WebView2, ProjectService, and the code preservation pipeline. Manages autosave and tab switching.",
         "Input: UI & Block events\nOutput: Disk persistence"
     ],
     [
         "UserCodePreservationService",
-        "vs files/Services/UserCodePreservationService.cs",
+        "src/Services/UserCodePreservationService.cs",
         "Protects user-written Dart modifications across UI regenerations. Extracts 6 marker tags, parses untagged imports, and archives orphaned blocks.",
         "Input: Existing & New Dart\nOutput: Merged Dart"
     ],
     [
         "ProjectFileClassifier",
-        "vs files/Services/ProjectFileClassifier.cs",
+        "src/Services/ProjectFileClassifier.cs",
         "Classifies project files into visual managed pages versus pure custom Dart files (models, services, APIs), preventing visual UI contamination.",
         "Input: File path / meta\nOutput: Boolean classification"
     ]
@@ -491,7 +491,7 @@ Widget build(BuildContext context) {
 add_h1(doc, "4. Block-Based Logic Generation Pipeline (Event Manager)")
 
 add_p(doc, 
-    "The Event Manager hosts Google Blockly inside a WinUI 3 CoreWebView2 container (vs files/Assets/BlockEditor/index.html). "
+    "The Event Manager hosts Google Blockly inside a WinUI 3 CoreWebView2 container (src/Assets/BlockEditor/index.html). "
     "Blockly operates in an isolated JavaScript context loaded with custom Sketchware Pro-inspired Flutter blocks. "
     "The workspace auto-compiles logic into Dart in real time as blocks are manipulated."
 )
@@ -517,7 +517,7 @@ add_p(doc,
 )
 
 add_code_block(doc, 
-"""// Excerpt from vs files/Assets/BlockEditor/index.html: Live Code Compilation Bridge
+"""// Excerpt from src/Assets/BlockEditor/index.html: Live Code Compilation Bridge
 workspace.addChangeListener(function(event) {
     if (event.isUiEvent) return;
     try {

@@ -26,10 +26,10 @@ function Assert-Check {
 
 # 1. Load SnapCode compiled assembly via reflection
 Write-Host ">>> 1. Loading SnapCode Assembly for Verification..." -ForegroundColor Yellow
-$snapcodeDll = "c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\vs files\bin\Debug\net8.0-windows10.0.19041.0\SnapCode.dll"
+$snapcodeDll = "c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\src\bin\Debug\net8.0-windows10.0.19041.0\Snapcode.dll"
 if (-not (Test-Path $snapcodeDll)) {
     Write-Host "SnapCode DLL not found at $snapcodeDll. Building project first..." -ForegroundColor Yellow
-    dotnet build "vs files\SnapCode.csproj" -c Debug
+    dotnet build "src\Snapcode.csproj" -c Debug
 }
 
 Assert-Check -Title "SnapCode.dll exists" -Condition (Test-Path $snapcodeDll) -Details $snapcodeDll

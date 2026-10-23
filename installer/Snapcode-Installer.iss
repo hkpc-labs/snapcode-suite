@@ -22,7 +22,7 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\releases
 OutputBaseFilename=Snapcode-Setup-v{#MyAppVersion}
-SetupIconFile=..\vs files\Assets\app.ico
+SetupIconFile=..\src\Assets\app.ico
 UninstallDisplayIcon={app}\Assets\app.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -47,7 +47,7 @@ Type: files; Name: "{userdesktop}\Snapcode.lnk"
 Type: files; Name: "{userprograms}\Snapcode.lnk"
 
 [Files]
-Source: "..\vs files\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\src\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\Assets\app.ico"

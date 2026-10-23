@@ -14,10 +14,10 @@
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
-$Csproj = Join-Path $ProjectRoot "vs files\Snapcode.csproj"
+$Csproj = Join-Path $ProjectRoot "src\Snapcode.csproj"
 $ThinInstallerCsproj = Join-Path $ProjectRoot "installer\ThinInstaller\Snapcode-ThinInstaller.csproj"
 $ReleasesDir = Join-Path $ProjectRoot "releases"
-$PublishDir = Join-Path $ProjectRoot "vs files\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
+$PublishDir = Join-Path $ProjectRoot "src\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
 
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "     Building Snapcode Release v0.1.0     " -ForegroundColor Cyan
@@ -48,7 +48,7 @@ if ($publishProc.ExitCode -ne 0) {
 }
 
 # Verify Assets in PublishDir
-$srcAssets = Join-Path $ProjectRoot "vs files\Assets"
+$srcAssets = Join-Path $ProjectRoot "src\Assets"
 $dstAssets = Join-Path $PublishDir "Assets"
 if (Test-Path $srcAssets) {
     Copy-Item -Path "$srcAssets\*" -Destination $dstAssets -Recurse -Force

@@ -1,7 +1,7 @@
 import sys
 
 # Fix EditorPage.xaml.cs
-file_path = r'c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\vs files\Views\EditorPage.xaml.cs'
+file_path = r'c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\src\Views\EditorPage.xaml.cs'
 with open(file_path, 'r', encoding='utf-8') as f:
     code = f.read()
 
@@ -11,7 +11,7 @@ with open(file_path, 'w', encoding='utf-8') as f:
     f.write(code)
 
 # Fix NativeUIDesigner.xaml.cs
-file_path2 = r'c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\vs files\Views\NativeUIDesigner.xaml.cs'
+file_path2 = r'c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\src\Views\NativeUIDesigner.xaml.cs'
 with open(file_path2, 'r', encoding='utf-8') as f:
     code = f.read()
 

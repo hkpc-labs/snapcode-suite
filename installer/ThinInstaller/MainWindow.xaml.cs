@@ -211,7 +211,7 @@ Remove-Item -Path '{targetDir}' -Recurse -Force
             {
                 Path.Combine(startDir, "publish"),
                 Path.Combine(startDir, "..", "publish"),
-                @"C:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\vs files\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
+                @"C:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\src\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
             };
 
             foreach (var cand in candidates)

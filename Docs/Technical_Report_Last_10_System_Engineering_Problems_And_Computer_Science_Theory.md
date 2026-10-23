@@ -117,7 +117,7 @@ When a contextual sub-workspace (`main_column_1_onClick.json`) is deleted or sub
 $$\forall f \in \{\text{derivative event files}\}, \quad \exists w \in \{\text{valid active workspace definitions}\} \quad \text{s.t.} \quad \text{source}(f) = w$$
 
 ### 4. Implementation & Verification
-In [`vs files/Services/ProjectService.cs`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Services/ProjectService.cs#L267-L305), file enumeration was sorted strictly by `LastWriteTimeUtc` ascending:
+In [`src/Services/ProjectService.cs`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Services/ProjectService.cs#L267-L305), file enumeration was sorted strictly by `LastWriteTimeUtc` ascending:
 ```csharp
 var matchingFiles = Directory.GetFiles(pagesDir, "*.event.dart")
     .Select(f => new FileInfo(f))
@@ -133,7 +133,7 @@ To guarantee that the live in-memory workspace code is yielded last, `eventCodes
 ## Problem 2: Exclusive Kernel-Level File Locks & Process Mutual Exclusion during Concurrent Build-and-Run
 
 ### 1. Concrete Engineering Incident & Symptoms
-During iterative debugging cycles, launching `dotnet build "vs files\Snapcode.csproj"` failed deterministically with:
+During iterative debugging cycles, launching `dotnet build "src\Snapcode.csproj"` failed deterministically with:
 ```
 error MSB3027: Could not copy "obj\x64\Debug\...\apphost.exe" to "bin\...\Snapcode.exe". 
 Exceeded retry count of 10. Failed. The file is locked by: "Snapcode (23544)"
@@ -239,7 +239,7 @@ $$\text{Domain}(B) = \{w \in \Sigma \mid \tau(w) \in \kappa_B\}$$
 Allowing an arbitrary widget ID causes semantic errors during transpilation (e.g. attempting to invoke `.text = ...` on a `Column` widget).
 
 ### 4. Implementation & Verification
-In [`vs files/Assets/BlockEditor/index.html`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Assets/BlockEditor/index.html#L380-L415):
+In [`src/Assets/BlockEditor/index.html`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Assets/BlockEditor/index.html#L380-L415):
 1. Overrode `Blockly.FieldDropdown.prototype.getOptions`:
    ```javascript
    const origGetOptions = Blockly.FieldDropdown.prototype.getOptions;
@@ -287,7 +287,7 @@ _text = 'It's sunny'; // Syntax Error: unexpected token 's'
 ```
 
 ### 4. Implementation & Verification
-In [`vs files/Assets/BlockEditor/index.html`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Assets/BlockEditor/index.html#L2230-L2255):
+In [`src/Assets/BlockEditor/index.html`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Assets/BlockEditor/index.html#L2230-L2255):
 1. Implemented a robust fallback `FieldColour` class extending `Blockly.Field` and registered it in `Blockly.fieldRegistry`:
    ```javascript
    if (!Blockly.fieldRegistry.has('field_colour')) {
@@ -346,7 +346,7 @@ $$\text{ResolvedProp} = S_{dynamic} \mathbin{??} P_{static} \mathbin{??} D_{fram
 where $S_{dynamic}$ is the user state variable, $P_{static}$ is the designer property value, and $D_{framework}$ is the Flutter default constant.
 
 ### 4. Implementation & Verification
-In [`vs files/Services/FlutterCompilerService.cs`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Services/FlutterCompilerService.cs#L80-L230):
+In [`src/Services/FlutterCompilerService.cs`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Services/FlutterCompilerService.cs#L80-L230):
 1. Added regular expression scanners across all combined event blocks:
    - `_([a-zA-Z0-9_]+?)TextColor\b` $\implies$ `Color? _{camel}TextColor;`
    - `_([a-zA-Z0-9_]+?)Text\b` $\implies$ `String? _{camel}Text;`
@@ -386,7 +386,7 @@ The compiled output must explicitly declare:
 $$\text{GestureDetector}(\text{behavior: HitTestBehavior.opaque}, \text{onTap: ()} \implies \text{Handler}(context), \text{child: } W)$$
 
 ### 4. Implementation & Verification
-In [`vs files/Services/FlutterCompilerService.cs`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Services/FlutterCompilerService.cs#L1020-L1038):
+In [`src/Services/FlutterCompilerService.cs`](file:///c:/Users/hardi/Documents/After%20Mids%20III-I/Software%20Engineering%20Project/vs%20files/Services/FlutterCompilerService.cs#L1020-L1038):
 ```csharp
 if (type != "Button" && type != "Checkbox" && type != "Switch" && type != "Slider" 
     && !string.IsNullOrEmpty(widgetId) && _activeEventBindings.TryGetValue(widgetId, out var genericEvents))

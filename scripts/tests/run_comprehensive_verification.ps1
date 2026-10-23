@@ -33,7 +33,7 @@ function Assert-Test {
 # 1. C# COMPILATION
 # ----------------------------------------------------
 Write-Host ">>> 1. Verifying C# Solution Compilation (SnapCode.csproj)..." -ForegroundColor Yellow
-$buildOutput = dotnet build "vs files\SnapCode.csproj" -c Debug 2>&1
+$buildOutput = dotnet build "src\Snapcode.csproj" -c Debug 2>&1
 $buildSuccess = ($LASTEXITCODE -eq 0)
 Assert-Test -Name "C# SnapCode.csproj compiles with 0 errors" -Condition $buildSuccess -Detail ($buildOutput | Select-String "error" | Out-String)
 
@@ -89,7 +89,7 @@ if (Test-Path $testRepoPath) {
 # 4. SAFETY & COMPLIANCE (No double.NaN on MinWidth)
 # ----------------------------------------------------
 Write-Host "`n>>> 4. Verifying WinUI 3 MinWidth/MinHeight Safety Constraints..." -ForegroundColor Yellow
-$doubleNanMatches = Select-String -Path "vs files\**\*.cs" -Pattern "(MinWidth|MinHeight)\s*=\s*double\.NaN"
+$doubleNanMatches = Select-String -Path "src\**\*.cs" -Pattern "(MinWidth|MinHeight)\s*=\s*double\.NaN"
 Assert-Test -Name "Zero occurrences of double.NaN assigned to MinWidth/MinHeight (WinRT constraint)" -Condition ($doubleNanMatches.Count -eq 0) -Detail "Found $($doubleNanMatches.Count) occurrences"
 
 # ----------------------------------------------------
@@ -97,15 +97,15 @@ Assert-Test -Name "Zero occurrences of double.NaN assigned to MinWidth/MinHeight
 # ----------------------------------------------------
 Write-Host "`n>>> 5. Verifying New Services & UI Controls..." -ForegroundColor Yellow
 $requiredFiles = @(
-    "vs files\Models\FlutterDevice.cs",
-    "vs files\Models\DebugLogEntry.cs",
-    "vs files\Services\FlutterExecutionService.cs",
-    "vs files\Views\DebugConsoleControl.xaml",
-    "vs files\Views\DebugConsoleControl.xaml.cs",
-    "vs files\Views\DebugLogsWindow.xaml",
-    "vs files\Views\DebugLogsWindow.xaml.cs",
-    "vs files\Views\EmulatorManagerDialog.xaml",
-    "vs files\Views\EmulatorManagerDialog.xaml.cs"
+    "src\Models\FlutterDevice.cs",
+    "src\Models\DebugLogEntry.cs",
+    "src\Services\FlutterExecutionService.cs",
+    "src\Views\DebugConsoleControl.xaml",
+    "src\Views\DebugConsoleControl.xaml.cs",
+    "src\Views\DebugLogsWindow.xaml",
+    "src\Views\DebugLogsWindow.xaml.cs",
+    "src\Views\EmulatorManagerDialog.xaml",
+    "src\Views\EmulatorManagerDialog.xaml.cs"
 )
 
 foreach ($f in $requiredFiles) {

@@ -30,7 +30,7 @@ Version 0.1 establishes the unified visual IDE bridging Flutter application deve
 ---
 
 ## 2. Included Directories & Assets
-- `vs files/`: Complete C# / WinUI 3 desktop client application, view designer controls, test services, dialogs, and project configurations.
+- `src/`: Complete C# / WinUI 3 desktop client application, view designer controls, test services, dialogs, and project configurations.
 - `helpers/`: Sketchware custom blocks database, conversion scripts, and palette schemas.
 - `Docs/`: Project architecture, block specification guides, and engineering documentation.
 - `snapcode-compiler/`: Standalone compilation tools and Flutter AST processors.

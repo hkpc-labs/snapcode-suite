@@ -549,7 +549,7 @@ catch {
 # ------------------------------------------------------------------------------
 Write-LiveLog -Level "STEP" -Message ">>> STEP 4: Launching SnapCode Desktop App (SnapCode.exe)..."
 
-$binDir = Join-Path $WorkspaceRoot "vs files\bin"
+$binDir = Join-Path $WorkspaceRoot "src\bin"
 $snapcodeExe = $null
 if (Test-Path $binDir) {
     $snapcodeExe = Get-ChildItem -Path $binDir -Filter "SnapCode.exe" -Recurse |
@@ -598,7 +598,7 @@ if ($snapcodeExe) {
         $stepMetrics.Add([PSCustomObject]@{ Step = "4. Launch & Inspect SnapCode.exe"; Status = "FAIL" })
     }
 } else {
-    Register-Problem -Category "APP_BUILD" -Severity "HIGH" -Description "SnapCode.exe binary not found. Build the C# solution first." -Location $WorkspaceRoot -Recommendation "Run dotnet build vs files\SnapCode.csproj -c Debug"
+    Register-Problem -Category "APP_BUILD" -Severity "HIGH" -Description "SnapCode.exe binary not found. Build the C# solution first." -Location $WorkspaceRoot -Recommendation "Run dotnet build src\Snapcode.csproj -c Debug"
     $stepMetrics.Add([PSCustomObject]@{ Step = "4. Launch & Inspect SnapCode.exe"; Status = "SKIP" })
 }
 

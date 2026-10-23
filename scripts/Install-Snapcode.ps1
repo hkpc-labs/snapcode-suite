@@ -12,11 +12,11 @@ param(
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
-$PublishDir = Join-Path $ProjectRoot "vs files\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
+$PublishDir = Join-Path $ProjectRoot "src\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
 
 if (!(Test-Path $PublishDir)) {
     Write-Host "[*] Release publish build not found. Running dotnet publish..." -ForegroundColor Cyan
-    $publishProc = Start-Process dotnet -ArgumentList "publish `"$ProjectRoot\vs files\Snapcode.csproj`" -c Release -p:Platform=x64" -Wait -NoNewWindow -PassThru
+    $publishProc = Start-Process dotnet -ArgumentList "publish `"$ProjectRoot\src\Snapcode.csproj`" -c Release -p:Platform=x64" -Wait -NoNewWindow -PassThru
     if ($publishProc.ExitCode -ne 0) {
         Write-Error "Failed to build Snapcode Release package."
         exit 1

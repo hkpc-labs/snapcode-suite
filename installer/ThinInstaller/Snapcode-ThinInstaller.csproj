@@ -9,7 +9,7 @@
     <Version>0.1.0</Version>
     <Company>hkpc labs</Company>
     <Authors>hkpc labs</Authors>
-    <ApplicationIcon>..\..\vs files\Assets\app.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\src\Assets\app.ico</ApplicationIcon>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="..\..\vs files\Assets\app.ico" Link="app.ico">
+    <Content Include="..\..\src\Assets\app.ico" Link="app.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

@@ -1,6 +1,6 @@
 import sys
 
-file_path = r'c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\vs files\Views\NativeUIDesigner.xaml.cs'
+file_path = r'c:\Users\hardi\Documents\After Mids III-I\Software Engineering Project\src\Views\NativeUIDesigner.xaml.cs'
 with open(file_path, 'r', encoding='utf-8') as f:
     code = f.read()
 

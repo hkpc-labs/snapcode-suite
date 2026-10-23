@@ -1,4 +1,4 @@
-﻿# Automated Comprehensive System Verification Report
+# Automated Comprehensive System Verification Report
 *Generated at: 2026-10-13 15:03:39*
 
 ## Summary
@@ -19,13 +19,13 @@
 - [x] **PASS**: main.dart has preservation markers for CLASS_MEMBERS
 - [x] **PASS**: main.dart has preservation markers for CUSTOM_METHODS
 - [x] **PASS**: Zero occurrences of double.NaN assigned to MinWidth/MinHeight (WinRT constraint)
-- [x] **PASS**: File exists: vs files\Models\FlutterDevice.cs
-- [x] **PASS**: File exists: vs files\Models\DebugLogEntry.cs
-- [x] **PASS**: File exists: vs files\Services\FlutterExecutionService.cs
-- [x] **PASS**: File exists: vs files\Views\DebugConsoleControl.xaml
-- [x] **PASS**: File exists: vs files\Views\DebugConsoleControl.xaml.cs
-- [x] **PASS**: File exists: vs files\Views\DebugLogsWindow.xaml
-- [x] **PASS**: File exists: vs files\Views\DebugLogsWindow.xaml.cs
-- [x] **PASS**: File exists: vs files\Views\EmulatorManagerDialog.xaml
-- [x] **PASS**: File exists: vs files\Views\EmulatorManagerDialog.xaml.cs
+- [x] **PASS**: File exists: src\Models\FlutterDevice.cs
+- [x] **PASS**: File exists: src\Models\DebugLogEntry.cs
+- [x] **PASS**: File exists: src\Services\FlutterExecutionService.cs
+- [x] **PASS**: File exists: src\Views\DebugConsoleControl.xaml
+- [x] **PASS**: File exists: src\Views\DebugConsoleControl.xaml.cs
+- [x] **PASS**: File exists: src\Views\DebugLogsWindow.xaml
+- [x] **PASS**: File exists: src\Views\DebugLogsWindow.xaml.cs
+- [x] **PASS**: File exists: src\Views\EmulatorManagerDialog.xaml
+- [x] **PASS**: File exists: src\Views\EmulatorManagerDialog.xaml.cs
 

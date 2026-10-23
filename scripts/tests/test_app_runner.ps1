@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$appExe = Resolve-Path ".\vs files\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\Snapcode.exe"
+$appExe = Resolve-Path ".\src\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\Snapcode.exe"
 if (-not (Test-Path $appExe)) {
     Write-Error "Snapcode.exe not found at $appExe. Run dotnet build -p:Platform=x64 first."
 }
